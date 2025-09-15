@@ -1,0 +1,95 @@
+.main-content {
+  display: flex;
+  margin-top: 60px; 
+  padding-bottom: 80px; 
+}
+
+.content-area {
+  flex: 1;
+  padding: 20px;
+  background: #F2F9FF;
+}
+
+.meter-table {
+  padding: 20px;
+  margin: 0;            
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead th {
+  background: #f4e9f5;
+  padding: 12px;
+  text-align: left;
+  font-weight: bold;
+  border-bottom: 2px solid #ddd;
+}
+
+tbody tr {
+  background: white;
+  margin-bottom: 8px;
+  display: table-row;
+  transition: background 0.3s;
+}
+
+tbody tr:hover {
+  background: #f9f9f9; /* Hiệu ứng hover */
+}
+
+td {
+  padding: 12px;
+  border-bottom: 1px solid #ddd;
+}
+
+.normal {
+  color: green;
+  font-weight: bold;
+}
+
+.fixing {
+  color: red;
+  font-weight: bold;
+}
+
+/* Search Components */
+.search-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 20px; /* Khoảng cách giữa ô tìm kiếm và bảng */
+}
+
+.search-box {
+  position: relative;
+  width: 280px;
+  max-width: 100%;
+}
+
+.search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #999;
+  font-size: 16px; /* Tăng kích thước biểu tượng */
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 16px 12px 44px;
+  border: 1px solid #e1e5e9;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  background: white;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+
+}
+
+.search-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}

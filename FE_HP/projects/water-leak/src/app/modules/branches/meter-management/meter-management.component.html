@@ -1,0 +1,39 @@
+<div class="meter-table">
+  <div class="search-container">
+            <div class="search-box">
+              <img src="../../../../assets/images/icon/search.png" alt="Search" class="search-icon" />
+              <input
+                type="text"
+                placeholder="Search"
+                class="search-input"
+              />
+            </div>
+        </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Tên đồng hồ</th>
+        <th>Tình trạng dự đoán</th>
+        <th>Ngày lắp đặt</th>
+        <th>Ngưỡng thủ công</th>
+        <th>Hành động</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let m of meters">
+        <td>{{ m.name }}</td>
+        <td [ngClass]="{
+          'normal': m.status === 'Normal',
+          'fixing': m.status === 'On fixing'
+        }">
+          {{ m.status }}
+        </td>
+        <td>{{ m.installDate }}</td>
+        <td>{{ m.manualThreshold }}</td>
+        <td>
+          <button class="detail-btn">+</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>

@@ -1,0 +1,39 @@
+<div class="predictive-container">
+    <div class="table-wrapper">
+    <div class="topbar">
+    <h2 class="title">Bảng theo dõi đồng hồ</h2>
+        <div class="filter">
+            <div class="filter-group">
+            <h4>Khu vực: </h4>
+            <select>
+            <option>{{ data?.area }}</option>
+            </select>
+            </div>
+            <div class="filter-group">
+                <h4>Chọn ngày:</h4>
+                <input type="date" />
+            </div>
+        </div>
+    </div>
+
+    <h3>Đồng hồ {{ data?.area }}</h3>
+
+    <table *ngIf="data">
+        <tr>
+            <th>MÔ HÌNH DỰ ĐOÁN</th>
+            <th *ngFor="let d of data.dates">{{ d }}</th>
+        </tr>
+        <tr *ngFor="let m of data.models">
+            <td>{{ m.name }}</td>
+            <td *ngFor="let r of m.results" [ngClass]="{
+            'low': r.includes('thấp'),
+            'medium': r.includes('trung bình'),
+            'high': r.includes('cao'),
+            'unknown': r.includes('Chưa')
+            }">
+            {{ r }}
+            </td>
+        </tr>
+    </table>
+    </div>
+</div>
