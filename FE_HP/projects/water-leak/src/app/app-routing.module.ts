@@ -9,12 +9,15 @@ import { BreakHistoryComponent } from './modules/company/beak-history/components
 import { MainComponentComponent } from './modules/company/dashboard/components/main-component/main-component.component';
 import { WaterMeterInfoComponent } from './modules/company/water-clock/components/water-meter-info/water-meter-info.component';
 import { authGuard } from 'my-lib';
+
 const routes: Routes = [
   { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
   { path: 'auth/login', component: LoginComponent },
   {
     path: '',
     component: MainComponent,
+    canActivate: [authGuard],
+    data: {role: 'branch_manager'},
     children: [
       { path: 'branches/predictive-model', component: PredictiveModelComponent },
       { path: 'branches/manual-model', component: ManualModelComponent },

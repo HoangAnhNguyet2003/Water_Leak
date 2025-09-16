@@ -21,7 +21,7 @@ bp = Blueprint("users", __name__)
 
 @bp.get("/all")
 @jwt_required()
-@require_role("admin")
+@require_role("admin", "branch_manager", "company_manager")
 def get_all_users():
     db = get_db()
     cur = db["users"].find({}).sort([("_id", 1)])
@@ -31,9 +31,7 @@ def get_all_users():
         user_id = _oid_str(u["_id"])
         role_oid = _oid_str(u.get("role_id"))
         role_name = get_role_name(role_oid)
-
         managed_meters = list_user_meters(user_id)
-
         user_out = {
             "id": user_id,
             "username": u.get("username"),
