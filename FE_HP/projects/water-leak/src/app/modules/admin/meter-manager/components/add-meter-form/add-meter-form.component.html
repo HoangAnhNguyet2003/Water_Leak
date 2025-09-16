@@ -1,0 +1,95 @@
+<div class="popup-overlay" *ngIf="isVisible && !showConfirmPopup && !showSuccessPopup" (click)="onCancel()">
+  <div class="popup-container" (click)="$event.stopPropagation()">
+    <div class="popup-header">
+      <h3>Thêm đồng hồ nước mới</h3>
+      <button class="close-btn" (click)="onCancel()">×</button>
+    </div>
+
+    <form class="popup-form" (ngSubmit)="onSubmit()" #meterForm="ngForm">
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label for="meterName">Tên đồng hồ <span class="required">*</span></label>
+          <input
+            type="text"
+            id="meterName"
+            name="meterName"
+            class="form-input"
+            [(ngModel)]="newMeter.name"
+            required
+            placeholder="Nhập tên đồng hồ">
+        </div>
+
+        <div class="form-group">
+          <label for="branch">Chi nhánh <span class="required">*</span></label>
+          <select
+            id="branch"
+            name="branch"
+            class="form-select"
+            [(ngModel)]="selectedBranchId"
+            required>
+            <option value="">Chọn chi nhánh</option>
+            <option
+              *ngFor="let branch of availableBranches"
+              [value]="branch.id">
+              {{ branch.name }}
+            </option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="installDate">Ngày lắp đặt</label>
+          <input
+            type="date"
+            id="installDate"
+            name="installDate"
+            class="form-input"
+            [(ngModel)]="installDate">
+        </div>
+
+        <div class="form-group">
+          <label for="status">Trạng thái</label>
+          <select
+            id="status"
+            name="status"
+            class="form-select"
+            [(ngModel)]="newMeter.status">
+            <option [value]="WaterMeterStatus.NORMAL">Hoạt động</option>
+            <option [value]="WaterMeterStatus.ANOMALY">Bất thường</option>
+            <option [value]="WaterMeterStatus.LOST_CONNECTION">Mất kết nối</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-cancel" (click)="onCancel()">
+          Hủy
+        </button>
+        <button
+          type="submit"
+          class="btn btn-primary"
+          [disabled]="!meterForm.valid">
+          Thêm đồng hồ
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Popup xác nhận -->
+<lib-popup-confirm
+  [isVisible]="showConfirmPopup"
+  [mode]="PopupMode.CONFIRM"
+  title="Xác nhận thêm đồng hồ"
+  message="Bạn có chắc chắn muốn thêm đồng hồ nước này không?"
+  (confirm)="onConfirmAddMeter()"
+  (cancel)="onCancelConfirm()">
+</lib-popup-confirm>
+
+<!-- Popup thành công -->
+<lib-popup-confirm
+  [isVisible]="showSuccessPopup"
+  [mode]="PopupMode.SUCCESS"
+  title="Thành công!"
+  message="Đồng hồ nước đã được thêm thành công."
+  (confirm)="onCloseSuccess()">
+</lib-popup-confirm>

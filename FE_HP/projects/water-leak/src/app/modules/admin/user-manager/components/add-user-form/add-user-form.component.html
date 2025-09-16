@@ -1,0 +1,155 @@
+<div class="popup-overlay" *ngIf="isVisible && !showConfirmPopup && !showSuccessPopup" (click)="onCancel()">
+  <div class="popup-container" (click)="$event.stopPropagation()">
+    <div class="popup-header">
+      <h3>Thêm người dùng mới</h3>
+      <button class="close-btn" (click)="onCancel()">×</button>
+    </div>
+
+    <form class="popup-form" (ngSubmit)="onSubmit()" #userForm="ngForm">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="username">Username <span class="required">*</span></label>
+          <input
+            type="text"
+            id="username"
+            name="username"
+            class="form-input"
+            [(ngModel)]="newUser.username"
+            required
+            placeholder="Nhập username">
+        </div>
+
+        <div class="form-group">
+          <label for="role">Vai trò <span class="required">*</span></label>
+          <select
+            id="role"
+            name="role"
+            class="form-select"
+            [(ngModel)]="newUser.roleName"
+            (ngModelChange)="onRoleChange($event)"
+            required>
+            <option [value]="UserRole.Admin">Administrator</option>
+            <option [value]="UserRole.Company">Tổng công ty</option>
+            <option [value]="UserRole.Branch">Chi nhánh</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="branch">Chi nhánh</label>
+          <ng-container *ngIf="newUser.roleName === UserRole.Admin || newUser.roleName === UserRole.Company; else branchSelect">
+            <div class="fixed-branch">Không xác định</div>
+          </ng-container>
+          <ng-template #branchSelect>
+            <select id="branch" name="branch" class="form-select" [(ngModel)]="newUser.branchId">
+              <option value="">Chọn chi nhánh (tùy chọn)</option>
+              <option *ngFor="let b of branches$ | async" [value]="b.id">{{ b.name }}</option>
+            </select>
+          </ng-template>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="password">Mật khẩu <span class="required">*</span></label>
+          <div class="password-input-container">
+            <input
+              [type]="showPassword ? 'text' : 'password'"
+              id="password"
+              name="password"
+              class="form-input"
+              [(ngModel)]="newUser.password"
+              required
+              placeholder="Nhập mật khẩu">
+            <button type="button" class="password-toggle-btn" (click)="togglePasswordVisibility($event)">
+              <span *ngIf="!showPassword">👁️</span>
+              <span *ngIf="showPassword">🙈</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="confirmPassword">Xác nhận mật khẩu <span class="required">*</span></label>
+          <div class="password-input-container">
+            <input
+              [type]="showConfirmPassword ? 'text' : 'password'"
+              id="confirmPassword"
+              name="confirmPassword"
+              class="form-input"
+              [(ngModel)]="confirmPassword"
+              required
+              placeholder="Nhập lại mật khẩu"
+              [class.error]="!isPasswordValid() && confirmPassword.length > 0">
+            <button type="button" class="password-toggle-btn" (click)="toggleConfirmPasswordVisibility($event)">
+              <span *ngIf="!showConfirmPassword">👁️</span>
+              <span *ngIf="showConfirmPassword">🙈</span>
+            </button>
+          </div>
+          <div class="error-message" *ngIf="!isPasswordValid() && confirmPassword.length > 0">
+            Mật khẩu xác nhận không khớp
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group full-width">
+        <label>Đồng hồ nước được quản lý</label>
+        <div class="water-meters-grid">
+          <div
+            *ngFor="let meter of availableWaterMeters$ | async"
+            class="water-meter-item"
+            [class.selected]="isWaterMeterSelected(meter.id)"
+            (click)="onMeterClick(meter, $event)">
+            <div class="meter-content">
+              <div class="meter-main">
+                <span class="meter-name">{{ meter.name || ('Đồng hồ ' + meter.id) }}</span>
+              </div>
+              <div class="meter-sub">
+                <span class="meter-branch">{{ meter.branchName || 'Không rõ chi nhánh' }}</span>
+              </div>
+            </div>
+            <div class="meter-check" *ngIf="isWaterMeterSelected(meter.id)">
+              ✓
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn-cancel" (click)="onCancel()">
+          Hủy
+        </button>
+        <button
+          type="submit"
+          class="btn btn-primary"
+          [disabled]="!userForm.valid || !isPasswordValid()">
+          Thêm người dùng
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Popup xác nhận -->
+<lib-popup-confirm
+  [isVisible]="showConfirmPopup"
+  [mode]="PopupMode.CONFIRM"
+  title="Xác nhận thêm người dùng"
+  message="Bạn có chắc chắn muốn thêm người dùng này không?"
+  (confirm)="onConfirmAddUser()"
+  (cancel)="onCancelConfirm()">
+</lib-popup-confirm>
+
+<!-- Popup thành công -->
+<lib-popup-confirm
+  [isVisible]="showSuccessPopup"
+  [mode]="PopupMode.SUCCESS"
+  title="Thành công!"
+  message="Người dùng đã được thêm thành công."
+  (confirm)="onCloseSuccess()">
+</lib-popup-confirm>
+
+<lib-popup-confirm
+  [isVisible]="showErrorPopup"
+  [mode]="PopupMode.ERROR"
+  title="Lỗi"
+  [message]="errorMessage"
+  (confirm)="onCloseError()">
+</lib-popup-confirm>
