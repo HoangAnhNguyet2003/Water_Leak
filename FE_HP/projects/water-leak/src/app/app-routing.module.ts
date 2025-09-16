@@ -8,10 +8,10 @@ import { MainComponent } from './core/layout/main/main.component';
 import { BreakHistoryComponent } from './modules/company/beak-history/components/break-history/break-history.component';
 import { MainComponentComponent } from './modules/company/dashboard/components/main-component/main-component.component';
 import { WaterMeterInfoComponent } from './modules/company/water-clock/components/water-meter-info/water-meter-info.component';
-
+import { authGuard } from 'my-lib';
 const routes: Routes = [
-  { path: '', redirectTo: 'auth/login', pathMatch: 'full' }, 
-  { path: 'auth/login', component: LoginComponent }, 
+  { path: '', redirectTo: 'auth/login', pathMatch: 'full' },
+  { path: 'auth/login', component: LoginComponent },
   {
     path: '',
     component: MainComponent,
@@ -24,6 +24,35 @@ const routes: Routes = [
       { path: 'company/water-clock', component: WaterMeterInfoComponent}
     ]
   },
+  {
+    path: 'admin',
+    component: MainComponent,
+    canActivate: [authGuard],
+    data: {role: 'admin'},
+    children: [
+      {
+        path: 'dashboard',
+        loadComponent: () => import('./modules/admin/dashboard/components/dashboard-component/dashboard-component.component').then(m => m.DashboardComponentComponent)
+      },
+      {
+        path: 'user-manager',
+        loadComponent: () => import('./modules/admin/user-manager/components/um-components/um-components.component').then(m => m.UmComponentsComponent)
+      },
+      {
+        path: 'meter-manager',
+        loadComponent: () => import('./modules/admin/meter-manager/components/meter-main-component/meter-main-component.component').then(m => m.MeterMainComponentComponent)
+      },
+      {
+        path: 'logs',
+        loadComponent: () => import('./modules/admin/log/components/log-main/log-main.component').then(m => m.LogMainComponent)
+      },
+      {
+        path: '',
+        redirectTo: 'dashboard',
+        pathMatch: 'full'
+      }
+    ]
+  }
 ];
 
 @NgModule({

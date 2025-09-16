@@ -1,0 +1,4 @@
+2025-09-10 21:11:36,487 - INFO - REQUEST - IP:127.0.0.1 | User:anonymous | POST /api/v1/auth/role-based-login | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
+2025-09-10 21:11:36,786 - ERROR - ERROR - IP:127.0.0.1 | User:anonymous | POST /api/v1/auth/role-based-login | Duration:298.14ms | Error:Invalid username or password
+2025-09-10 21:11:49,624 - INFO - REQUEST - IP:127.0.0.1 | User:anonymous | POST /api/v1/auth/role-based-login | UA:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
+2025-09-10 21:11:49,914 - ERROR - ERROR - IP:127.0.0.1 | User:anonymous | POST /api/v1/auth/role-based-login | Duration:289.81ms | Error:Invalid username or password

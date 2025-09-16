@@ -1,12 +1,20 @@
-<div class="header">
-  <div class="header-content">
-    <h2 class="title">CẢNH BÁO RÒ RỈ NƯỚC KHU VỰC A</h2>
-    <!-- <div class="user-actions">
-      <div class="user-dropdown" >
-        <button class="user-btn" >
+<div class="topbar">
+  <div class="topbar-content">
+    <h2 class="title">HP WATER CO</h2>
+    <div class="user-actions">
+      <div class="user-dropdown" [class.active]="showDropdown">
+        <button class="user-btn" (click)="toggleDropdown()">
           <i class="fas fa-user-circle"></i>
-          <i class="fas fa-chevron-down dropdown-arrow" ></i>
+          <span class="username">{{ userName() }}</span>
+          <i class="fas fa-chevron-down dropdown-arrow" [class.rotated]="showDropdown"></i>
         </button>
+        <div class="dropdown-menu" *ngIf="showDropdown">
+          <div class="dropdown-item logout-item" (click)="logout()">
+            <i class="fas fa-sign-out-alt"></i>
+            <span>Đăng xuất</span>
+          </div>
+        </div>
+      </div>
     </div>
-  </div> -->
+  </div>
 </div>

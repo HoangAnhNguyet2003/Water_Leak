@@ -1,59 +1,88 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <title>Water Leak - Login</title>
-  <base href="/" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link rel="icon" type="image/x-icon" href="favicon.ico" />
-</head>
-<body>
-  <div class="container">
-    <div class="left">
-     <div class="form-container">
-  <h3 class="form-title">HỆ THỐNG CẢNH BÁO NGHI NGỜ RÒ RỈ NƯỚC</h3>
-  <p class="form-sub">Đăng nhập thông tin tài khoản của bạn</p>
+<div class="login-page">
+  <!-- Main Container -->
+  <div class="login-container">
+    <!-- Left Side - Login Form -->
+    <div class="login-section">
+      <div class="login-form-container">
+        <h1 class="form-title">HỆ THỐNG CẢNH BÁO RÒ RỈ NƯỚC</h1>
+        <p class="form-subtitle">Đăng nhập thông tin tài khoản của bạn</p>
 
-  <form class="login-form">
-    <div class="form-group">
-      <label for="username">Tên tài khoản</label>
-      <input type="username" id="username" placeholder="Nhập tên tài khoản" required>
+        <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+          <!-- Username Field -->
+          <div class="form-group">
+            <label for="username" class="form-label">Username</label>
+            <input
+              type="text"
+              id="username"
+              formControlName="username"
+              class="form-input"
+              placeholder="Nhập username"
+              [class.error]="loginForm.get('username')?.invalid && loginForm.get('username')?.touched"
+            />
+            <div class="error-message" *ngIf="getErrorMessage('username')">
+              {{ getErrorMessage('username') }}
+            </div>
+          </div>
+
+          <!-- Password Field -->
+          <div class="form-group">
+            <label for="password" class="form-label">Mật khẩu</label>
+            <div class="password-input-container">
+              <input
+                [type]="showPassword ? 'text' : 'password'"
+                id="password"
+                formControlName="password"
+                class="form-input password-input"
+                placeholder="Nhập mật khẩu"
+                [class.error]="loginForm.get('password')?.invalid && loginForm.get('password')?.touched"
+              />
+              <button
+                type="button"
+                class="password-toggle"
+                (click)="togglePasswordVisibility()"
+                aria-label="Toggle password visibility"
+                title="{{ showPassword ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu' }}"
+              >
+                <span *ngIf="!showPassword">👁️</span>
+                <span *ngIf="showPassword">🙈</span>
+              </button>
+            </div>
+            <div class="error-message" *ngIf="getErrorMessage('password')">
+              {{ getErrorMessage('password') }}
+            </div>
+          </div>
+
+          <!-- Error Message -->
+          <div class="error-message global-error" *ngIf="errorMessage">
+            {{ errorMessage }}
+          </div>
+
+          <!-- Submit Button -->
+          <button
+            type="submit"
+            class="submit-button"
+            [disabled]="isLoading || loginForm.invalid"
+          >
+            <span *ngIf="!isLoading">Đăng nhập</span>
+            <span *ngIf="isLoading">Đang xử lý...</span>
+          </button>
+        </form>
+      </div>
     </div>
 
-    <div class="form-group">
-      <label for="password">Mật khẩu</label>
-      <input
-        [type]="showPassword ? 'text' : 'password'"
-        id="password"
-        placeholder="Nhập mật khẩu"
-        required
-      >
-  <button
-      type="button"
-      class="toggle-password"
-      (click)="showPassword = !showPassword"
-    >
-    <img *ngIf="showPassword; else hiddenIcon"
-        src="../../../../assets/images/icon/visibility.png"
-        alt="Hiện mât khẩu">
-    <ng-template #hiddenIcon>
-      <img src="../../../../assets/images/icon/visibility_off.png" alt="Ẩn mật khẩu">
-    </ng-template>
-  </button>
-</div>
-
-    <a href="#" class="forgot">Quên mật khẩu?</a>
-    <button (click)="onLogin()" type="submit" class="btn">Đăng nhập</button>
-  </form>
-</div>
-
-    </div>
-    <div class="right">
-      <img src="../../../../assets/images/logo.png" alt="Logo Hải Phòng Water" class="logo">
-      <h2 class="company">CÔNG TY CỔ PHẦN CẤP NƯỚC HẢI PHÒNG</h2>
-      <h3 class="standard">HỆ THỐNG QUẢN LÝ THEO TIÊU CHUẨN<br>ISO 9001 - 2015</h3>
+    <!-- Right Side - Company Info -->
+    <div class="company-section">
+      <div class="company-logo">
+        <div class="logo-circle">
+          <!-- Company Logo -->
+          <img src="../../../../assets/images/logo.png" alt="Company Logo" class="logo-image" />
+        </div>
+      </div>
+      <div class="company-info">
+        <h3 class="company-name">CÔNG TY CỔ PHẦN CẤP NƯỚC HẢI PHÒNG</h3>
+        <p class="company-subtitle">HỆ THỐNG QUẢN LÝ THEO TIÊU CHUẨN</p>
+        <p class="company-standard">ISO 9001 - 2015</p>
+      </div>
     </div>
   </div>
-</body>
-</html>
+</div>
