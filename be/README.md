@@ -3,13 +3,12 @@
 
 ## Quick start
 ```bash
-cd flask_mongo_rest
+cd be
 python -m venv .venv
 # Windows PowerShell
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 cp .env.example .env
-# chạy file seed data đã để có dữ liệu chạy s
 python run.py
 ```
 
