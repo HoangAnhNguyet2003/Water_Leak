@@ -202,6 +202,15 @@ export class AuthService {
     return role === 'branch' || role === 'branch_manager';
   }
 
+   /**
+   * Check if user is company manager
+   */
+  isCompany(): boolean {
+    const user = this.getCurrentUser();
+    const role = user?.roleName?.toLowerCase();
+    return role === 'company' || role === 'company_manager';
+  }
+
   /**
    * Check if user has specific role
    */
