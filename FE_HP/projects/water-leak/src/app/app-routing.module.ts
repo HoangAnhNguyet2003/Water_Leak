@@ -21,10 +21,32 @@ const routes: Routes = [
     children: [
       { path: 'branches/predictive-model', component: PredictiveModelComponent },
       { path: 'branches/manual-model', component: ManualModelComponent },
-      { path: 'branches/meter-management', component: MeterManagementComponent },
-      { path: 'company/beak-history', component: BreakHistoryComponent},
-      { path: 'company/dashboard', component: MainComponentComponent},
-      { path: 'company/water-clock', component: WaterMeterInfoComponent}
+      { path: 'branches/meter-management', component: MeterManagementComponent }
+    ]
+  },
+  {
+    path: 'company',
+    component: MainComponent,
+    canActivate: [authGuard],
+    data: {role: 'company'},
+    children: [
+      {
+        path: 'dashboard',
+        loadComponent: () => import('./modules/company/dashboard/components/main-component/main-component.component').then(m => m.MainComponentComponent)
+      },
+      {
+        path: 'water-clock',
+        loadComponent: () => import('./modules/company/water-clock/components/water-meter-info/water-meter-info.component').then(m => m.WaterMeterInfoComponent)
+      },
+      {
+        path: 'beak-history',
+        loadComponent: () => import('./modules/company/beak-history/components/break-history/break-history.component').then(m => m.BreakHistoryComponent)
+      },
+      {
+        path: '',
+        redirectTo: 'dashboard',
+        pathMatch: 'full'
+      }
     ]
   },
   {

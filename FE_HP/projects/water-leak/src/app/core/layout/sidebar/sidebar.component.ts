@@ -20,6 +20,10 @@ export class SidebarComponent implements OnInit {
   menu$: Observable<MenuItem[]> = of([]);
 
   private allMenu: MenuItem[] = [
+    { label: 'Dashboard', icon: 'fas fa-home', route: '/company/dashboard', allowedRoles: ['company', 'company_manager'] },
+    { label: 'Thông tin đồng hồ', icon: 'fas fa-tachometer-alt', route: '/company/water-clock', allowedRoles: ['company', 'company_manager'] },
+    { label: 'Lịch sử vỡ', icon: 'fas fa-history', route: '/company/beak-history', allowedRoles: ['company', 'company_manager'] },
+
     { label: 'Dự đoán rò rỉ mô hình', icon: 'fas fa-home', route: '/branches/predictive-model', allowedRoles: ['branch_manager'] },
     { label: 'Dự đoán rò rỉ thủ công', icon: 'fas fa-tools', route: '/branches/manual-model', allowedRoles: ['branch_manager'] },
     { label: 'Quản lý đồng hồ nước', icon: 'fas fa-tachometer-alt', route: '/branches/meter-management', allowedRoles: ['branch_manager'] },

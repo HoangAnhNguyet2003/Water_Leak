@@ -47,6 +47,11 @@ function checkRoleAccess(user: any, route: ActivatedRouteSnapshot, authService: 
       console.log('❌ AuthGuardFn - User is not branch manager, redirecting to login...');
       return redirectToLogin(undefined, authService, router);
     }
+    
+    if (requiredRole === 'company' && !authService.isCompany()) {
+      console.log('❌ AuthGuardFn - User is not company manager, redirecting to login...');
+      return redirectToLogin(undefined, authService, router);
+    }
   }
 
   console.log('✅ AuthGuardFn - Access granted');

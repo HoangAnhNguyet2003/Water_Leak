@@ -63,17 +63,27 @@ export class LoginComponent {
   }
 
   private navigateBasedOnRole(roleName: string): void {
-    switch (roleName.toLowerCase()) {
-      case 'admin':
-        window.location.href = 'http://localhost:4200/admin/dashboard';
-        break;
-      case 'branch_manager':
-        window.location.href = 'http://localhost:4200/branches/predictive-model';
-        break;
-      default:
-        this.router.navigate(['/dashboard']);
-        break;
+    const role = (roleName || '').toLowerCase();
+    const storedReturnUrl = sessionStorage.getItem('returnUrl');
+    const returnUrl = storedReturnUrl ? decodeURIComponent(storedReturnUrl) : null;
+
+    if (role === 'admin') {
+      this.router.navigate(['/admin/dashboard']);
+      return;
     }
+
+    if (role === 'company' || role === 'company_manager') {
+      this.router.navigate([returnUrl || '/company/dashboard']);
+      sessionStorage.removeItem('returnUrl');
+      return;
+    }
+
+    if (role === 'branch' || role === 'branch_manager') {
+      this.router.navigate(['/branches/predictive-model']);
+      return;
+    }
+
+    this.router.navigate(['/auth/login']);
   }
 
   private markAllFormControlsTouched(): void {
