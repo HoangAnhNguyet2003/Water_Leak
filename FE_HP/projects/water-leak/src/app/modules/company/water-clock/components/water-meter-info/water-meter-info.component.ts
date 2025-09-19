@@ -252,7 +252,7 @@ export class WaterMeterInfoComponent implements OnInit {
     const meter = this.filteredMeters().find(m => m.id === meterId);
     if (meter && this.isValidWaterMeter(meter)) {
       const encodedName = encodeURIComponent(meter.name);
-      this.router.navigate(['/chart', meterId, encodedName]);
+      this.router.navigate(['/company', 'water-clock', 'chart', meterId, encodedName]);
     }
   }
 }
