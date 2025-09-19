@@ -31,6 +31,10 @@ const routes: Routes = [
     data: {role: 'company'},
     children: [
       {
+        path: 'water-clock/chart/:id/:name',
+        loadComponent: () => import('./modules/company/water-clock/components/chart-view/chart-view.component').then(m => m.ChartViewComponent)
+      },
+      {
         path: 'dashboard',
         loadComponent: () => import('./modules/company/dashboard/components/main-component/main-component.component').then(m => m.MainComponentComponent)
       },
