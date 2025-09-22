@@ -17,8 +17,6 @@ def create_app(env: str = "dev") -> Flask:
      supports_credentials=True,
      resources={r"/api/*": {"origins": [
          "http://localhost:4200",
-         "http://localhost:4201",
-         "http://localhost:4202"
      ]}})
     
     

@@ -12,7 +12,7 @@ from types import SimpleNamespace
 from bson import ObjectId
 # ==== QD edited ====
 
-def list_user_meters(user_oid: str):
+def list_user_meter(user_oid: str):
     db = get_db()
     cur = db["user_meter"].find({"user_id": ObjectId(user_oid)})
     meter_ids = [repo._oid_str(c["meter_id"]) for c in cur]
@@ -129,7 +129,7 @@ def update_user_admin_only(user_id: str, data: UserUpdate) -> UserOut:
         repo.update_user_meter_relationships(user_id, data.managed_water_meter)
 
     user = repo.find_by_id(user_id)
-    managed_meters = list_user_meters(user_id)
+    managed_meters = list_user_meter(user_id)
 
     return UserOut(
         id=user["id"],

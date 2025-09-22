@@ -8,7 +8,7 @@ from ..common.pagination import parse_pagination, build_links
 from flask_jwt_extended import jwt_required
 from ..authz.require import require_password_confirmation, require_role
 from pydantic import ValidationError
-from .service import create_user_admin_only, get_user, update_user_admin_only, remove_user, list_user_meters
+from .service import create_user_admin_only, get_user, update_user_admin_only, remove_user, list_user_meter
 from ...extensions import get_db
 from .repo import get_role_name, _oid_str, get_branch_name_by_branch_id
 from bson.errors import InvalidId
@@ -31,7 +31,7 @@ def get_all_users():
         user_id = _oid_str(u["_id"])
         role_oid = _oid_str(u.get("role_id"))
         role_name = get_role_name(role_oid)
-        managed_meters = list_user_meters(user_id)
+        managed_meters = list_user_meter(user_id)
         user_out = {
             "id": user_id,
             "username": u.get("username"),
