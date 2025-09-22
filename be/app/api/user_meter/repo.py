@@ -3,7 +3,7 @@ from ...utils.bson import to_object_id, oid_str
 
 def list_meters_of_user(user_id: str):
     db = get_db()
-    cur = db.user_meters.find({"user_id": to_object_id(user_id)})
+    cur = db.user_meter.find({"user_id": to_object_id(user_id)})
     out = []
     for link in cur:
         # ghép thêm thông tin meter nếu cần
@@ -19,9 +19,9 @@ def list_meters_of_user_simple(user_id: str, limit: int = None):
     query = {"user_id": to_object_id(user_id)}
 
     if limit:
-        cur = db.user_meters.find(query).limit(limit)
+        cur = db.user_meter.find(query).limit(limit)
     else:
-        cur = db.user_meters.find(query)
+        cur = db.user_meter.find(query)
 
     out = []
     for link in cur:

@@ -4,6 +4,7 @@ import { Observable, BehaviorSubject, throwError, of, switchMap } from 'rxjs';
 import { catchError, tap, map, timeout, finalize, mergeMap } from 'rxjs/operators';
 import { LoginRequest, UserInfo, AuthState, MeResponse } from '../models/auth.interface';
 import { environment } from '../../enviroments/enviroment';
+import { retry } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -44,6 +45,7 @@ export class AuthService {
     return this.http.post<any>(`${this.API_BASE_URL}/auth/role-based-login`, credentials, {
       withCredentials: true
     }).pipe(
+      retry(1),
       timeout(10000),
       map(response => {
         console.log('✅ AuthService - Login success:', response);
@@ -117,7 +119,9 @@ export class AuthService {
     return this.http.get<MeResponse>(`${this.API_BASE_URL}/auth/me`, {
       withCredentials: true
     }).pipe(
+      retry(1),
       timeout(10000),
+
       map(response => {
         console.log('✅ AuthService - Backend response:', response);
 
@@ -161,6 +165,8 @@ export class AuthService {
   refreshToken(): Observable<UserInfo> {
     console.log('🔍 AuthService - Refreshing token...');
     return this.http.post(`${this.API_BASE_URL}/auth/refresh`, {}, { withCredentials: true }).pipe(
+      retry(1),
+      timeout(10000),
       switchMap(() => this.checkAuthStatus(true).pipe(
         map(user => {
           if (!user) throw new Error('Failed to get user info after refresh');
@@ -228,6 +234,14 @@ export class AuthService {
   }
 
   public resetAuth(): void {
+    this.logout().subscribe({
+      next: () => {
+        console.log('✅ AuthService - Logout completed, state cleared');
+      },
+      error: (err) => {
+        console.error('❌ AuthService - Logout failed, but state cleared anyway:', err);
+      }
+    });
     this.clearAuthState();
     this.invalidateAuthCache();
   }

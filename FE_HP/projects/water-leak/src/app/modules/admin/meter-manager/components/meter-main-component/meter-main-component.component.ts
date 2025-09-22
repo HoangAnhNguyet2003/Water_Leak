@@ -52,7 +52,7 @@ export class MeterMainComponentComponent implements OnInit {
         throw err;
       })
     ).subscribe((data: any) => {
-      this.allMeterMetaData.set(data);
+      this.allMeterMetaData.set(data || []);
     });
   }
 

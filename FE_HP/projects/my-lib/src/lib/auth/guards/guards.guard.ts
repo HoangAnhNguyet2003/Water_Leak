@@ -13,6 +13,7 @@ export const authGuard: CanActivateFn = (
   const router = inject(Router);
 
   console.log('🔍 AuthGuardFn - Checking access for route:', state.url);
+
   return authService.checkAuthStatus(true).pipe(
     map(user => {
       if (user) {
@@ -38,18 +39,14 @@ function checkRoleAccess(user: any, route: ActivatedRouteSnapshot, authService: 
   if (requiredRole) {
     console.log('🔍 AuthGuardFn - Route requires role:', requiredRole);
 
-    if (requiredRole === 'admin' && !authService.isAdmin()) {
-      console.log('❌ AuthGuardFn - User is not admin, redirecting to login...');
-      return redirectToLogin(undefined, authService, router);
-    }
+    const hasAccess =
+      (requiredRole === 'admin' && authService.isAdmin()) ||
+      (requiredRole === 'branch_manager' && authService.isBranch()) ||
+      (requiredRole === 'company_manager' && authService.isCompany());
 
-    if (requiredRole === 'branch' && !authService.isBranch()) {
-      console.log('❌ AuthGuardFn - User is not branch manager, redirecting to login...');
-      return redirectToLogin(undefined, authService, router);
-    }
-    
-    if (requiredRole === 'company' && !authService.isCompany()) {
-      console.log('❌ AuthGuardFn - User is not company manager, redirecting to login...');
+    if (!hasAccess) {
+      console.log('❌ AuthGuardFn - Insufficient role, logging out...');
+      authService.resetAuth();
       return redirectToLogin(undefined, authService, router);
     }
   }

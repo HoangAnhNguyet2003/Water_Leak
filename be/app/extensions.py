@@ -36,9 +36,9 @@ def init_indexes(db):
     db.meters.create_index([("meter_name", ASCENDING)], name="idx_meter_name")
 
     # User–Meter (n–n)
-    db.user_meters.create_index([("user_id", ASCENDING)], name="idx_um_user")
-    db.user_meters.create_index([("meter_id", ASCENDING)], name="idx_um_meter")
-    db.user_meters.create_index(
+    db.user_meter.create_index([("user_id", ASCENDING)], name="idx_um_user")
+    db.user_meter.create_index([("meter_id", ASCENDING)], name="idx_um_meter")
+    db.user_meter.create_index(
         [("user_id", ASCENDING), ("meter_id", ASCENDING)],
         unique=True,
         name="uniq_um" 

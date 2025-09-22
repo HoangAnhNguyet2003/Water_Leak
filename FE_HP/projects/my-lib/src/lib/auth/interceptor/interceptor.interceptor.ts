@@ -46,7 +46,9 @@ export class AuthInterceptor implements HttpInterceptor {
           return this.handle401Error(modifiedReq, next);
         }
         if (error.status === 403) {
-          console.log('🔒 AuthInterceptor - 403 Forbidden - Access denied');
+          this.authService.resetAuth();
+          this.router.navigate(['/login']);
+          return throwError(() => error);
         }
         return throwError(() => error);
       })
@@ -62,7 +64,7 @@ export class AuthInterceptor implements HttpInterceptor {
       return this.authService.refreshToken().pipe(
         switchMap(() => {
           this.isRefreshing = false;
-          this.refreshTokenSubject.next(true);
+          this.refreshTokenSubject.next(true); // báo cho các request đang chờ
           console.log('✅ AuthInterceptor - refresh ok, retrying request');
           let retryReq = request.clone({ withCredentials: true });
           if (['POST','PUT','PATCH','DELETE'].includes(request.method)) {
@@ -73,7 +75,7 @@ export class AuthInterceptor implements HttpInterceptor {
         }),
         catchError((err) => {
           this.isRefreshing = false;
-          this.refreshTokenSubject.next(null);
+          this.refreshTokenSubject.next(null); // reset subject khi lỗi
           console.log('❌ AuthInterceptor - refresh failed', err);
           this.authService.resetAuth();
           this.router.navigate(['/login']);
@@ -81,6 +83,7 @@ export class AuthInterceptor implements HttpInterceptor {
         })
       );
     } else {
+      // Đang có refresh khác đang chạy → chờ nó xong
       return this.refreshTokenSubject.pipe(
         filter(token => token != null),
         take(1),

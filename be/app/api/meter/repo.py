@@ -3,18 +3,18 @@ from typing import Optional, Dict, Any, List, Tuple
 from bson import ObjectId
 from ...extensions import get_db
 from ...utils.bson import to_object_id, oid_str
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from werkzeug.exceptions import NotFound, Conflict
 from ...extensions import get_db
 from pymongo import errors
 import hashlib
+from zoneinfo import ZoneInfo
+
 COL = "meters"
 
 # def insert(doc: Dict[str, Any]) -> Dict[str, Any]:
 #     res = get_db()[COL].insert_one(doc)
 #     return get(oid_str(res.inserted_id))
-
-COL = "meters"
 
 def _db_to_api(d: dict) -> dict:
     print(f"{d.keys()}")
@@ -126,9 +126,85 @@ def delete(mid: str) -> bool:
     meter_oid = to_object_id(mid)
     try:
         res = db[COL].delete_one({"_id": meter_oid})
-        if res.deleted_count == 1:
-            db["user_meter"].delete_many({"meter_id": meter_oid})
-            return True
-        return False
+        if res.deleted_count != 1:
+            return False
+
+        related_cols = [
+            "predictions",
+            "meter_manual_thresholds",
+            "meter_consumptions",
+            "meter_repairs",
+            "meter_measurements",
+            "alerts",
+            "user_meter",
+        ]
+        for col in related_cols:
+            try:
+                db[col].delete_many({"meter_id": meter_oid})
+            except Exception:
+                pass
+
+        return True
     except Exception:
         return False
+
+def list_meters_with_status(date_str: str | None = None) -> List[Dict[str, Any]]:
+    db = get_db()
+
+    # Nếu không truyền thì mặc định hôm nay theo giờ VN
+    vn = ZoneInfo("Asia/Ho_Chi_Minh")
+    if not date_str:
+        date_str = datetime.now(vn).strftime("%Y-%m-%d")
+
+    # Tính khoảng thời gian UTC cho ngày đó
+    d = datetime.strptime(date_str, "%Y-%m-%d").date()
+    start_local = datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=vn)
+    end_local   = start_local + timedelta(days=1)
+    start_utc, end_utc = start_local.astimezone(timezone.utc), end_local.astimezone(timezone.utc)
+
+    pipeline = [
+        {
+            "$lookup": {
+                "from": "branches",
+                "localField": "branch_id",
+                "foreignField": "_id",
+                "as": "branch"
+            }
+        },
+        {"$unwind": "$branch"},
+        {
+            "$lookup": {
+                "from": "predictions",                 
+                "let": {"mid": "$_id"},
+                "pipeline": [
+                    { 
+                        "$match": { 
+                            "$expr": { "$eq": ["$meter_id", "$$mid"] },
+                            "prediction_time": {"$gte": start_utc, "$lt": end_utc}
+                        } 
+                    },
+                    { "$sort": { "prediction_time": -1 } },
+                    { "$limit": 1 }
+                ],
+                "as": "prediction"
+            }
+        },
+        { "$unwind": { "path": "$prediction", "preserveNullAndEmptyArrays": True } },
+        {
+            "$project": {
+                "_id": 0,
+                "id": { "$toString": "$_id" },
+                "meter_name": 1,
+                "address": "$branch.address",
+                "status": { "$ifNull": ["$prediction.predicted_label", "no_prediction"] },
+                "prediction_time": "$prediction.prediction_time"
+            }
+        }
+    ]
+    
+    result = list(db[COL].aggregate(pipeline))
+    for doc in result:
+        for k, v in doc.items():
+            if isinstance(v, ObjectId):
+                doc[k] = str(v)
+    return result

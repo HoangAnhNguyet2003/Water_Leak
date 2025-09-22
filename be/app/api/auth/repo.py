@@ -5,7 +5,7 @@ def get_user_by_username(username: str):
     db = get_db()
     u = db.users.find_one({"username": username})
     if not u: return None
-    u["id"] = oid_str(u.pop("_id"))
+    u["_id"] = oid_str(u.pop("_id"))
     return u
 
 

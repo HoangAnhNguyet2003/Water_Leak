@@ -1,4 +1,5 @@
-from typing import Optional
+from typing import Any, Dict, Optional
+from bson import ObjectId
 from flask_jwt_extended import get_jwt_identity
 from ...extensions import get_db
 from ...utils.bson import to_object_id, oid_str
@@ -8,6 +9,7 @@ from werkzeug.exceptions import NotFound, Conflict, Forbidden
 from datetime import datetime
 from . import repo
 from flask_jwt_extended import get_jwt
+from ..predictions.repo import count_distinct_leak_meters_in_day
 
 def _get_user_scope():
     claims = get_jwt()
@@ -77,3 +79,20 @@ def remove_meter(mid: str):
         if cur["branch_id"] not in _branch_ids_in_company(company_id):
             return False
     return repo.delete(mid)
+
+def build_leak_overview(start_utc, end_utc, branch_id: Optional[ObjectId] = None) -> Dict[str, Any]:
+    total = repo.count_total_meters(branch_id=branch_id)
+    leak = count_distinct_leak_meters_in_day(start_utc, end_utc, branch_id=branch_id)
+    return {
+        "total_meters": total,
+        "leak_meters": leak,
+        "normal_meters": max(0, total - leak),
+    }
+
+def get_meters_list(date_str: str | None = None):
+    """
+    Lấy danh sách đồng hồ và trạng thái dự đoán trong ngày.
+    - Nếu truyền date_str (YYYY-MM-DD) thì lấy đúng ngày đó
+    - Nếu không truyền thì mặc định hôm nay (theo giờ VN)
+    """ 
+    return repo.list_meters_with_status(date_str)
