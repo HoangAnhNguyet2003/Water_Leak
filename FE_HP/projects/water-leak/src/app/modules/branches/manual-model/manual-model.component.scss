@@ -1,0 +1,47 @@
+h2{
+    margin-bottom: 0%;
+}
+.predictive-container {
+    margin: 40px;
+    overflow: hidden;
+    height: 100%;
+    background: #f8f9fa;
+}
+.topbar { 
+    top: 0;
+    left: 0;
+    width: 100%;   
+    z-index: 2;
+    background: #B8DCFF;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0px 40px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+    min-width: 750px;
+}
+.filter{
+    flex-direction: row;
+    display: flex; 
+    justify-content: space-between;
+    width: 100%;
+}
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-direction: row;
+}
+
+.filter-group select,
+.filter-group input {
+    padding: 7px 14px;
+    border: none;
+    border-radius: 20px;
+    background: #fff;
+    font-size: 15px;
+    outline: none;
+}

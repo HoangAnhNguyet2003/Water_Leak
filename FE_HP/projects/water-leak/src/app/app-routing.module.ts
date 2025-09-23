@@ -28,7 +28,7 @@ const routes: Routes = [
     path: 'company',
     component: MainComponent,
     canActivate: [authGuard],
-    data: {role: 'company_manager'},
+    data: {role: 'company'},
     children: [
       {
         path: 'water-clock/chart/:id/:name',

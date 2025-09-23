@@ -20,6 +20,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { AuthModule } from 'my-lib';
 import { MainComponent } from "./core/layout/main/main.component";
+import { SearchComponent } from './core/component/search/search.component';
 
 @NgModule({
   declarations: [
@@ -27,7 +28,7 @@ import { MainComponent } from "./core/layout/main/main.component";
     LoginComponent,
     PredictiveModelComponent,
     ManualModelComponent,
-    MeterManagementComponent,
+    
   ],
   imports: [
     BrowserModule,
@@ -44,7 +45,9 @@ import { MainComponent } from "./core/layout/main/main.component";
     AddUserFormComponent,
     LogMainComponent,
     ReactiveFormsModule,
-    MainComponent
+    MainComponent,
+    SearchComponent,
+    MeterManagementComponent,
 ],
   providers: [],
   bootstrap: [AppComponent]
