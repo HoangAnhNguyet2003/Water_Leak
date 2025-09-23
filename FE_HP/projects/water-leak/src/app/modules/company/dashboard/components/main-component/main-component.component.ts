@@ -7,6 +7,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChartDataService } from '../../../../../core/services/company/chart-data.service';
 import { ChartType } from '../../../../../core/models/chart-data.interface';
+import { ClockServiceService } from '../../../water-clock/services/clock-service.service';
 
 @Component({
   selector: 'app-main-component',
@@ -21,6 +22,7 @@ export class MainComponentComponent implements OnInit {
   dashBoardService = inject(DashboardMainServiceService);
   router = inject(Router);
   private chartDataService = inject(ChartDataService);
+  private clockService = inject(ClockServiceService);
   allData = signal<DashBoardData[]>([]);
   searchTerm = signal<string>('');
   
@@ -30,14 +32,18 @@ export class MainComponentComponent implements OnInit {
   selectedMeterName = signal<string | null>(null);
   
 
-  // Computed signals for statistics
-  totalAnomalies = computed(() =>
-    this.allData().reduce((sum, item) => sum + item.anomaly_count, 0)
-  );
+  // Computed signals for statistics - ưu tiên số liệu thực tế do trang đồng hồ cập nhật
+  totalAnomalies = computed(() => {
+    const real = this.clockService.getAnomalyDetectedCount();
+    if (real > 0) return real;
+    return this.allData().reduce((sum, item) => sum + item.anomaly_count, 0);
+  });
 
-  totalVerifiedAnomalies = computed(() =>
-    this.allData().reduce((sum, item) => sum + item.anomaly_verified, 0)
-  );
+  totalVerifiedAnomalies = computed(() => {
+    const real = this.clockService.getOnFixingCount();
+    if (real > 0) return real;
+    return this.allData().reduce((sum, item) => sum + item.anomaly_verified, 0);
+  });
 
   // Filtered data based on search term
   filteredData = computed(() => {
@@ -170,5 +176,12 @@ export class MainComponentComponent implements OnInit {
     const clamped = Math.max(0, Math.min(maxValue, value));
     const scale = chartHeight / maxValue;
     return margin + (chartHeight - (clamped * scale));
+  }
+
+  // Điều hướng đến trang thông tin đồng hồ với bộ lọc
+  navigateToWaterClock(filterStatus: string): void {
+    this.router.navigate(['/company/water-clock'], {
+      queryParams: { statusFilter: filterStatus }
+    });
   }
 }
