@@ -3,6 +3,8 @@ from flask import current_app, g
 from flask_jwt_extended import JWTManager
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_socketio import SocketIO
+
 
 jwt = JWTManager()
 limiter = Limiter(
@@ -59,8 +61,9 @@ def close_db(e=None):
     if client:
         client.close()
 
-# nơi lưu jti bị block
 TOKEN_BLOCKLIST = set()
+socketio = SocketIO()
+
 
 @jwt.token_in_blocklist_loader
 def check_if_token_revoked(jwt_header, jwt_payload):

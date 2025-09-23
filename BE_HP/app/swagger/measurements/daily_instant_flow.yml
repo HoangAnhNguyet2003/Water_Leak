@@ -1,0 +1,41 @@
+tags:
+  - Measurement
+operationId: getDailyInstantFlow
+summary: Lấy danh sách instant flow theo ngày cho một đồng hồ
+description: >
+  Trả về danh sách instant flow cho meter `mid` tại ngày `date` (YYYY-MM-DD).
+produces:
+  - application/json
+parameters:
+  - in: path
+    name: mid
+    required: true
+    type: string
+    description: ID đồng hồ
+  - in: query
+    name: date
+    required: true
+    type: string
+    description: Ngày theo định dạng YYYY-MM-DD
+responses:
+  200:
+    description: Danh sách instant flow theo ngày
+    schema:
+      type: object
+      properties:
+        date:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              flow:
+                type: number
+  400:
+    description: Thiếu tham số hoặc định dạng sai
+  401:
+    description: Không có quyền

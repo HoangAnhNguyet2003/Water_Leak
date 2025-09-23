@@ -1,0 +1,57 @@
+tags:
+  - Prediction
+operationId: getDeepLearningPredictionsByMeter
+summary: Lấy các dự đoán deep_learning theo meter id
+description: >
+  Lấy danh sách các bản dự đoán do mô hình deep_learning tạo ra cho `meter_id`.
+produces:
+  - application/json
+parameters:
+  - in: path
+    name: mid
+    required: true
+    type: string
+    description: ID của đồng hồ (meter)
+responses:
+  200:
+    description: Danh sách dự đoán từ mô hình deep_learning
+    schema:
+      type: array
+      items:
+        type: object
+        properties:
+          _id:
+            type: object
+          meter_id:
+            type: object
+          model_id:
+            type: object
+          prediction_time:
+            type: string
+            format: date-time
+          predicted_threshold:
+            type: number
+          predicted_label:
+            type: string
+          confidence:
+            type: number
+          recorded_instant_flow:
+            type: number
+    examples:
+      application/json:
+        - _id:
+            "$oid": "68d268ba4d93c241a10b9f89"
+          meter_id:
+            "$oid": "68d268b85a192b66dd53117c"
+          model_id:
+            "$oid": "68d268ba5a192b66dd53118b"
+          prediction_time:
+            "$date": "2025-09-21T15:30:34.207Z"
+          predicted_threshold: 2.07
+          predicted_label: "normal"
+          confidence: 0.67
+          recorded_instant_flow: 2.01
+  400:
+    description: Yêu cầu không hợp lệ (ví dụ mid không phải ObjectId)
+  500:
+    description: Lỗi máy chủ (cơ sở dữ liệu)

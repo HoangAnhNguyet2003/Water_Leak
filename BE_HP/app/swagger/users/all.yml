@@ -1,0 +1,45 @@
+tags:
+  - Users
+operationId: getAllUsers
+summary: Lấy danh sách tất cả người dùng
+description: |
+  Trả về danh sách tất cả người dùng, bao gồm thông tin cơ bản như id, username,
+  roleName, branchName, trạng thái isActive, lastLogin và các đồng hồ nước quản lý.
+consumes:
+  - application/json
+produces:
+  - application/json
+parameters: []
+responses:
+  200:
+    description: Danh sách người dùng
+    schema:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              username:
+                type: string
+              roleName:
+                type: string
+              branchName:
+                type: string
+              isActive:
+                type: boolean
+              lastLogin:
+                type: string
+              managedWaterMeter:
+                type: array
+                items:
+                  type: string
+        total:
+          type: integer
+  401:
+    description: Chưa xác thực
+  403:
+    description: Không có quyền truy cập

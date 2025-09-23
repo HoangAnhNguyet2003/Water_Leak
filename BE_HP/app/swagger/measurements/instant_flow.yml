@@ -1,0 +1,29 @@
+tags:
+  - Measurement
+operationId: getLatestInstantFlow
+summary: Lấy giá trị instant flow mới nhất cho một đồng hồ
+description: >
+  Trả về giá trị instant flow (giá trị mới nhất) cho meter có id `mid`.
+produces:
+  - application/json
+parameters:
+  - in: path
+    name: mid
+    required: true
+    type: string
+    description: ID đồng hồ
+responses:
+  200:
+    description: Dữ liệu instant flow
+    schema:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        flow:
+          type: number
+  400:
+    description: Yêu cầu không hợp lệ
+  401:
+    description: Không có quyền

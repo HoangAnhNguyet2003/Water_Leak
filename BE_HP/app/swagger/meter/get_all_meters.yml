@@ -1,0 +1,55 @@
+tags:
+  - Meter
+operationId: getAllMeters
+summary: Lấy danh sách đồng hồ
+description: >
+  Lấy danh sách các đồng hồ với phân trang. Chỉ admin được truy cập.
+consumes:
+  - application/json
+produces:
+  - application/json
+parameters:
+  - in: query
+    name: page
+    type: integer
+    description: Trang (bắt đầu từ 1)
+  - in: query
+    name: page_size
+    type: integer
+    description: Số phần tử trên trang
+  - in: query
+    name: q
+    type: string
+    description: Từ khóa tìm kiếm
+  - in: query
+    name: sort
+    type: string
+    description: Chuỗi sắp xếp
+responses:
+  200:
+    description: Danh sách đồng hồ
+    schema:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              branch_id:
+                type: string
+              meter_name:
+                type: string
+              installation_time:
+                type: string
+                format: date-time
+              branchName:
+                type: string
+        page:
+          type: integer
+        page_size:
+          type: integer
+  401:
+    description: Không có quyền
