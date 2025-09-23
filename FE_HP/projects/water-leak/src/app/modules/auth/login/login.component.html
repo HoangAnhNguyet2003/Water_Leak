@@ -4,7 +4,7 @@
     <!-- Left Side - Login Form -->
     <div class="login-section">
       <div class="login-form-container">
-        <h1 class="form-title">HỆ THỐNG CẢNH BÁO RÒ RỈ NƯỚC</h1>
+        <h2 class="form-title">HỆ THỐNG CẢNH BÁO RÒ RỈ NƯỚC</h2>
         <p class="form-subtitle">Đăng nhập thông tin tài khoản của bạn</p>
 
         <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
@@ -43,8 +43,8 @@
                 aria-label="Toggle password visibility"
                 title="{{ showPassword ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu' }}"
               >
-                <span *ngIf="!showPassword">👁️</span>
-                <span *ngIf="showPassword">🙈</span>
+                <img src="../../../../assets/images/icon/visibility_off.png" *ngIf="!showPassword" />
+                <img src="../../../../assets/images/icon/visibility.png" *ngIf="showPassword"/>
               </button>
             </div>
             <div class="error-message" *ngIf="getErrorMessage('password')">
@@ -52,12 +52,11 @@
             </div>
           </div>
 
-          <!-- Error Message -->
           <div class="error-message global-error" *ngIf="errorMessage">
             {{ errorMessage }}
           </div>
 
-          <!-- Submit Button -->
+
           <button
             type="submit"
             class="submit-button"
@@ -79,9 +78,9 @@
         </div>
       </div>
       <div class="company-info">
-        <h3 class="company-name">CÔNG TY CỔ PHẦN CẤP NƯỚC HẢI PHÒNG</h3>
-        <p class="company-subtitle">HỆ THỐNG QUẢN LÝ THEO TIÊU CHUẨN</p>
-        <p class="company-standard">ISO 9001 - 2015</p>
+        <h2 class="company-name">CÔNG TY CỔ PHẦN CẤP NƯỚC HẢI PHÒNG</h2>
+        <h3 class="company-subtitle">HỆ THỐNG QUẢN LÝ THEO TIÊU CHUẨN</h3>
+        <h3 class="company-standard">ISO 9001 - 2015</h3>
       </div>
     </div>
   </div>

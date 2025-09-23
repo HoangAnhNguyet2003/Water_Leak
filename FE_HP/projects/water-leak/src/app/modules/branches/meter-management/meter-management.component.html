@@ -1,39 +1,194 @@
-<div class="meter-table">
-  <div class="search-container">
-            <div class="search-box">
-              <img src="../../../../assets/images/icon/search.png" alt="Search" class="search-icon" />
-              <input
-                type="text"
-                placeholder="Search"
-                class="search-input"
-              />
-            </div>
+<div class="water-meter-page">
+  <!-- Search and Filter Section -->
+  <div class="filter-section">
+    <div class="search-container">
+      <input 
+        type="text" 
+        class="search-input" 
+        placeholder="Tìm theo tên đồng hồ"
+        [ngModel]="filter().searchTerm"
+        (input)="onSearchTermChange($event)"
+      >
+      <i class="fas fa-search search-icon"></i>
+    </div>
+    
+    <div class="filter-dropdown">
+      <select 
+        class="status-filter"
+        [(ngModel)]="filter().statusFilter"
+        (change)="onFilterChange()"
+      >
+        <option value="">Lọc theo trạng thái</option>
+        <option value="Normal">Bình thường</option>
+        <option value="On fixing">Đang sửa chữa</option>
+        <option value="Anomaly detected">Phát hiện bất thường</option>
+      </select>
+    </div>
+    
+    <button class="export-btn" (click)="exportData()">
+      Xuất file dữ liệu
+    </button>
+  </div>
+
+  <!-- Table Container with Professional Scroll -->
+  <div class="table-container">
+    <!-- Fixed Header -->
+    <div class="table-header-fixed">
+      <table class="water-meter-table header-table">
+        <thead>
+          <tr>
+            <th class="checkbox-column">
+              <input 
+                type="checkbox" 
+                [checked]="selectAll()"
+                (change)="onSelectAll()"
+                class="table-checkbox"
+              >
+            </th>
+            <th>Tên trạm</th>
+            <th>Địa chỉ</th>
+            <th>Trạng thái</th>
+            <th>Ngày tham gia</th>
+            <th>Hành động</th>
+          </tr>
+        </thead>
+      </table>
+    </div>
+
+    <!-- Scrollable Body -->
+    <div class="table-body-scrollable">
+      <table class="water-meter-table body-table">
+        <tbody>
+          <ng-container *ngFor="let meter of filteredMeters(); trackBy: trackByMeterId">
+            <tr 
+              class="table-row"
+              [class.selected]="meter.selected"
+              [class.expanded]="meter.expanded"
+            >
+              <td class="checkbox-column">
+                <input 
+                  type="checkbox" 
+                  [checked]="meter.selected || false"
+                  (change)="onSelectMeter(meter.id)"
+                  class="table-checkbox"
+                >
+              </td>
+              <td class="name-column">{{ meter.name }}</td>
+              <td class="address-column">{{ meter.address }}</td>
+              <td class="status-column">
+                <span class="status-badge" [ngClass]="getStatusClass(meter.status)">
+                  {{ getStatusText(meter.status) }}
+                </span>
+              </td>
+              <td class="date-column">{{ meter.joinDate }}</td>
+              <td class="actions-column">
+                <button 
+                  class="action-btn" 
+                  (click)="viewDetails(meter.id)"
+                  [class.rotated]="meter.expanded"
+                >
+                  <i class="fas fa-chevron-down"></i>
+                </button>
+              </td>
+            </tr>
+            
+            <!-- Detail Row -->
+            <tr 
+              class="detail-row" 
+              *ngIf="meter.expanded"
+              [@slideInOut]
+            >
+              <td colspan="6" class="detail-content">
+                <div class="detail-container">
+                  <div class="detail-header">
+                    <h4 class="detail-title">Thông tin chi tiết</h4>
+                  </div>
+                  
+                  <div class="detail-body">
+                    <div class="detail-info-grid">
+                      <div class="detail-item">
+                        <span class="detail-label">Tên trạm:</span>
+                        <span class="detail-value">{{ meter.name }}</span>
+                      </div>
+                      
+                      <div class="detail-item">
+                        <span class="detail-label">Địa chỉ:</span>
+                        <span class="detail-value">{{ meter.address }}</span>
+                      </div>
+                      
+                      <div class="detail-item">
+                        <span class="detail-label">Trạng thái:</span>
+                        <span class="detail-value">
+                          <span class="status-badge" [ngClass]="getStatusClass(meter.status)">
+                            {{ meter.status }}
+                          </span>
+                        </span>
+                      </div>
+                      
+                      <div class="detail-item">
+                        <span class="detail-label">Vượt ngưỡng thủ công:</span>
+                        <span class="detail-value anomaly-count">{{ meter.anomalyDetected || 0 }}%</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Export Popup -->
+  <div class="popup-overlay" *ngIf="showExportPopup()" (click)="closeExportPopup()">
+    <div class="popup-container" (click)="$event.stopPropagation()">
+      <!-- No Selection Case -->
+      <div *ngIf="!hasSelectedMeters()" class="popup-content">
+        <div class="popup-icon warning">
+          <i class="fas fa-exclamation"></i>
         </div>
-  <table>
-    <thead>
-      <tr>
-        <th>Tên đồng hồ</th>
-        <th>Tình trạng dự đoán</th>
-        <th>Ngày lắp đặt</th>
-        <th>Ngưỡng thủ công</th>
-        <th>Hành động</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let m of meters">
-        <td>{{ m.name }}</td>
-        <td [ngClass]="{
-          'normal': m.status === 'Normal',
-          'fixing': m.status === 'On fixing'
-        }">
-          {{ m.status }}
-        </td>
-        <td>{{ m.installDate }}</td>
-        <td>{{ m.manualThreshold }}</td>
-        <td>
-          <button class="detail-btn">+</button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+        <h3 class="popup-title">Chưa chọn đồng hồ nào</h3>
+        <div class="popup-actions">
+          <button class="popup-btn cancel" (click)="closeExportPopup()">
+            Cancel
+          </button>
+        </div>
+      </div>
+
+      <!-- Confirmation Case -->
+      <div *ngIf="hasSelectedMeters()" class="popup-content">
+        <div class="popup-icon confirm">
+          <i class="fas fa-file-export"></i>
+        </div>
+        <h3 class="popup-title">Xác nhận xuất file dữ liệu</h3>
+        <p class="popup-message">Bạn có chắc chắn muốn xuất những file dữ liệu này không?</p>
+        <div class="popup-actions">
+          <button class="popup-btn cancel" (click)="closeExportPopup()">
+            Hủy
+          </button>
+          <button class="popup-btn confirm" (click)="confirmExport()">
+            Xác nhận
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Notification -->
+  <div class="notification-overlay" *ngIf="showSuccessNotification()" (click)="closeSuccessNotification()">
+    <div class="notification-container" (click)="$event.stopPropagation()">
+      <div class="notification-content">
+        <div class="notification-icon success">
+          <i class="fas fa-check"></i>
+        </div>
+        <h3 class="notification-title">Cập nhật thành công</h3>
+        <div class="notification-actions">
+          <button class="notification-btn ok" (click)="closeSuccessNotification()">
+            OK
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
