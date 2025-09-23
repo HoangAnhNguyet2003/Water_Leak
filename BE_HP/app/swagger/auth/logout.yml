@@ -1,0 +1,26 @@
+tags:
+  - Auth
+operationId: logoutUser
+summary: Đăng xuất
+description: >
+  Xóa cookie JWT ở client và thêm `jti` của token vào blocklist ở server để
+  đảm bảo token không thể dùng lại.
+consumes:
+  - application/json
+produces:
+  - application/json
+parameters: []
+responses:
+  200:
+    description: Đăng xuất thành công
+    schema:
+      type: object
+      properties:
+        msg:
+          type: string
+        message:
+          type: string
+        timestamp:
+          type: string
+  400:
+    description: Lỗi khi thực hiện đăng xuất

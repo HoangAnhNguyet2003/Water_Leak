@@ -1,45 +1,36 @@
-
-from flask import Flask
-from .config import get_config
-from .extensions import get_db, init_indexes, close_db, jwt, limiter
-from .api import api_v1
-from .errors import register_error_handlers
+from flask import Flask, jsonify
 from flask_cors import CORS
+from app.config import Config, SWAGGER_CONFIG, SWAGGER_TEMPLATE
+from app.database import mongo
+from flasgger import Swagger
+from app.route import register_blueprints
+from .extensions import get_db, init_indexes, jwt, limiter, socketio
+from .error import register_error_handlers
 
-def create_app(env: str = "dev") -> Flask:
-    print("Environment:", env)
-    print("Starting app...")
+def create_app():
     app = Flask(__name__)
-    app.config.from_object(get_config(env))
-
-    # Configure CORS to support credentials (cookies)
+    app.config.from_object(Config)
+    
     CORS(app,
-     supports_credentials=True,
-     resources={r"/api/*": {"origins": [
-         "http://localhost:4200",
+         supports_credentials=True,
+         resources={r"/api/*": {"origins": [
+            "http://localhost:4200",
      ]}})
     
     
-    app.register_blueprint(api_v1)
+    register_blueprints(app)
     jwt.init_app(app)
     limiter.init_app(app)
+    mongo.init_app(app)
+    socketio.init_app(app, cors_allowed_origins="http://localhost:4200")
     register_error_handlers(app)
 
     with app.app_context():
-        list_routes(app)
         db = get_db()
         init_indexes(db)
-    
 
-    app.teardown_appcontext(close_db)
-    return app
-
-def list_routes(app: Flask):
-    print("Registered routes:")
-    output = []
     for rule in app.url_map.iter_rules():
-        methods = ",".join(sorted(m for m in rule.methods if m not in ("HEAD", "OPTIONS")))
-        line = f"{rule.endpoint:30s} {methods:15s} -> {rule.rule}"
-        output.append(line)
-    for line in sorted(output):
-        print(line)
+        print("ROUTE:", rule.endpoint, rule.rule, rule.methods)
+    Swagger(app, config=SWAGGER_CONFIG, template=SWAGGER_TEMPLATE)
+
+    return app

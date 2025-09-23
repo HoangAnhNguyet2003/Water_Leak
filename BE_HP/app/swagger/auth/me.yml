@@ -1,0 +1,36 @@
+tags:
+  - Auth
+operationId: getCurrentUser
+summary: Lấy thông tin người dùng hiện tại
+description: >
+  Trả về thông tin của người dùng hiện tại qua JWT (id, username,
+  role, companyId, branchId).
+consumes:
+  - application/json
+produces:
+  - application/json
+parameters: []
+responses:
+  200:
+    description: Lấy thông tin người dùng thành công
+    schema:
+      type: object
+      properties:
+        message:
+          type: string
+        id:
+          type: string
+        username:
+          type: string
+        roleId:
+          type: string
+        roleName:
+          type: string
+        companyId:
+          type: string
+        branchId:
+          type: string
+        authenticated:
+          type: boolean
+  401:
+    description: Chưa xác thực hoặc người dùng không tồn tại

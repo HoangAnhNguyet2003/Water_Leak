@@ -1,0 +1,39 @@
+tags:
+  - Meter
+operationId: getAllMetersWithStatus
+summary: Lấy danh sách đồng hồ kèm trạng thái dự đoán
+description: >
+  Trả về danh sách đồng hồ cùng trạng thái dự đoán trong ngày. Dùng cho dashboard tổng công ty.
+consumes:
+  - application/json
+produces:
+  - application/json
+parameters:
+  - in: query
+    name: date
+    type: string
+    description: Ngày cần lấy trạng thái
+responses:
+  200:
+    description: Thành công
+    schema:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              meter_name:
+                type: string
+              address:
+                type: string
+              status:
+                type: string
+              prediction_time:
+                type: string
+                format: date-time
+  401:
+    description: Không có quyền
