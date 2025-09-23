@@ -23,8 +23,8 @@
     <div class="filter-dropdown">
       <select 
         class="status-filter"
-        [(ngModel)]="filter().statusFilter"
-        (change)="onFilterChange()"
+        [ngModel]="filter().statusFilter"
+        (ngModelChange)="onStatusFilterChange($event)"
       >
         <option value="">Lọc theo trạng thái</option>
         <option value="Normal">Bình thường</option>

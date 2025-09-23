@@ -1,7 +1,7 @@
 <div class="dashboard-container">
   <!-- Statistics Cards -->
   <div class="stats-row">
-    <div class="stat-card anomaly-card">
+    <div class="stat-card anomaly-card clickable-card" (click)="navigateToWaterClock('Anomaly detected')">
       <div class="stat-icon">
         <i class="fas fa-exclamation-triangle"></i>
       </div>
@@ -10,9 +10,12 @@
         <div class="stat-number">{{ totalAnomalies() }}</div>
         <div class="stat-label">bất thường</div>
       </div>
+      <div class="card-hover-indicator">
+        <i class="fas fa-arrow-right"></i>
+      </div>
     </div>
 
-    <div class="stat-card verified-card">
+    <div class="stat-card verified-card clickable-card" (click)="navigateToWaterClock('On fixing')">
       <div class="stat-icon">
         <i class="fas fa-check-circle"></i>
       </div>
@@ -20,6 +23,9 @@
         <div class="stat-title">Bất thường được xác nhận</div>
         <div class="stat-number">{{ totalVerifiedAnomalies() }}</div>
         <div class="stat-label">xác nhận</div>
+      </div>
+      <div class="card-hover-indicator">
+        <i class="fas fa-arrow-right"></i>
       </div>
     </div>
   </div>

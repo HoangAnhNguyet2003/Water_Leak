@@ -1,9 +1,11 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
+import { ClockServiceService } from '../../../water-clock/services/clock-service.service';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { WaterMeter, WaterMeterFilter } from '../../models';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-water-meter-info',
@@ -24,7 +26,7 @@ import { WaterMeter, WaterMeterFilter } from '../../models';
     ])
   ]
 })
-export class WaterMeterInfoComponent implements OnInit {
+export class WaterMeterInfoComponent implements OnInit, OnDestroy {
   // Sử dụng signals để quản lý state
   waterMeters = signal<WaterMeter[]>([]);
   filteredMeters = signal<WaterMeter[]>([]);
@@ -37,8 +39,15 @@ export class WaterMeterInfoComponent implements OnInit {
   // Popup states
   showExportPopup = signal<boolean>(false);
   showSuccessNotification = signal<boolean>(false);
+  
+  // Subscription management
+  private queryParamsSubscription?: Subscription;
 
-  constructor(private router: Router) {}
+  constructor(
+    private router: Router,
+    private route: ActivatedRoute,
+    private clockService: ClockServiceService
+  ) {}
 
   // Tạo mock data chuyên nghiệp và thực tế hơn
   private generateMockData(total: number = 40): WaterMeter[] {
@@ -86,6 +95,23 @@ export class WaterMeterInfoComponent implements OnInit {
   ngOnInit(): void {
     this.waterMeters.set(this.mockData);
     this.filteredMeters.set(this.mockData);
+    // cập nhật số đếm ban đầu cho dashboard
+    this.updateCountsForDashboard();
+    
+    // Xử lý query parameters từ route
+    this.queryParamsSubscription = this.route.queryParams.subscribe(params => {
+      const statusFilter = params['statusFilter'];
+      if (statusFilter) {
+        // Cập nhật bộ lọc dựa trên query parameter
+        this.filter.update(current => ({
+          ...current,
+          statusFilter: statusFilter
+        }));
+        
+        // Tự động thực hiện tìm kiếm với bộ lọc mới
+        this.onSearch();
+      }
+    });
   }
 
   // Type guard để kiểm tra type safe
@@ -118,9 +144,16 @@ export class WaterMeterInfoComponent implements OnInit {
     });
 
     this.filteredMeters.set(filtered);
+    // mỗi lần lọc/tìm kiếm thay đổi dữ liệu hiển thị, vẫn tính số đếm theo toàn bộ danh sách gốc
+    this.updateCountsForDashboard();
   }
 
   onFilterChange(): void {
+    this.onSearch();
+  }
+
+  onStatusFilterChange(status: string): void {
+    this.filter.update(curr => ({ ...curr, statusFilter: status }));
     this.onSearch();
   }
 
@@ -146,6 +179,7 @@ export class WaterMeterInfoComponent implements OnInit {
       selected: newSelectAll
     }));
     
+    this.filteredMeters.set(updatedMeters);
     this.filteredMeters.set(updatedMeters);
   }
 
@@ -254,5 +288,20 @@ export class WaterMeterInfoComponent implements OnInit {
       const encodedName = encodeURIComponent(meter.name);
       this.router.navigate(['/company', 'water-clock', 'chart', meterId, encodedName]);
     }
+  }
+
+  ngOnDestroy(): void {
+    // Dọn dẹp subscription để tránh memory leak
+    if (this.queryParamsSubscription) {
+      this.queryParamsSubscription.unsubscribe();
+    }
+  }
+
+  // ---- helper to update counts to shared service ----
+  private updateCountsForDashboard(): void {
+    const all = this.waterMeters();
+    const anomaly = all.filter(m => m.status === 'Anomaly detected').length;
+    const fixing = all.filter(m => m.status === 'On fixing').length;
+    this.clockService.setCounts(anomaly, fixing);
   }
 }
