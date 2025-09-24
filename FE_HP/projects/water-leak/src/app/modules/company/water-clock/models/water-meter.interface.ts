@@ -1,9 +1,9 @@
 export interface WaterMeter {
   id: string;
   name: string;
-  address: string;
+  branchName: string | number;
   status: 'Normal' | 'On fixing' | 'Anomaly detected';
-  joinDate: string;
+  installationDate?: string | Date;
   selected?: boolean;
   expanded?: boolean;
   anomalyDetected?: number;

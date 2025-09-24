@@ -1,0 +1,67 @@
+tags:
+  - Repair
+operationId: getAllRepairs
+summary: Lấy danh sách lịch sử sửa chữa đồng hồ
+description: >
+  Lấy danh sách các lịch sử sửa chữa (repairs) với phân trang.
+  Chỉ `company_manager` được truy cập.
+consumes:
+  - application/json
+produces:
+  - application/json
+parameters:
+  - in: query
+    name: page
+    type: integer
+    description: Trang (bắt đầu từ 1)
+  - in: query
+    name: page_size
+    type: integer
+    description: Số phần tử trên mỗi trang
+  - in: query
+    name: q
+    type: string
+    description: Từ khóa tìm kiếm (theo leakReason, replacementLocation, replacementType)
+  - in: query
+    name: sort
+    type: string
+    description: Trường sắp xếp (ví dụ "recorded_time", "-recorded_time")
+responses:
+  200:
+    description: Danh sách repair
+    schema:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              meterId:
+                type: string
+              meterName:
+                type: string
+              recordedTime:
+                type: string
+                format: date-time
+              repairTime:
+                type: string
+                format: date-time
+              leakReason:
+                type: string
+              leakFix:
+                type: string
+              replacementLocation:
+                type: string
+              replacementType:
+                type: string
+        page:
+          type: integer
+        page_size:
+          type: integer
+        has_next:
+          type: boolean
+  401:
+    description: Không có quyền

@@ -7,6 +7,7 @@ from .routes.branches.branch_routes import branch_bp
 from .routes.measurements.measurements_routes import m_bp
 from .routes.predictions.predictions_routes import pred_bp
 from .routes.logs.logs_routes import logs_bp
+from .routes.repair.repair_routes import repair_bp
 
 main_bp = Blueprint('main', __name__)
 
@@ -18,3 +19,4 @@ def register_blueprints(app):
     app.register_blueprint(m_bp, url_prefix='/api/v1/measurements')
     app.register_blueprint(pred_bp, url_prefix='/api/v1/predictions')
     app.register_blueprint(logs_bp, url_prefix='/api/v1/logs')
+    app.register_blueprint(repair_bp, url_prefix='/api/v1/repairs')

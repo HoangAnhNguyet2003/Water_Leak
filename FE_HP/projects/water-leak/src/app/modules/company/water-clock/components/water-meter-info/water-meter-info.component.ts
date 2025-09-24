@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { ClockServiceService } from '../../../water-clock/services/clock-service.service';
-import { trigger, state, style, transition, animate } from '@angular/animations';
+import { trigger, style, transition, animate } from '@angular/animations';
 import { WaterMeter, WaterMeterFilter } from '../../models';
 import { Subscription } from 'rxjs';
 
@@ -27,21 +27,17 @@ import { Subscription } from 'rxjs';
   ]
 })
 export class WaterMeterInfoComponent implements OnInit, OnDestroy {
-  // Sử dụng signals để quản lý state
   waterMeters = signal<WaterMeter[]>([]);
   filteredMeters = signal<WaterMeter[]>([]);
-  filter = signal<WaterMeterFilter>({
-    searchTerm: '',
-    statusFilter: ''
-  });
+  filter = signal<WaterMeterFilter>({ searchTerm: '', statusFilter: '' });
   selectAll = signal<boolean>(false);
-  
-  // Popup states
+
   showExportPopup = signal<boolean>(false);
   showSuccessNotification = signal<boolean>(false);
-  
-  // Subscription management
+
   private queryParamsSubscription?: Subscription;
+  private dataSubscription?: Subscription;
+  private searchTimeout: any;
 
   constructor(
     private router: Router,
@@ -49,102 +45,52 @@ export class WaterMeterInfoComponent implements OnInit, OnDestroy {
     private clockService: ClockServiceService
   ) {}
 
-  // Tạo mock data chuyên nghiệp và thực tế hơn
-  private generateMockData(total: number = 40): WaterMeter[] {
-    const names = [
-      'Văn Đẩu 8','Văn Đẩu 9','Văn Đẩu 10','Hoà Khánh 1','Hoà Khánh 2',
-      'Liên Chiểu 1','Liên Chiểu 2','Thanh Khê 1','Thanh Khê 2','Sơn Trà 1',
-      'Sơn Trà 2','Ngũ Hành Sơn 1','Ngũ Hành Sơn 2','Hải Châu 1','Hải Châu 2',
-      'Cẩm Lệ 1','Cẩm Lệ 2','Hoà Vang 1','Hoà Vang 2','Hoà Tiến 1'
-    ];
-    const streets = [
-      'Nguyễn Huệ','Lê Lợi','Đồng Khởi','Nguyễn Du','Pasteur',
-      'Hai Bà Trưng','Lê Duẩn','Tôn Đức Thắng','Phan Chu Trinh','Trần Phú'
-    ];
-    const statuses: Array<WaterMeter['status']> = ['Normal','On fixing','Anomaly detected'];
-
-    const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
-    const randomDate = (): string => {
-      const start = new Date(2021, 0, 1).getTime();
-      const end = new Date(2024, 11, 31).getTime();
-      const d = new Date(start + Math.random() * (end - start));
-      return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
-    };
-
-    const items: WaterMeter[] = Array.from({ length: total }, (_, i) => {
-      const name = names[i % names.length] + ` - ${pad((i % 50) + 1)}`;
-      const address = `${Math.floor(Math.random() * 200) + 1} ${streets[i % streets.length]}, Đà Nẵng`;
-      const status = statuses[Math.floor(Math.random() * statuses.length)];
-      const anomalyDetected = status === 'Anomaly detected' ? Math.floor(Math.random() * 6) + 1 : Math.floor(Math.random() * 2);
-      return {
-        id: String(i + 1),
-        name,
-        address,
-        status,
-        joinDate: randomDate(),
-        anomalyDetected
-      };
+  ngOnInit(): void {
+    // Lấy dữ liệu từ API
+    this.dataSubscription = this.clockService.getMeterData().subscribe(meters => {
+      this.waterMeters.set(meters);
+      this.filteredMeters.set(meters);
+      this.updateCountsForDashboard();
     });
 
-    return items;
-  }
-
-  // Dữ liệu mock được sinh tự động
-  private mockData: WaterMeter[] = this.generateMockData(40);
-
-  ngOnInit(): void {
-    this.waterMeters.set(this.mockData);
-    this.filteredMeters.set(this.mockData);
-    // cập nhật số đếm ban đầu cho dashboard
-    this.updateCountsForDashboard();
-    
     // Xử lý query parameters từ route
     this.queryParamsSubscription = this.route.queryParams.subscribe(params => {
       const statusFilter = params['statusFilter'];
       if (statusFilter) {
-        // Cập nhật bộ lọc dựa trên query parameter
         this.filter.update(current => ({
           ...current,
-          statusFilter: statusFilter
+          statusFilter
         }));
-        
-        // Tự động thực hiện tìm kiếm với bộ lọc mới
         this.onSearch();
       }
     });
   }
 
-  // Type guard để kiểm tra type safe
   private isValidWaterMeter(meter: any): meter is WaterMeter {
     return meter && 
            typeof meter.id === 'string' &&
            typeof meter.name === 'string' &&
-           typeof meter.address === 'string' &&
-           ['Normal', 'On fixing', 'Anomaly detected'].includes(meter.status) &&
-           typeof meter.joinDate === 'string';
+           ['Normal', 'On fixing', 'Anomaly detected'].includes(meter.status);
   }
 
   onSearch(): void {
     const currentFilter = this.filter();
     const meters = this.waterMeters();
-    
+
     if (!meters || !Array.isArray(meters)) return;
 
-    let filtered = meters.filter(meter => {
+    const filtered = meters.filter(meter => {
       if (!this.isValidWaterMeter(meter)) return false;
-      
-      // Chỉ tìm theo TÊN như yêu cầu
+
       const matchesSearch = !currentFilter.searchTerm || 
         meter.name.toLowerCase().includes(currentFilter.searchTerm.toLowerCase());
-        
       const matchesStatus = !currentFilter.statusFilter || 
         meter.status === currentFilter.statusFilter;
-        
+
       return matchesSearch && matchesStatus;
     });
 
     this.filteredMeters.set(filtered);
-    // mỗi lần lọc/tìm kiếm thay đổi dữ liệu hiển thị, vẫn tính số đếm theo toàn bộ danh sách gốc
     this.updateCountsForDashboard();
   }
 
@@ -157,8 +103,6 @@ export class WaterMeterInfoComponent implements OnInit, OnDestroy {
     this.onSearch();
   }
 
-  // Debounce cho thanh tìm kiếm để UX mượt hơn
-  private searchTimeout: any;
   onSearchTermChange(event: Event): void {
     const target = event.target as HTMLInputElement;
     const value = target?.value ?? '';
@@ -173,25 +117,18 @@ export class WaterMeterInfoComponent implements OnInit, OnDestroy {
     const newSelectAll = !this.selectAll();
     this.selectAll.set(newSelectAll);
     
-    const meters = this.filteredMeters();
-    const updatedMeters = meters.map(meter => ({
+    const updatedMeters = this.filteredMeters().map(meter => ({
       ...meter,
       selected: newSelectAll
     }));
-    
-    this.filteredMeters.set(updatedMeters);
     this.filteredMeters.set(updatedMeters);
   }
 
   onSelectMeter(meterId: string): void {
-    const meters = this.filteredMeters();
-    const updatedMeters = meters.map(meter => 
+    const updatedMeters = this.filteredMeters().map(meter =>
       meter.id === meterId ? { ...meter, selected: !meter.selected } : meter
     );
-    
     this.filteredMeters.set(updatedMeters);
-    
-    // Cập nhật selectAll state
     const allSelected = updatedMeters.every(meter => meter.selected);
     this.selectAll.set(allSelected);
   }
@@ -200,30 +137,21 @@ export class WaterMeterInfoComponent implements OnInit, OnDestroy {
     this.showExportPopup.set(true);
   }
 
-  // Kiểm tra có đồng hồ nào được chọn không
   hasSelectedMeters(): boolean {
     return this.filteredMeters().some(meter => meter.selected);
   }
 
-  // Đóng popup xuất dữ liệu
   closeExportPopup(): void {
     this.showExportPopup.set(false);
   }
 
-  // Xác nhận xuất dữ liệu
   confirmExport(): void {
     const selectedMeters = this.filteredMeters().filter(meter => meter.selected);
     console.log('Xuất dữ liệu:', selectedMeters);
-    
-    // Đóng popup và hiển thị thông báo thành công
     this.showExportPopup.set(false);
     this.showSuccessNotification.set(true);
-    
-    // Implement logic xuất dữ liệu thực tế ở đây
-    // Ví dụ: call API, tạo file Excel, etc.
   }
 
-  // Đóng thông báo thành công
   closeSuccessNotification(): void {
     this.showSuccessNotification.set(false);
   }
@@ -237,17 +165,12 @@ export class WaterMeterInfoComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Hiển thị tiếng Việt cho trạng thái trong bảng
   getStatusText(status: string): string {
     switch (status) {
-      case 'Normal':
-        return 'Bình thường';
-      case 'On fixing':
-        return 'Đang sửa chữa';
-      case 'Anomaly detected':
-        return 'bất thường';
-      default:
-        return status;
+      case 'Normal': return 'Bình thường';
+      case 'On fixing': return 'Đang sửa chữa';
+      case 'Anomaly detected': return 'Bất thường';
+      default: return status;
     }
   }
 
@@ -256,16 +179,12 @@ export class WaterMeterInfoComponent implements OnInit, OnDestroy {
   }
 
   toggleDetails(meterId: string): void {
-    const meters = this.filteredMeters();
-    const updatedMeters = meters.map(meter => 
+    const updatedMeters = this.filteredMeters().map(meter =>
       meter.id === meterId ? { ...meter, expanded: !meter.expanded } : meter
     );
-    
     this.filteredMeters.set(updatedMeters);
-    
-    // Cập nhật cả waterMeters để đồng bộ data
-    const allMeters = this.waterMeters();
-    const updatedAllMeters = allMeters.map(meter => 
+
+    const updatedAllMeters = this.waterMeters().map(meter =>
       meter.id === meterId ? { ...meter, expanded: !meter.expanded } : meter
     );
     this.waterMeters.set(updatedAllMeters);
@@ -275,13 +194,11 @@ export class WaterMeterInfoComponent implements OnInit, OnDestroy {
     this.toggleDetails(meterId);
   }
 
-  // Kiểm tra xem meter có đang expanded không
   isExpanded(meterId: string): boolean {
     const meter = this.filteredMeters().find(m => m.id === meterId);
     return meter?.expanded || false;
   }
 
-  // Điều hướng đến trang biểu đồ
   viewChart(meterId: string): void {
     const meter = this.filteredMeters().find(m => m.id === meterId);
     if (meter && this.isValidWaterMeter(meter)) {
@@ -291,13 +208,14 @@ export class WaterMeterInfoComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Dọn dẹp subscription để tránh memory leak
     if (this.queryParamsSubscription) {
       this.queryParamsSubscription.unsubscribe();
     }
+    if (this.dataSubscription) {
+      this.dataSubscription.unsubscribe();
+    }
   }
 
-  // ---- helper to update counts to shared service ----
   private updateCountsForDashboard(): void {
     const all = this.waterMeters();
     const anomaly = all.filter(m => m.status === 'Anomaly detected').length;

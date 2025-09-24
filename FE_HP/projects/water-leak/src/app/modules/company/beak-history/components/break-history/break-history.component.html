@@ -19,23 +19,6 @@
       >
       <i class="fas fa-search search-icon"></i>
     </div>
-    
-    <div class="filter-dropdown">
-      <select 
-        class="status-filter"
-        [(ngModel)]="filter().statusFilter"
-        (change)="onFilterChange()"
-      >
-        <option value="">Lọc theo trạng thái</option>
-        <option value="Normal">Bình thường</option>
-        <option value="On fixing">Đang sửa chữa</option>
-        <option value="Anomaly detected">Phát hiện bất thường</option>
-      </select>
-    </div>
-    
-    <button class="export-btn" (click)="exportData()">
-      Xuất file dữ liệu
-    </button>
   </div>
 
   <!-- Table Container with Professional Scroll -->
@@ -54,9 +37,9 @@
               >
             </th>
             <th>Tên trạm</th>
-            <th>Địa chỉ</th>
-            <th>Trạng thái</th>
-            <th>Ngày</th>
+            <th>Ngày ghi nhận</th>
+            <th>Lí do vỡ</th>
+            <th>Loại thay thế</th>
             <th>Chi tiết</th>
           </tr>
         </thead>
@@ -82,14 +65,10 @@
                   class="table-checkbox"
                 >
               </td>
-              <td class="clock-column">{{ history.clock }}</td>
-              <td class="address-column">{{ history.address }}</td>
-              <td class="status-column">
-                <span class="status-badge" [ngClass]="getStatusClass(history.status)">
-                  {{ getStatusText(history.status) }}
-                </span>
-              </td>
-              <td class="date-column">{{ history.date }}</td>
+              <td class="clock-column">{{ history.meterName }}</td>
+              <td class="address-column">{{ history.recordedTime | date:'dd/MM/yyyy'  }}</td>
+              <td class="date-column">{{ history.leakReason }}</td>
+              <td class="date-column">{{ history.replacementType }}</td>
               <td class="actions-column">
                 <button 
                   class="action-btn detail-btn"
@@ -118,41 +97,39 @@
                     <div class="detail-info-grid">
                       <div class="detail-item">
                         <span class="detail-label">Tên trạm:</span>
-                        <span class="detail-value">{{ history.clock }}</span>
+                        <span class="detail-value">{{ history.meterName }}</span>
                       </div>
 
                       <div class="detail-item">
-                        <span class="detail-label">Địa chỉ:</span>
-                        <span class="detail-value">{{ history.address }}</span>
+                        <span class="detail-label">Lí do vỡ:</span>
+                        <span class="detail-value">{{ history.leakReason }}</span>
                       </div>
 
                       <div class="detail-item">
-                        <span class="detail-label">Trạng thái:</span>
-                        <span class="detail-value">
-                          <span class="status-badge" [ngClass]="getStatusClass(history.status)">
-                            {{ history.status }}
+                        <span class="detail-label">Ngày phát hiện:</span>
+                        <span class="detail-value">                    
+                            {{ history.recordedTime }}
                           </span>
-                        </span>
                       </div>
 
                       <div class="detail-item">
-                        <span class="detail-label">Vỡ:</span>
-                        <span class="detail-value break-count">{{ history.break }} (time)</span>
+                        <span class="detail-label">Ngày sửa chữa:</span>
+                        <span class="detail-value break-count">{{ history.repairTime}}</span>
                       </div>
 
                       <div class="detail-item">
-                        <span class="detail-label">Chất liệu ống:</span>
-                        <span class="detail-value">{{ history.pipeMaterial }}</span>
+                        <span class="detail-label">Cách khắc phục:</span>
+                        <span class="detail-value">{{ history.leakFix}}</span>
                       </div>
 
                       <div class="detail-item">
-                        <span class="detail-label">Chiều dài ống:</span>
-                        <span class="detail-value">{{ history.pipeLength }} (m)</span>
+                        <span class="detail-label">Loại thay thế:</span>
+                        <span class="detail-value">{{ history.replacementType }} (m)</span>
                       </div>
 
                       <div class="detail-item">
-                        <span class="detail-label">Ngày sửa chữa gần nhất:</span>
-                        <span class="detail-value date-value">{{ history.latestRepair }}</span>
+                        <span class="detail-label">Vị trí thay:</span>
+                        <span class="detail-value date-value">{{ history.replacementLocation}}</span>
                       </div>
                     </div>
                   </div>
@@ -165,55 +142,4 @@
     </div>
   </div>
 
-  <!-- Export Popup -->
-  <div class="popup-overlay" *ngIf="showExportPopup()" (click)="closeExportPopup()">
-    <div class="popup-container" (click)="$event.stopPropagation()">
-      <!-- No Selection Case -->
-      <div *ngIf="!hasSelectedHistories()" class="popup-content">
-        <div class="popup-icon warning">
-          <i class="fas fa-exclamation"></i>
-        </div>
-        <h3 class="popup-title">Chưa chọn lịch sử nào</h3>
-        <div class="popup-actions">
-          <button class="popup-btn cancel" (click)="closeExportPopup()">
-            Cancel
-          </button>
-        </div>
-      </div>
-
-      <!-- Confirmation Case -->
-      <div *ngIf="hasSelectedHistories()" class="popup-content">
-        <div class="popup-icon confirm">
-          <i class="fas fa-file-export"></i>
-        </div>
-        <h3 class="popup-title">Xác nhận xuất file dữ liệu</h3>
-        <p class="popup-message">Bạn có chắc chắn muốn xuất những file dữ liệu lịch sử này không?</p>
-        <div class="popup-actions">
-          <button class="popup-btn cancel" (click)="closeExportPopup()">
-            Hủy
-          </button>
-          <button class="popup-btn confirm" (click)="confirmExport()">
-            Xác nhận
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Success Notification -->
-  <div class="notification-overlay" *ngIf="showSuccessNotification()" (click)="closeSuccessNotification()">
-    <div class="notification-container" (click)="$event.stopPropagation()">
-      <div class="notification-content">
-        <div class="notification-icon success">
-          <i class="fas fa-check"></i>
-        </div>
-        <h3 class="notification-title">Cập nhật thành công</h3>
-        <div class="notification-actions">
-          <button class="notification-btn ok" (click)="closeSuccessNotification()">
-            OK
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+  

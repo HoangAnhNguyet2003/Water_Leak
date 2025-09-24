@@ -82,3 +82,5 @@ passlib[bcrypt]
 Flask-Limiter==3.8.0
 gevent-websocket==0.10.1
 gevent==25.9.1
+pymongo[srv]
+flask_pymongo
