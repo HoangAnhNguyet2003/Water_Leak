@@ -82,5 +82,11 @@ export class LogServiceService {
       message: data.message
     }
   }
+
+  getRecentLogs(): RxObservable<number> {
+    return this.http.get<LogMetaData[]>(`${this.urlAPI}/logs/get_all_logs`).pipe(
+      map(data => data.length)
+    );
+  }
   constructor() { }
 }
