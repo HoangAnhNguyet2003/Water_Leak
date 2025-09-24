@@ -1,0 +1,48 @@
+tags:
+  - Users
+operationId: createUser
+summary: Tạo người dùng mới (Admin)
+description: |
+  Tạo một người dùng mới (chỉ cho phép admin). Yêu cầu payload JSON hợp lệ theo `UserCreate`.
+consumes:
+  - application/json
+produces:
+  - application/json
+parameters:
+  - in: body
+    name: body
+    required: true
+    schema:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+        branchId:
+          type: string
+        roleId:
+          type: string
+      required:
+        - username
+        - password
+responses:
+  201:
+    description: Người dùng được tạo
+    schema:
+      type: object
+      properties:
+        id:
+          type: string
+        branchId:
+          type: string
+        username:
+          type: string
+        is_active:
+          type: boolean
+  400:
+    description: Yêu cầu không hợp lệ
+  403:
+    description: Không có quyền
+  422:
+    description: Lỗi xác thực payload

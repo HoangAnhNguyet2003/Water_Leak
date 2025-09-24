@@ -15,13 +15,15 @@ import autoTable from 'jspdf-autotable';
   templateUrl: './log-main.component.html',
   styleUrls: ['./log-main.component.scss']
 })
-export class LogMainComponent {
+export class LogMainComponent implements OnInit {
   LogService = inject(LogServiceService);
   LogData = signal<LogMetaData[]>([]);
 
   selectedLogType = signal<number | null>(null);
   startDate = signal<string>('');
   endDate = signal<string>('');
+  // toggle to show messages without diacritics
+  stripDiacritics = signal<boolean>(true);
 
   LogType = LogType;
 
@@ -46,16 +48,35 @@ export class LogMainComponent {
     return data;
   });
 
-  // ngOnInit(): void {
-  //   this.LogService.getMockLogData().pipe(
-  //     catchError((err) => {
-  //       console.log(err);
-  //       throw err;
-  //     })
-  //   ).subscribe((data) => {
-  //     this.LogData.set(data);
-  //   });
-  // }
+  ngOnInit(): void {
+    this.LogService.getLogData().pipe(
+      catchError((err) => {
+        console.log(err);
+        throw err;
+      })
+    ).subscribe((data) => {
+      this.LogData.set(data);
+    });
+
+    this.LogService.connectSocket();
+    const obs = this.LogService.onLog();
+    if (obs) {
+      obs.subscribe((log) => {
+        const current = this.LogData();
+        this.LogData.set([log, ...current]);
+      });
+    }
+  }
+
+  stripAccents(text: string): string {
+    if (!text) return text;
+    return text.normalize('NFD').replace(/\p{Diacritic}/gu, '').replace(/\u0300|\u0301|\u0303|\u0309|\u0323/g, '');
+  }
+
+  displayMessage(msg: string): string {
+    if (!msg) return '';
+    return this.stripDiacritics() ? this.stripAccents(msg) : msg;
+  }
 
   onLogTypeChange(event: Event): void {
     const target = event.target as HTMLSelectElement;
@@ -98,8 +119,9 @@ export class LogMainComponent {
     }
   }
 
-  formatDateTime(date: Date): string {
-    return DateUtils.formatDateTime(date);
+  formatDateTime(date: string | Date): string {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return DateUtils.formatDateTime(d);
   }
 
   exportToPDF(): void {
@@ -117,12 +139,14 @@ export class LogMainComponent {
     doc.text(`Export Date: ${exportDate}`, 20, 35);
     doc.text(`Total Records: ${filteredData.length}`, 20, 45);
 
-    const tableColumns = ['ID', 'Type', 'Created Time', 'Message'];
-    const tableRows = filteredData.map(log => [
+    const tableColumns = ['STT', 'ID', 'Type', 'Created Time', 'Message', 'Nguồn phát sinh'];
+    const tableRows = filteredData.map((log, index) => [
+      index + 1,
       log.id.toString(),
       this.getLogTypeDisplay(log.log_type),
       this.formatDateTime(log.created_time),
-      log.message
+      log.message,
+      (log as any).source || ''
     ]);
 
     autoTable(doc, {
@@ -139,10 +163,10 @@ export class LogMainComponent {
         fontStyle: 'bold',
       },
       columnStyles: {
-        0: { cellWidth: 20 }, // ID column
-        1: { cellWidth: 25 }, // Type column
-        2: { cellWidth: 45 }, // Created Time column
-        3: { cellWidth: 'auto' }, // Message column
+        0: { cellWidth: 20 },
+        1: { cellWidth: 25 },
+        2: { cellWidth: 45 },
+        3: { cellWidth: 'auto' },
       },
       didParseCell: (data) => {
         if (data.section === 'body' && data.column.index === 1) {

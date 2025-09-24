@@ -1,0 +1,44 @@
+tags:
+  - Branch
+operationId: getAllBranches
+summary: Lấy danh sách chi nhánh
+description: >
+  Lấy danh sách chi nhánh với phân trang. Chỉ admin được phép truy cập.
+consumes:
+  - application/json
+produces:
+  - application/json
+parameters:
+  - in: query
+    name: page
+    type: integer
+    description: Trang (bắt đầu từ 1)
+  - in: query
+    name: page_size
+    type: integer
+    description: Số phần tử trên trang
+  - in: query
+    name: q
+    type: string
+    description: Từ khóa tìm kiếm theo tên
+responses:
+  200:
+    description: Danh sách chi nhánh (mỗi phần tử gồm _id và name)
+    schema:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              _id:
+                type: string
+              name:
+                type: string
+        page:
+          type: integer
+        page_size:
+          type: integer
+  401:
+    description: Không có quyền

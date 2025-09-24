@@ -1,0 +1,33 @@
+tags:
+  - Logs
+operationId: getAllLogs
+summary: Lấy tất cả log
+description: >
+  Trả về danh sách các bản ghi log đã lưu trong hệ thống. Chỉ admin mới được phép truy vấn.
+consumes:
+  - application/json
+produces:
+  - application/json
+parameters: []
+responses:
+  200:
+    description: Danh sách log
+    schema:
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: string
+          user_id:
+            type: string
+          create_time:
+            type: string
+          log_type:
+            type: integer
+          message:
+            type: string
+  401:
+    description: Không được xác thực
+  403:
+    description: Không có quyền truy cập

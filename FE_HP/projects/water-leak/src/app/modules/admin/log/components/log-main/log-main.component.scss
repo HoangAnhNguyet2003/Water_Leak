@@ -25,11 +25,17 @@ $border-color_1: #4f61ff;
 	margin-bottom: 30px;
 	padding-bottom: 20px;
 	border-bottom: 2px solid #f1f1f1;
+
+	/* allow header items to wrap instead of overlapping */
+	flex-wrap: wrap;
+	gap: 12px;
 }
 .header-left {
 	display: flex;
 	align-items: center;
 	gap: 15px;
+	flex: 1 1 auto; /* allow left section to take available space */
+	min-width: 200px;
 }
 .icon-container {
 	width: 50px;
@@ -145,6 +151,7 @@ $border-color_1: #4f61ff;
 	display: flex;
 	gap: 10px;
 	margin-left: auto;
+	flex-wrap: wrap;
 }
 .btn-clear {
 	padding: 10px 18px;
@@ -195,7 +202,7 @@ $border-color_1: #4f61ff;
 	display: flex;
 	flex-direction: column;
 	min-height: 0;
-	overflow-y: auto;
+	overflow: auto; /* allow both vertical and horizontal scrolling */
 	&::-webkit-scrollbar {
 		width: 6px;
 	}
@@ -213,13 +220,19 @@ $border-color_1: #4f61ff;
 .log-table {
 	width: 100%;
 	border-collapse: collapse;
+	table-layout: fixed; /* distribute columns evenly */
 	font-size: 14px;
+	min-width: 700px; /* ensures columns don't collapse on small screens; wrapper will scroll */
 	thead {
 		position: sticky;
 		top: 0;
 		z-index: 10;
 		background: #f8f9fc;
 	}
+    /* ensure consistent box model so widths align */
+    th, td {
+        box-sizing: border-box;
+    }
 	th {
 		padding: 15px 12px;
 		text-align: left;
@@ -245,25 +258,12 @@ $border-color_1: #4f61ff;
 		border-bottom: 1px solid #e9ecef;
 	}
 }
-.col-id {
-	width: 8%;
-	text-align: center;
-	font-weight: 600;
-	color: $color_5;
-}
-.col-type {
-	width: 12%;
-	text-align: center;
-}
-.col-datetime {
-	width: 20%;
-	color: $color_6;
-}
-.col-message {
-	width: 60%;
-	word-wrap: break-word;
-	max-width: 0;
-}
+.col-stt { text-align: center; font-weight: 600; color: $color_5; width: 5%; }
+.col-id { text-align: center; font-weight: 600; color: $color_5; width: 12%; }
+.col-type { text-align: center; width: 12%; }
+.col-datetime { color: $color_6; width: 18%; }
+.col-source { color: $color_6; width: 15%; }
+.col-message { word-wrap: break-word; overflow-wrap: anywhere; width: 38%; }
 .log-type-badge {
 	padding: 6px 12px;
 	border-radius: 20px;

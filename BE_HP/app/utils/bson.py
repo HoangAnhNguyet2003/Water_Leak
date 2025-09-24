@@ -8,3 +8,6 @@ def to_object_id(id_or_str):
 
 def oid_str(oid):
     return str(oid) if isinstance(oid, ObjectId) else str(oid)
+
+def oid(v): 
+    return v if isinstance(v, ObjectId) else ObjectId(v)

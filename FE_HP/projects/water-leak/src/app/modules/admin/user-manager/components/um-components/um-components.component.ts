@@ -78,7 +78,7 @@ export class UmComponentsComponent {
   }
 
   getStatusLabel(isActive: boolean): string {
-    return isActive ? 'Hoạt động' : 'Không hoạt động';
+    return isActive ? 'Kích hoạt' : 'Vô hiệu hóa';
   }
 
   editUser(user: UserData): void {

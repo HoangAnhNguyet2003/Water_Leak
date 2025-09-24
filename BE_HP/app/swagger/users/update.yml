@@ -1,0 +1,48 @@
+tags:
+  - Users
+operationId: updateUser
+summary: Cập nhật người dùng (Admin)
+description: |
+  Cập nhật thông tin người dùng theo `uid` (chỉ admin). Yêu cầu payload hợp lệ theo `UserUpdate`.
+consumes:
+  - application/json
+produces:
+  - application/json
+parameters:
+  - in: path
+    name: uid
+    required: true
+    type: string
+    description: ID người dùng cần cập nhật
+  - in: body
+    name: body
+    required: true
+    schema:
+      type: object
+      properties:
+        username:
+          type: string
+        roleId:
+          type: string
+        is_active:
+          type: boolean
+responses:
+  200:
+    description: Cập nhật thành công
+    schema:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        roleName:
+          type: string
+        isActive:
+          type: boolean
+  400:
+    description: Yêu cầu không hợp lệ
+  404:
+    description: Người dùng không tìm thấy
+  422:
+    description: Lỗi xác thực payload

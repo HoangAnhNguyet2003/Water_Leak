@@ -1,0 +1,40 @@
+tags:
+  - Auth
+operationId: refreshToken
+summary: Làm mới token đăng nhập
+description: >
+  Làm mới access token sử dụng `refresh` cookie. Endpoint này trả về access
+  token mới (được đặt vào cookie) và `csrf_access_token` để sử dụng phía client.
+consumes:
+  - application/json
+produces:
+  - application/json
+parameters: 
+  []
+responses:
+        200:
+          description: Token đã được làm mới
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              user:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  username:
+                    type: string
+                  roleId:
+                    type: string
+                  roleName:
+                    type: string
+                  companyId:
+                    type: string
+                  branchId:
+                    type: string
+              csrf_access_token:
+                type: string
+        401:
+          description: Refresh token không hợp lệ hoặc người dùng không tồn tại
