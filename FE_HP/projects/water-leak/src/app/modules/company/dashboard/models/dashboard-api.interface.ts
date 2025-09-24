@@ -1,17 +1,18 @@
-export type DashBoardData = {
-  id: number,
-  anomaly_count: number,
-  anomaly_verified: number,
+export interface DashBoardData {
+  id: string | number;
+  name: string;
+  branchName: string | number;
+  installationDate?: string | Date;
+  status: DashBoardDataStatus;
   meter_data: {
-    id: number,
-    name: string,
-    address: string,
-    status: number
+    id: string | number;
+    name: string;
+    status: DashBoardDataStatus;
   }
 }
 
-export enum Status {
-  NORMAL = 1,
-  ANOMALY = 0,
-  LOST_CONNECTION = 2
+export enum DashBoardDataStatus {
+  NORMAL = 'normal',
+  ANOMALY = 'anomaly',
+  LOST_CONNECTION = 'lost_connection'
 }

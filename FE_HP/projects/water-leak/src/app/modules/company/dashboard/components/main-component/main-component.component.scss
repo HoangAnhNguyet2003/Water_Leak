@@ -29,7 +29,7 @@
 .stat-card {
   background: rgba(255, 255, 255, 0.95);
   border-radius: 16px;
-  padding: 24px;
+  padding: 10px;
   display: flex;
   align-items: center;
   gap: 20px;
@@ -38,17 +38,52 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   flex: 1;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
 
   &:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
   }
+
+  // Clickable card styles
+  &.clickable-card {
+    cursor: pointer;
+    user-select: none;
+    
+    &:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+      
+      .card-hover-indicator {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    &:active {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    }
+  }
+}
+
+// Card hover indicator
+.card-hover-indicator {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%) translateX(10px);
+  opacity: 0;
+  transition: all 0.3s ease;
+  color: #667eea;
+  font-size: 18px;
+  font-weight: bold;
 }
 
 // Stat Card Elements
 .stat-icon {
-  width: 60px;
-  height: 60px;
+  width: 50px;
+  height: 50px;
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -77,7 +112,7 @@
 }
 
 .stat-number {
-  font-size: 36px;
+  font-size: 30px;
   font-weight: 700;
   color: #2c3e50;
   margin-bottom: 4px;
@@ -141,7 +176,7 @@
   margin: 0;
 }
 
-// Search Components
+
 .search-container {
   display: flex;
   align-items: center;
@@ -182,7 +217,7 @@
 // Data Table Styles
 .table-wrapper {
   position: relative;
-  height: calc(100% - 120px); // Trừ đi chiều cao của header
+  height: calc(100% - 120px); 
   background: white;
   border-radius: 8px;
   overflow: hidden;
@@ -247,12 +282,13 @@
     background: #438cd5;
     
     tr {
-      height: 56px; // Chiều cao cố định cho header
+      height: 56px; 
+
     }
   }
 
   th {
-    padding: 16px 24px;
+    padding: 14px;
     text-align: left;
     font-weight: 600;
     font-size: 14px;
@@ -271,7 +307,7 @@
   }
 
   td {
-    padding: 16px 24px;
+    padding: 14px;
     border-bottom: 1px solid #f1f3f4;
     font-size: 14px;
     color: #333;
@@ -294,18 +330,19 @@
 }
 
 // Table Cell Specific Styles
-.station-name {
-  font-weight: 500;
-  color: #2c3e50;
-}
+// .station-name {
+//   font-weight: 500;
+//   color: #2c3e50;
+// }
 
 .station-text {
   color: #2c3e50;
-  font-weight: 600;
+  font-weight: 500;
 }
 
-.address {
+.branch {
   color: #666;
+  font-size:small;
 }
 
 .flow-rate {
