@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from typing import Optional
 from datetime import datetime
 
@@ -13,6 +13,12 @@ class MeterUpdate(BaseModel):
     installation_time: Optional[datetime] = None
 
 class MeterOut(BaseModel):
+    model_config = ConfigDict(
+        json_encoders={
+            datetime: lambda v: v.strftime("%Y-%m-%d")
+        }
+    )
+
     id: str
     branch_id: str
     meter_name: str

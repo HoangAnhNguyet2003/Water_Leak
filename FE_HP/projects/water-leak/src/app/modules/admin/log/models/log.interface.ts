@@ -2,7 +2,7 @@ export type LogMetaData = {
   id: string,
   source: string,
   log_type: number,
-  created_time: string,
+  created_time: string | Date,
   message: string
 }
 
