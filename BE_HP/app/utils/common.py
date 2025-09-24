@@ -91,7 +91,8 @@ def find_by_id(uid: str, COL: str) -> Optional[Dict[str, Any]]:
         doc = db[COL].find_one({"_id": to_object_id(uid)})
     except Exception:
         return None
-    if not doc: return None
+    if not doc: 
+        return None
     doc["id"] = oid_str(doc.pop("_id"))
     return doc
 

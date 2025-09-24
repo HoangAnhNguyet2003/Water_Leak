@@ -1,15 +1,19 @@
 from flask import Blueprint, request, jsonify, make_response, current_app
-from ...extensions import get_db
+from flasgger import swag_from
+from bson import ObjectId
 from flask_jwt_extended import get_csrf_token,create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt, set_access_cookies, set_refresh_cookies, unset_jwt_cookies
 from datetime import datetime
+
+from ...extensions import get_db
 from ...extensions import limiter
 from ...models.auth_schemas import LoginIn
 from .auth_utils import validate_login
 from ...error import BadRequest
 from ...utils import json_ok, get_swagger_path
-from flasgger import swag_from
-from bson import ObjectId
 from ...extensions import TOKEN_BLOCKLIST
+from ...routes.logs.log_utils import insert_log
+from ...models.log_schemas import LogType
+from ...utils.logging import log_api
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -50,7 +54,13 @@ def role_based_login():
                 "branchId": user_info["branch_id"]
             }
         }
+        try:
+            db = get_db()
+            db.users.update_one({"_id": ObjectId(user_info["id"])}, {"$set": {"last_login": datetime.now()}})
+        except Exception:
+            pass
 
+        insert_log(message=response_data["message"], log_type=LogType.INFO, user_id=user_info["id"])
         response = make_response(json_ok(response_data))
         set_access_cookies(response, access_token)
         set_refresh_cookies(response, refresh_token)
@@ -58,12 +68,14 @@ def role_based_login():
         return response
 
     except Exception as e:
+        insert_log(message=f"Đăng nhập thất bại cho {data.username}: {str(e)}", log_type=LogType.ERROR)
         raise e
     
 
 @auth_bp.post("/refresh")
 @jwt_required(refresh=True, locations=["cookies"])
 @swag_from(get_swagger_path('auth/refresh.yml'))
+@log_api(log_type=LogType.INFO, message="Refresh token đăng nhập")
 def refresh():
     uid = get_jwt_identity()
     current_claims = get_jwt()
@@ -88,7 +100,8 @@ def refresh():
     )
 
     csrf_token = get_csrf_token(new_access_token)
-
+    db.users.update_one({"_id": ObjectId(uid)}, {"$set": {"last_login": datetime.now()}})
+    
     response = make_response(json_ok({
         "message": "Token đã được làm mới thành công",
         "user": {
@@ -101,7 +114,7 @@ def refresh():
         },
         "csrf_access_token": csrf_token
     }))
-
+    insert_log(message="Token đã được làm mới thành công", log_type=LogType.INFO, user_id=uid)
     set_access_cookies(
         response,
         new_access_token,
@@ -114,25 +127,25 @@ def refresh():
     return response
 
 @auth_bp.post("/logout")
+@jwt_required(optional=True)  
 @swag_from(get_swagger_path('auth/logout.yml'))
 def logout():
-    """
-    Logout endpoint - clears cookies and blocklist tokens
-    """
+    uid = None
     jti = None
     try:
-        try:
-            jti = get_jwt().get("jti")
-            if jti:
-                TOKEN_BLOCKLIST.add(jti)
-        except Exception as e:
-            raise e
-        
+        uid = get_jwt_identity()
+        jti = get_jwt().get("jti")
+
+        if jti:
+            TOKEN_BLOCKLIST.add(jti)
+
         response = make_response(jsonify({
             "msg": "Logout thành công",
             "message": "Đăng xuất thành công",
             "timestamp": str(datetime.now())
         }))
+
+        insert_log(message="User đăng xuất thành công", log_type=LogType.INFO, user_id=uid)
 
         cookies_to_clear = [
             'access_token', 'csrf_access_token',
@@ -144,34 +157,23 @@ def logout():
                 httponly=True, samesite='Strict', secure=False
             )
 
-        try:
-            unset_jwt_cookies(response)
-        except Exception as e:
-            print(f"Error unsetting JWT cookies: {e}")
-        if jti:
-            print(f"User logged out, token JTI: {jti}")
-        else:
-            print("User logged out (token not available)")
-
+        unset_jwt_cookies(response)
         return response
 
     except Exception as e:
         print(f"Logout error: {e}")
+
         response = make_response(jsonify({
             "error": str(e),
             "msg": "Logout attempted - cookies cleared",
             "message": "Đăng xuất thành công - cookies đã được xóa"
-        }), 200)  
+        }), 200)
 
-        response.set_cookie('access_token', '', expires=0, httponly=True, samesite='Strict', secure=False)
-        response.set_cookie('refresh_token', '', expires=0, httponly=True, samesite='Strict', secure=False)
+        insert_log(message="User đăng xuất (không có token)", log_type=LogType.INFO, user_id=uid)
 
-        try:
-            unset_jwt_cookies(response)
-        except:
-            pass
-
+        unset_jwt_cookies(response)
         return response
+
 
 @auth_bp.get("/me")
 @jwt_required()

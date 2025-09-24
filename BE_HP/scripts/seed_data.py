@@ -52,7 +52,7 @@ def reset_collections():
         "users", "roles", "user_meter",
         "meter_manual_thresholds", "meter_consumptions",
         "meter_repairs", "meter_measurements",
-        "ai_models", "predictions"
+        "ai_models", "predictions", "logs"
     ]
     for col in collections:
         db[col].drop()

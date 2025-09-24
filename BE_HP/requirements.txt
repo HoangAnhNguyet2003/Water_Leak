@@ -1,4 +1,3 @@
-
 flask
 flasgger==0.9.7.1
 flask_socketio==5.5.1
@@ -81,3 +80,5 @@ yake==0.4.8
 flask-jwt-extended
 passlib[bcrypt]
 Flask-Limiter==3.8.0
+gevent-websocket==0.10.1
+gevent==25.9.1
