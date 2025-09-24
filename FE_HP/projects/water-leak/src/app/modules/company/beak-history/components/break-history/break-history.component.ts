@@ -1,9 +1,9 @@
-import { Component, OnInit, signal } from '@angular/core';
+import { Component, OnInit, OnDestroy, signal, WritableSignal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
-import { trigger, state, style, transition, animate } from '@angular/animations';
+import { trigger, style, transition, animate } from '@angular/animations';
 import { BreakHistory, BreakHistoryFilter } from '../../models';
+import { RepairService } from '../../services/repair.service';
 
 @Component({
   selector: 'app-break-history',
@@ -24,228 +24,116 @@ import { BreakHistory, BreakHistoryFilter } from '../../models';
     ])
   ]
 })
-export class BreakHistoryComponent implements OnInit {
-  // Sử dụng signals để quản lý state
+export class BreakHistoryComponent implements OnInit, OnDestroy {
   breakHistories = signal<BreakHistory[]>([]);
-  filteredHistories = signal<BreakHistory[]>([]);
-  filter = signal<BreakHistoryFilter>({
-    searchTerm: '',
-    statusFilter: ''
+  filter: WritableSignal<BreakHistoryFilter> = signal({
+    searchTerm: ''
   });
-  selectAll = signal<boolean>(false);
+  selectAll = signal(false);
+  
+  private searchTimeout: any;
 
-  // Popup states
-  showExportPopup = signal<boolean>(false);
-  showSuccessNotification = signal<boolean>(false);
-
-  constructor(private router: Router) {}
-
-  // Sinh mock data thực tế, đa dạng và ổn định
-  private generateMockData(total: number = 60): BreakHistory[] {
-    const names = [
-      'Văn Đẩu 8','Văn Đẩu 9','Văn Đẩu 10','Hoà Khánh 1','Hoà Khánh 2',
-      'Liên Chiểu 1','Liên Chiểu 2','Thanh Khê 1','Thanh Khê 2','Sơn Trà 1',
-      'Sơn Trà 2','Ngũ Hành Sơn 1','Ngũ Hành Sơn 2','Hải Châu 1','Hải Châu 2',
-      'Cẩm Lệ 1','Cẩm Lệ 2','Hoà Vang 1','Hoà Vang 2','Hoà Tiến 1'
-    ];
-    const streets = [
-      'Nguyễn Huệ','Lê Lợi','Đồng Khởi','Nguyễn Du','Pasteur',
-      'Hai Bà Trưng','Lê Duẩn','Tôn Đức Thắng','Phan Chu Trinh','Trần Phú'
-    ];
-    const materials = ['HDPE','PVC','Steel','Ductile iron'];
-    const statuses: Array<BreakHistory['status']> = ['Normal','On fixing','Anomaly detected'];
-    const pad = (n: number) => (n < 10 ? `0${n}` : `${n}`);
-    const randomDate = (): string => {
-      const start = new Date(2022, 0, 1).getTime();
-      const end = new Date(2025, 11, 31).getTime();
-      const d = new Date(start + Math.random() * (end - start));
-      return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
-    };
-
-    return Array.from({ length: total }, (_, i) => {
-      const clock = names[i % names.length] + ` - ${pad((i % 50) + 1)}`;
-      const address = `${Math.floor(Math.random() * 200) + 1} ${streets[i % streets.length]}, Đà Nẵng`;
-      const status = statuses[Math.floor(Math.random() * statuses.length)];
-      const breaks = status === 'Anomaly detected' ? Math.floor(Math.random() * 4) + 2 : Math.floor(Math.random() * 2);
-      return {
-        id: String(i + 1),
-        clock,
-        address,
-        status,
-        date: randomDate(),
-        break: breaks,
-        pipeMaterial: materials[i % materials.length],
-        pipeLength: 700 + (i % 10) * 50,
-        latestRepair: randomDate()
-      } as BreakHistory;
-    });
-  }
-
-  private mockData: BreakHistory[] = this.generateMockData(60);
+  constructor(private repairService: RepairService) {}
 
   ngOnInit(): void {
     this.loadData();
   }
 
+  ngOnDestroy(): void {
+    if (this.searchTimeout) {
+      clearTimeout(this.searchTimeout);
+    }
+  }
+
+  /** Load dữ liệu từ service */
   private loadData(): void {
-    this.breakHistories.set(this.mockData);
-    this.filteredHistories.set(this.mockData);
+    this.repairService.getRepairs().subscribe(data => {
+      const initialized = data.map(h => ({
+        ...h,
+        expanded: false,
+        selected: false
+      }));
+      this.breakHistories.set(initialized);
+    });
   }
 
-  onFilterChange(): void {
-    const currentFilter = this.filter();
-    this.filter.set({ ...currentFilter });
-    this.applyFilters();
-  }
-
-  private applyFilters(): void {
-    const currentFilter = this.filter();
-    let filtered = this.breakHistories();
-
-    // Apply search filter
-    if (currentFilter.searchTerm) {
-      const searchTerm = currentFilter.searchTerm.toLowerCase();
-      // Yêu cầu: chỉ tìm theo TÊN (clock)
-      filtered = filtered.filter(history =>
-        history.clock.toLowerCase().includes(searchTerm)
-      );
-    }
-
-    // Apply status filter
-    if (currentFilter.statusFilter) {
-      filtered = filtered.filter(history => history.status === currentFilter.statusFilter);
-    }
-
-    this.filteredHistories.set(filtered);
-    this.updateSelectAllState();
-  }
-
-  // Debounce tìm kiếm theo tên để UX mượt mà
-  private searchTimeout: any;
+  /** Debounce tìm kiếm */
   onSearchTermChange(event: Event): void {
     const target = event.target as HTMLInputElement;
     const value = target?.value ?? '';
     this.filter.update(f => ({ ...f, searchTerm: value }));
-    if (this.searchTimeout) {
-      clearTimeout(this.searchTimeout);
+
+    if (this.searchTimeout) clearTimeout(this.searchTimeout);
+    this.searchTimeout = setTimeout(() => {
+      this.updateSelectAllState();
+    }, 250);
+  }
+
+  /** Getter danh sách đã lọc */
+  filteredHistories(): BreakHistory[] {
+    const { searchTerm } = this.filter();
+    let filtered = this.breakHistories();
+
+    if (searchTerm) {
+      const keyword = searchTerm.toLowerCase();
+      filtered = filtered.filter(
+        h =>
+          (h.meterName && h.meterName.toLowerCase().includes(keyword)) ||
+          (h.leakReason && h.leakReason.toLowerCase().includes(keyword))
+      );
     }
-    this.searchTimeout = setTimeout(() => this.applyFilters(), 250);
+
+    return filtered;
   }
 
+  /** Chọn tất cả trong danh sách lọc */
   onSelectAll(): void {
-    const newSelectAll = !this.selectAll();
-    this.selectAll.set(newSelectAll);
-    
-    const updated = this.filteredHistories().map(history => ({
-      ...history,
-      selected: newSelectAll
-    }));
-    
-    this.filteredHistories.set(updated);
-    this.updateMainDataSelection(updated);
+    const newValue = !this.selectAll();
+    this.selectAll.set(newValue);
+
+    const filteredIds = this.filteredHistories().map(h => h.id);
+
+    const updated = this.breakHistories().map(h =>
+      filteredIds.includes(h.id) ? { ...h, selected: newValue } : h
+    );
+
+    this.breakHistories.set(updated);
   }
 
+  /** Chọn từng item */
   onItemSelect(historyId: string): void {
-    const updated = this.filteredHistories().map(history =>
-      history.id === historyId ? { ...history, selected: !history.selected } : history
+    const updated = this.breakHistories().map(h =>
+      h.id === historyId ? { ...h, selected: !h.selected } : h
     );
-    
-    this.filteredHistories.set(updated);
-    this.updateMainDataSelection(updated);
+    this.breakHistories.set(updated);
+
     this.updateSelectAllState();
   }
 
-  private updateMainDataSelection(filteredData: BreakHistory[]): void {
-    const allData = this.breakHistories().map(history => {
-      const filteredItem = filteredData.find(f => f.id === history.id);
-      return filteredItem || history;
-    });
-    
-    this.breakHistories.set(allData);
-  }
-
+  /** Cập nhật trạng thái selectAll theo danh sách lọc */
   private updateSelectAllState(): void {
-    const filtered = this.filteredHistories();
-    const selectedCount = filtered.filter(history => history.selected).length;
-    this.selectAll.set(selectedCount === filtered.length && filtered.length > 0);
+    const list = this.filteredHistories();
+    const allSelected = list.length > 0 && list.every(h => h.selected);
+    this.selectAll.set(allSelected);
   }
 
-  getStatusClass(status: string): string {
-    switch (status) {
-      case 'Normal': return 'status-normal';
-      case 'On fixing': return 'status-fixing';
-      case 'Anomaly detected': return 'status-anomaly';
-      default: return 'status-normal';
-    }
+  /** Toggle chi tiết */
+  viewDetails(historyId: string): void {
+    const updated = this.breakHistories().map(h =>
+      h.id === historyId ? { ...h, expanded: !h.expanded } : h
+    );
+    this.breakHistories.set(updated);
   }
 
-  // Hiển thị tiếng Việt cho trạng thái trong bảng
-  getStatusText(status: string): string {
-    switch (status) {
-      case 'Normal':
-        return 'Bình thường';
-      case 'On fixing':
-        return 'Đang sửa chữa';
-      case 'Anomaly detected':
-        return 'bất thường';
-      default:
-        return status;
-    }
-  }
-
+  /** TrackBy để tối ưu render */
   trackByHistoryId(index: number, history: BreakHistory): string {
     return history.id;
   }
 
-  private isValidBreakHistory(history: any): history is BreakHistory {
-    return history && typeof history.id === 'string' && typeof history.clock === 'string';
-  }
-
-  // Export functionality
+  /** Xuất dữ liệu */
   exportData(): void {
-    this.showExportPopup.set(true);
-  }
-
-  hasSelectedHistories(): boolean {
-    return this.filteredHistories().some(history => history.selected);
-  }
-
-  closeExportPopup(): void {
-    this.showExportPopup.set(false);
-  }
-
-  confirmExport(): void {
-    const selectedHistories = this.filteredHistories().filter(history => history.selected);
-    console.log('Xuất dữ liệu lịch sử vỡ:', selectedHistories);
-    this.showExportPopup.set(false);
-    this.showSuccessNotification.set(true);
-  }
-
-  closeSuccessNotification(): void {
-    this.showSuccessNotification.set(false);
-  }
-
-  // Detail functionality
-  toggleDetails(historyId: string): void {
-    const histories = this.filteredHistories();
-    const updatedHistories = histories.map(history =>
-      history.id === historyId ? { ...history, expanded: !history.expanded } : history
-    );
-    this.filteredHistories.set(updatedHistories);
-
-    const allHistories = this.breakHistories();
-    const updatedAllHistories = allHistories.map(history =>
-      history.id === historyId ? { ...history, expanded: !history.expanded } : history
-    );
-    this.breakHistories.set(updatedAllHistories);
-  }
-
-  viewDetails(historyId: string): void {
-    this.toggleDetails(historyId);
-  }
-
-  isExpanded(historyId: string): boolean {
-    const history = this.filteredHistories().find(h => h.id === historyId);
-    return history?.expanded || false;
+    const selected = this.breakHistories().filter(h => h.selected);
+    console.log('Xuất dữ liệu lịch sử vỡ:', selected);
+    // TODO: Gọi service export hoặc download file CSV/Excel
   }
 }

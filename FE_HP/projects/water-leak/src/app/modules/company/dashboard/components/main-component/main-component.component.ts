@@ -50,7 +50,6 @@ export class MainComponentComponent implements OnInit {
     if (!searchLower) return this.allData();
 
     return this.allData().filter(item =>
-      // Chuyển đổi item.name và item.branchName thành chuỗi trước khi gọi toLowerCase
       String(item.name).toLowerCase().includes(searchLower) ||
       String(item.branchName).toLowerCase().includes(searchLower)
     );
@@ -90,7 +89,7 @@ export class MainComponentComponent implements OnInit {
 
 
   trackByFn(index: number, item: DashBoardData): string | number {
-    return item.id; // Sử dụng thuộc tính id duy nhất cho mỗi mục
+    return item.id;
   }
 
 
@@ -111,7 +110,7 @@ export class MainComponentComponent implements OnInit {
       case DashBoardDataStatus.LOST_CONNECTION:
         return 'status-lost-connection';
       default:
-        return '';
+        return 'status-unknown';
     }
   }
 
@@ -130,13 +129,11 @@ export class MainComponentComponent implements OnInit {
   // Meter selection
 selectMeter(item: DashBoardData): void {
   if (item.meter_data) {
-    // Chuyển đổi id thành number nếu cần
     const meterId = typeof item.meter_data.id === 'string' ? Number(item.meter_data.id) : item.meter_data.id;
 
-    this.selectedMeterId.set(meterId); // Cập nhật trạm được chọn
+    this.selectedMeterId.set(meterId); 
     this.selectedMeterName.set(item.meter_data.name);
 
-    // Tạo dữ liệu mới cho trạm được chọn
     this.updateChartDataForMeter(item);
     } else {
       console.warn('Meter data is not available for the selected item.');

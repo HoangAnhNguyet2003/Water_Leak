@@ -54,7 +54,7 @@
               >
             </th>
             <th>Tên trạm</th>
-            <th>Địa chỉ</th>
+            <th>Chi nhánh</th>
             <th>Trạng thái</th>
             <th>Ngày tham gia</th>
             <th>Hành động</th>
@@ -83,76 +83,26 @@
                 >
               </td>
               <td class="name-column">{{ meter.name }}</td>
-              <td class="address-column">{{ meter.address }}</td>
+              <td class="address-column">{{ meter.branchName }}</td>
               <td class="status-column">
                 <span class="status-badge" [ngClass]="getStatusClass(meter.status)">
                   {{ getStatusText(meter.status) }}
                 </span>
               </td>
-              <td class="date-column">{{ meter.joinDate }}</td>
+              <td class="date-column">
+                <!-- {{ meter.installationDate | date:'dd/MM/yyyy' }} -->
+                  24/09/2025
+              </td>
               <td class="actions-column">
                 <button 
-                  class="action-btn" 
-                  (click)="viewDetails(meter.id)"
-                  [class.rotated]="meter.expanded"
-                >
-                  <i class="fas fa-chevron-down"></i>
-                </button>
+                    class="detail-btn primary"
+                    (click)="viewChart(meter.id)"
+                  >
+                    <i class="fas fa-chart-line"></i>
+                    Xem biểu đồ
+                  </button>
               </td>
-            </tr>
-            
-            <!-- Detail Row -->
-            <tr 
-              class="detail-row" 
-              *ngIf="meter.expanded"
-              [@slideInOut]
-            >
-              <td colspan="6" class="detail-content">
-                <div class="detail-container">
-                  <div class="detail-header">
-                    <h4 class="detail-title">Thông tin chi tiết</h4>
-                  </div>
-                  
-                  <div class="detail-body">
-                    <div class="detail-info-grid">
-                      <div class="detail-item">
-                        <span class="detail-label">Tên trạm:</span>
-                        <span class="detail-value">{{ meter.name }}</span>
-                      </div>
-                      
-                      <div class="detail-item">
-                        <span class="detail-label">Địa chỉ:</span>
-                        <span class="detail-value">{{ meter.address }}</span>
-                      </div>
-                      
-                      <div class="detail-item">
-                        <span class="detail-label">Trạng thái:</span>
-                        <span class="detail-value">
-                          <span class="status-badge" [ngClass]="getStatusClass(meter.status)">
-                            {{ meter.status }}
-                          </span>
-                        </span>
-                      </div>
-                      
-                      <div class="detail-item">
-                        <span class="detail-label">Phát hiện bất thường:</span>
-                        <span class="detail-value anomaly-count">{{ meter.anomalyDetected || 0 }}</span>
-                      </div>
-                    </div>
-                    
-                    <div class="detail-actions">
-                      <button 
-                        class="detail-btn primary"
-                        (click)="viewChart(meter.id)"
-                      >
-                        <i class="fas fa-chart-line"></i>
-                        Xem biểu đồ
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </td>
-            </tr>
+            </tr>         
           </ng-container>
         </tbody>
       </table>
@@ -201,7 +151,7 @@
         <div class="notification-icon success">
           <i class="fas fa-check"></i>
         </div>
-        <h3 class="notification-title">Cập nhật thành công</h3>
+        <h3 class="notification-title">Thành công</h3>
         <div class="notification-actions">
           <button class="notification-btn ok" (click)="closeSuccessNotification()">
             OK

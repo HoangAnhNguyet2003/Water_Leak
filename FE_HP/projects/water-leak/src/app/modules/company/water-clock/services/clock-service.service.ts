@@ -1,14 +1,36 @@
 import { Injectable, signal } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { BehaviorSubject, catchError, map, Observable, of } from 'rxjs';
+import { WaterMeter } from '../models';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class ClockServiceService {
   // Đếm trạng thái để hiển thị trên dashboard
   private anomalyDetectedCount = signal<number>(0);
   private onFixingCount = signal<number>(0);
 
-  constructor() { }
+  private meters$ = new BehaviorSubject<WaterMeter[]>([]);
+  private readonly API_BASE = 'http://localhost:5000/api/v1';
+
+  constructor(private http: HttpClient) {}
+
+  getMeterData(force = false): Observable<WaterMeter[]> {
+    if (force || this.meters$.value.length === 0) {
+      this.http
+        .get<{ items: any[] }>(`${this.API_BASE}/meters/get_all_meters`)
+        .pipe(
+          map((res) => res.items.map((item) => this.mapFromApi(item))),
+          catchError((err) => {
+            console.error('Failed to load meters:', err);
+            return of([] as WaterMeter[]);
+          })
+        )
+        .subscribe((data) => this.meters$.next(data));
+    }
+    return this.meters$.asObservable();
+  }
 
   // Cập nhật số liệu đếm từ trang thông tin đồng hồ
   public setCounts(anomalyDetected: number, onFixing: number): void {
@@ -24,5 +46,17 @@ export class ClockServiceService {
   public getOnFixingCount(): number {
     return this.onFixingCount();
   }
-}
 
+  private mapFromApi(apiMeter: any): WaterMeter {
+    return {
+      id: String(apiMeter.id),
+      name: apiMeter.meter_name,
+      branchName: apiMeter.branchName,
+      status: apiMeter.status || 'Normal', 
+      installationDate: apiMeter.installation_time ? new Date(apiMeter.installation_time) : undefined,
+      selected: false,
+      expanded: false,
+      anomalyDetected: apiMeter.anomalyDetected || 0,
+    };
+  }
+}

@@ -551,8 +551,50 @@
     }
 
     .detail-actions {
-      justify-content: center !important;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 12px;
+
+  .detail-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    i {
+      font-size: 16px;
+      transition: transform 0.3s ease;
     }
+
+    &.primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      box-shadow: 0 4px 14px rgba(102, 126, 234, 0.3);
+
+      &:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 18px rgba(102, 126, 234, 0.45);
+
+        i {
+          transform: scale(1.2);
+        }
+      }
+
+      &:active {
+        transform: translateY(0);
+        box-shadow: 0 3px 10px rgba(102, 126, 234, 0.25);
+      }
+    }
+  }
+}
+
   }
 }
 
@@ -799,4 +841,37 @@
       }
     }
   }
+}
+.actions-column {
+  text-align: center;
+}
+
+.detail-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px; 
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.detail-btn.primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff; /* chữ để màu trắng sẽ nổi trên gradient */
+  border: none;
+}
+
+.detail-btn.primary:hover {
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.detail-btn.primary:active {
+  transform: translateY(0);
+  box-shadow: none;
 }
