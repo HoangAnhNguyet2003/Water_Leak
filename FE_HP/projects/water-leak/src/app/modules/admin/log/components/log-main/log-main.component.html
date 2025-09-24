@@ -55,6 +55,10 @@
           <i class="fas fa-eraser"></i>
           Clear Filters
         </button>
+        <label style="display:flex; align-items:center; gap:8px; margin-left:12px;">
+          <input type="checkbox" [checked]="stripDiacritics()" (change)="stripDiacritics.set($any($event.target).checked)" />
+          Bỏ dấu
+        </label>
       </div>
     </div>
   </div>
@@ -72,25 +76,27 @@
       <table class="log-table">
         <thead>
           <tr>
-            <th class="col-id">ID</th>
+            <th class="col-stt">STT</th>
             <th class="col-type">Loại log</th>
             <th class="col-datetime">Thời gian tạo</th>
+            <th class="col-source">Nguồn phát sinh</th>
             <th class="col-message">Ghi chú</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let log of filteredLogData()" class="table-row">
-            <td class="col-id">{{ log.id }}</td>
+          <tr *ngFor="let log of filteredLogData(); let i = index" class="table-row">
+            <td class="col-stt">{{ i + 1 }}</td>
             <td class="col-type">
               <span class="log-type-badge" [class]="getLogTypeClass(log.log_type)">
                 {{ getLogTypeDisplay(log.log_type) }}
               </span>
             </td>
             <td class="col-datetime">{{ formatDateTime(log.created_time) }}</td>
-            <td class="col-message">{{ log.message }}</td>
+            <td class="col-source">{{ log.source || '-' }}</td>
+            <td class="col-message">{{ displayMessage(log.message) }}</td>
           </tr>
           <tr *ngIf="filteredLogData().length === 0" class="no-data-row">
-            <td colspan="4" class="no-data-message">
+            <td colspan="6" class="no-data-message">
               Không tìm thấy log nào phù hợp với tiêu chí lọc.
             </td>
           </tr>

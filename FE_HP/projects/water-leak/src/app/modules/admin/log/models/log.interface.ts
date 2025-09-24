@@ -1,12 +1,13 @@
 export type LogMetaData = {
-  id: number,
+  id: string,
+  source: string,
   log_type: number,
-  created_time: Date,
+  created_time: string,
   message: string
 }
 
 export enum LogType {
-  WARNING = 1,
-  ERROR = 2,
-  INFO = 3
+  INFO = 1,
+  WARNING = 2,
+  ERROR = 3
 }
