@@ -41,7 +41,7 @@ def get_all_users():
             "branchName": get_branch_name_by_branch_id(u.get("branch_id")),
             "isActive": u.get("is_active", True),
             "lastLogin": (
-                            u.get("last_login").strftime("%Y-%m-%d %H:%M")
+                            u.get("last_login").strftime("%d-%m-%Y %H:%M")
                             if u.get("last_login") is not None and hasattr(u.get("last_login"), 'strftime')
                             else u.get("last_login")
                         ),

@@ -51,7 +51,7 @@ def list_():
             branch = db["branches"].find_one({"_id": ObjectId(x["branch_id"])})
             branch_name = branch.get("name") if branch else None
 
-        meter_out = MeterOut(**x).model_dump()
+        meter_out = MeterOut(**x).model_dump(mode="json")
         meter_out["branchName"] = branch_name
         out.append(meter_out)
 
