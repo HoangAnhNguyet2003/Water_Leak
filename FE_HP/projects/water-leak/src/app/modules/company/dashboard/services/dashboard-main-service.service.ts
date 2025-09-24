@@ -1,139 +1,43 @@
 import { Injectable } from '@angular/core';
-import { DashBoardData } from '../models';
-import { Observable, of } from 'rxjs';
+import { DashBoardData, DashBoardDataStatus } from '../models';
+import { HttpClient } from '@angular/common/http';
+import { BehaviorSubject, catchError, map, Observable, of } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class DashboardMainServiceService {
+  private meters$ = new BehaviorSubject<DashBoardData[] | null>(null);
+    private readonly API_BASE = 'http://localhost:5000/api/v1';
+  
+    constructor(private http: HttpClient) { }
+  
+    getMeterData(force = false): Observable<any> {
+      if (force || !this.meters$.value) {
+        this.http.get<{ items: any[] }>(`${this.API_BASE}/meters/get_all_meters`)
+          .pipe(map(res => res.items.map(item => this.mapFromApi(item))),
+          catchError(err => {
+                  console.error('Failed to load meters:', err);
+                  return of([] as DashBoardData[]);
+                }))
+          .subscribe(data => this.meters$.next(data));
+      }
+      return this.meters$.asObservable();
+    }
 
-  private MockDashBoardData: DashBoardData[] = [
-  {
-    id: 1,
-    anomaly_count: 5,
-    anomaly_verified: 5,
-    meter_data: {
-      id: 1,
-      name: 'Van Dau 8',
-      address: 'Abc',
-      status: 1
-    }
-  },
-  {
-    id: 2,
-    anomaly_count: 3,
-    anomaly_verified: 2,
-    meter_data: {
-      id: 2,
-      name: 'Van Dau 9',
-      address: 'Xyz',
-      status: 0
-    }
-  },
-  {
-    id: 3,
-    anomaly_count: 7,
-    anomaly_verified: 6,
-    meter_data: {
-      id: 3,
-      name: 'Van Dau 10',
-      address: '123 Street',
-      status: 1
-    }
-  },
-  {
-    id: 4,
-    anomaly_count: 2,
-    anomaly_verified: 1,
-    meter_data: {
-      id: 4,
-      name: 'Van Dau 11',
-      address: 'Main Road',
-      status: 0
-    }
-  },
-  {
-    id: 5,
-    anomaly_count: 8,
-    anomaly_verified: 7,
-    meter_data: {
-      id: 5,
-      name: 'Van Dau 12',
-      address: 'Central Ave',
-      status: 1
-    }
-  },
-  {
-    id: 6,
-    anomaly_count: 4,
-    anomaly_verified: 3,
-    meter_data: {
-      id: 6,
-      name: 'Van Dau 13',
-      address: 'North Street',
-      status: 0
-    }
-  },
-  {
-    id: 7,
-    anomaly_count: 6,
-    anomaly_verified: 5,
-    meter_data: {
-      id: 7,
-      name: 'Van Dau 14',
-      address: 'South Park',
-      status: 1
-    }
-  },
-  {
-    id: 8,
-    anomaly_count: 1,
-    anomaly_verified: 0,
-    meter_data: {
-      id: 8,
-      name: 'Van Dau 15',
-      address: 'West Lane',
-      status: 0
-    }
-  },
-  {
-    id: 9,
-    anomaly_count: 9,
-    anomaly_verified: 8,
-    meter_data: {
-      id: 9,
-      name: 'Van Dau 16',
-      address: 'East Road',
-      status: 1
-    }
-  },
-  {
-    id: 10,
-    anomaly_count: 0,
-    anomaly_verified: 0,
-    meter_data: {
-      id: 10,
-      name: 'Van Dau 17',
-      address: 'Downtown',
-      status: 0
-    }
-  },
-  {
-    id: 11,
-    anomaly_count: 10,
-    anomaly_verified: 9,
-    meter_data: {
-      id: 11,
-      name: 'Van Dau 18',
-      address: 'Uptown',
-      status: 1
-    }
+  
+ private mapFromApi(apiMeter: any): DashBoardData {
+      return {
+        id: String(apiMeter.id),
+        name: apiMeter.meter_name,
+        branchName: apiMeter.branchName,
+        status: apiMeter.status ? apiMeter.status as DashBoardDataStatus : DashBoardDataStatus.NORMAL,
+        installationDate: apiMeter.installation_time ? new Date(apiMeter.installation_time) : undefined,
+        meter_data: {
+          id: String(apiMeter.id),
+          name: apiMeter.meter_name,
+          status: apiMeter.status ? apiMeter.status as DashBoardDataStatus : DashBoardDataStatus.NORMAL
+        }
+      };
   }
-];
-
-  getMockData(): Observable<DashBoardData[]> {
-    return of(this.MockDashBoardData);
-  }
-
-  constructor() { }
 }

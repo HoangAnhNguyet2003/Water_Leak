@@ -1,7 +1,7 @@
 <div class="dashboard-container">
   <!-- Statistics Cards -->
   <div class="stats-row">
-    <div class="stat-card anomaly-card">
+    <div class="stat-card anomaly-card clickable-card" (click)="navigateToWaterClock('Anomaly detected')">
       <div class="stat-icon">
         <i class="fas fa-exclamation-triangle"></i>
       </div>
@@ -10,9 +10,12 @@
         <div class="stat-number">{{ totalAnomalies() }}</div>
         <div class="stat-label">bất thường</div>
       </div>
+      <div class="card-hover-indicator">
+        <i class="fas fa-arrow-right"></i>
+      </div>
     </div>
 
-    <div class="stat-card verified-card">
+    <div class="stat-card verified-card clickable-card" (click)="navigateToWaterClock('On fixing')">
       <div class="stat-icon">
         <i class="fas fa-check-circle"></i>
       </div>
@@ -20,6 +23,9 @@
         <div class="stat-title">Bất thường được xác nhận</div>
         <div class="stat-number">{{ totalVerifiedAnomalies() }}</div>
         <div class="stat-label">xác nhận</div>
+      </div>
+      <div class="card-hover-indicator">
+        <i class="fas fa-arrow-right"></i>
       </div>
     </div>
   </div>
@@ -33,19 +39,17 @@
           <h3 class="table-title">Dữ liệu đồng hồ trạm cấp nước</h3>
         </div>
         
-        
         <div class="search-container">
-            <div class="search-box">
-              <i class="fas fa-search search-icon"></i>
-              <input
-                type="text"
-                placeholder="Search"
-                (input)="onSearchChange($event)"
-                class="search-input"
-              />
-            </div>
+          <div class="search-box">
+            <i class="fas fa-search search-icon"></i>
+            <input
+              type="text"
+              placeholder="Search"
+              (input)="onSearchChange($event)"
+              class="search-input"
+            />
+          </div>
         </div>
-        
       </div>
 
       <div class="table-wrapper">
@@ -54,7 +58,7 @@
             <thead>
               <tr>
                 <th>Tên trạm</th>
-                <th>Địa chỉ</th>
+                <th>Chi nhánh</th>
                 <th>Trạng thái</th>
               </tr>
             </thead>
@@ -66,13 +70,13 @@
               <tr *ngFor="let item of filteredData(); trackBy: trackByFn">
                 <td class="station-name" (click)="selectMeter(item)">
                   <span class="station-text" [class.active]="isMeterSelected(item)">
-                    {{ item.meter_data.name }}
+                    {{ item.meter_data.name }} 
                   </span>
                 </td>
-                <td class="address">{{ item.meter_data.address }}</td>
+                <td class="branch">{{ item.branchName }}</td> 
                 <td>
                   <span [class]="'status-badge ' + getStatusClass(item.meter_data.status)">
-                    {{ getStatusText(item.meter_data.status) }}
+                    {{ getStatusText(item.meter_data.status) }} 
                   </span>
                 </td>
               </tr>
@@ -121,7 +125,6 @@
       <div class="detail-content">
         <!-- Chart Section -->
         <div class="chart-section">
-          
           <!-- Chart Content -->
           <div class="chart-content">
             <!-- Chart Header Info -->
@@ -178,14 +181,13 @@
 
                   <!-- Legend inside chart -->
                   <g class="chart-legend-group" *ngIf="chartState().chartData as cd">
-                    <!-- Legend background -->
                     <rect x="90" y="45" [attr.width]="200" height="50" fill="white" stroke="#e0e0e0" stroke-width="1" rx="4"/>
                     <ng-container *ngFor="let item of cd.config.legend; let i = index">
                       <line [attr.x1]="100" [attr.y1]="60 + i * 20" [attr.x2]="120" [attr.y2]="60 + i * 20" [attr.stroke]="item.color" stroke-width="3"/>
                       <text [attr.x]="125" [attr.y]="64 + i * 20" fill="#333" font-size="12" font-family="Arial, sans-serif">{{ item.label }}</text>
                     </ng-container>
                   </g>
-                  
+
                   <ng-container *ngIf="chartState().chartData as cd">
                     <polyline fill="none" [attr.stroke]="cd.config.legend[0].color" stroke-width="2.5" [attr.points]="getPolylinePoints(cd.data, 'value')"/>
                     <polyline fill="none" [attr.stroke]="cd.config.legend[1].color" stroke-width="2.5" [attr.points]="getPolylinePoints(cd.data, 'predictedValue')"/>
