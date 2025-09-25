@@ -1,0 +1,56 @@
+tags:
+  - Measurement
+operationId: getRangeInstantFlowWithPredictions
+summary: Lấy danh sách instant flow theo khoảng giờ cho một đồng hồ (kèm dự đoán)
+description: >
+  Trả về danh sách instant flow cho meter `mid` trong khoảng `hours` giờ tính từ thời điểm hiện tại về quá khứ.
+  Nếu có bản ghi dự đoán (prediction) trong cùng khoảng thời gian, các trường dự đoán sẽ được gắn vào từng mục tương ứng.
+produces:
+  - application/json
+parameters:
+  - in: path
+    name: mid
+    required: true
+    type: string
+    description: ID đồng hồ
+  - in: query
+    name: hours
+    required: false
+    type: integer
+    description: Số giờ tính từ hiện tại về quá khứ (mặc định 4)
+responses:
+  200:
+    description: Danh sách instant flow trong khoảng thời gian (mỗi mục có thể kèm dự đoán)
+    schema:
+      type: object
+      properties:
+        start:
+          type: string
+        end:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              flow:
+                type: number
+              predicted_flow:
+                type: number
+                description: Giá trị dự đoán (nếu có)
+              is_anomaly:
+                type: boolean
+                description: Đánh dấu bất thường do mô hình phát hiện (nếu có)
+              confidence:
+                type: number
+                description: Độ tin cậy của dự đoán (nếu có)
+              status:
+                type: string
+                description: "Trạng thái mục: 'normal' nếu không có bất thường hoặc không có dự đoán; 'anomaly' nếu mô hình đánh dấu bất thường. Mặc định 'normal'."
+  400:
+    description: Thiếu tham số hoặc định dạng sai
+  401:
+    description: Không có quyền

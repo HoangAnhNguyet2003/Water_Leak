@@ -1,13 +1,12 @@
 import { Injectable, signal } from '@angular/core';
 import { ChartData, ChartState, ChartType } from './../../models/chart-data.interface';
-import { ChartMockApiService } from '../../../modules/company/dashboard/services/chart-mock-api.service';
+import { ChartApiService } from './chart-api.service';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ChartDataService {
-  // State management using signals
   private state = signal<ChartState>({
     selectedMeterId: null,
     selectedMeterName: null,
@@ -15,7 +14,7 @@ export class ChartDataService {
     chartData: null
   });
 
-  constructor(private chartApi: ChartMockApiService) {}
+  constructor(private chartApi: ChartApiService) {}
 
   private getSubtitleByType(type: ChartType): string {
     switch (type) {
@@ -48,14 +47,12 @@ export class ChartDataService {
     }
   }
 
-  // Public methods
   public async selectMeter(meterId: number, meterName: string): Promise<void> {
-    const type = this.state().activeChartType;
-    const chartData = await firstValueFrom(this.chartApi.getChartData(meterId, meterName, type));
+    const chartData = await firstValueFrom(this.chartApi.getInstantFlowRange(meterId, 8));
     this.state.update(state => ({
       ...state,
       selectedMeterId: meterId,
-      selectedMeterName: meterName,
+      selectedMeterName: chartData?.meterName ?? meterName,
       chartData
     }));
   }
@@ -66,10 +63,10 @@ export class ChartDataService {
       this.state.update(s => ({ ...s, activeChartType: type }));
       return;
     }
-
-    const chartData = await firstValueFrom(
-      this.chartApi.getChartData(currentState.selectedMeterId, currentState.selectedMeterName, type)
-    );
+    // For anomaly tabs, call the predictions-aware endpoint so we get isAnomaly/confidence
+    const chartData: ChartData = (type === 'anomaly' || type === 'anomaly-ai')
+      ? await firstValueFrom(this.chartApi.getInstantFlowRangeWithPredictions(currentState.selectedMeterId!, 8))
+      : await firstValueFrom(this.chartApi.getInstantFlowRange(currentState.selectedMeterId!, 8));
 
     this.state.update(state => ({
       ...state,

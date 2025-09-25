@@ -1,0 +1,43 @@
+tags:
+  - Measurement
+operationId: getRangeInstantFlow
+summary: Lấy danh sách instant flow theo khoảng giờ cho một đồng hồ
+description: >
+  Trả về danh sách instant flow cho meter `mid` trong khoảng `hours` giờ tính từ thời điểm hiện tại về quá khứ.
+produces:
+  - application/json
+parameters:
+  - in: path
+    name: mid
+    required: true
+    type: string
+    description: ID đồng hồ
+  - in: query
+    name: hours
+    required: false
+    type: integer
+    description: Số giờ tính từ hiện tại về quá khứ (mặc định 4)
+responses:
+  200:
+    description: Danh sách instant flow trong khoảng thời gian
+    schema:
+      type: object
+      properties:
+        start:
+          type: string
+        end:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              timestamp:
+                type: string
+                format: date-time
+              flow:
+                type: number
+  400:
+    description: Thiếu tham số hoặc định dạng sai
+  401:
+    description: Không có quyền
