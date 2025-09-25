@@ -32,10 +32,6 @@
         <option value="Anomaly detected">Phát hiện bất thường</option>
       </select>
     </div>
-    
-    <button class="export-btn" (click)="exportData()">
-      Xuất file dữ liệu
-    </button>
   </div>
 
   <!-- Table Container with Professional Scroll -->
@@ -45,14 +41,6 @@
       <table class="water-meter-table header-table">
         <thead>
           <tr>
-            <th class="checkbox-column">
-              <input 
-                type="checkbox" 
-                [checked]="selectAll()"
-                (change)="onSelectAll()"
-                class="table-checkbox"
-              >
-            </th>
             <th>Tên trạm</th>
             <th>Chi nhánh</th>
             <th>Trạng thái</th>
@@ -74,14 +62,6 @@
               [class.selected]="meter.selected"
               [class.expanded]="meter.expanded"
             >
-              <td class="checkbox-column">
-                <input 
-                  type="checkbox" 
-                  [checked]="meter.selected || false"
-                  (change)="onSelectMeter(meter.id)"
-                  class="table-checkbox"
-                >
-              </td>
               <td class="name-column">{{ meter.name }}</td>
               <td class="address-column">{{ meter.branchName }}</td>
               <td class="status-column">
@@ -90,8 +70,7 @@
                 </span>
               </td>
               <td class="date-column">
-                <!-- {{ meter.installationDate | date:'dd/MM/yyyy' }} -->
-                  24/09/2025
+                {{ meter.installationDate | date:'dd/MM/yyyy' }}
               </td>
               <td class="actions-column">
                 <button 
@@ -106,58 +85,6 @@
           </ng-container>
         </tbody>
       </table>
-    </div>
-  </div>
-
-  <!-- Export Popup -->
-  <div class="popup-overlay" *ngIf="showExportPopup()" (click)="closeExportPopup()">
-    <div class="popup-container" (click)="$event.stopPropagation()">
-      <!-- No Selection Case -->
-      <div *ngIf="!hasSelectedMeters()" class="popup-content">
-        <div class="popup-icon warning">
-          <i class="fas fa-exclamation"></i>
-        </div>
-        <h3 class="popup-title">Chưa chọn đồng hồ nào</h3>
-        <div class="popup-actions">
-          <button class="popup-btn cancel" (click)="closeExportPopup()">
-            Cancel
-          </button>
-        </div>
-      </div>
-
-      <!-- Confirmation Case -->
-      <div *ngIf="hasSelectedMeters()" class="popup-content">
-        <div class="popup-icon confirm">
-          <i class="fas fa-file-export"></i>
-        </div>
-        <h3 class="popup-title">Xác nhận xuất file dữ liệu</h3>
-        <p class="popup-message">Bạn có chắc chắn muốn xuất những file dữ liệu này không?</p>
-        <div class="popup-actions">
-          <button class="popup-btn cancel" (click)="closeExportPopup()">
-            Hủy
-          </button>
-          <button class="popup-btn confirm" (click)="confirmExport()">
-            Xác nhận
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Success Notification -->
-  <div class="notification-overlay" *ngIf="showSuccessNotification()" (click)="closeSuccessNotification()">
-    <div class="notification-container" (click)="$event.stopPropagation()">
-      <div class="notification-content">
-        <div class="notification-icon success">
-          <i class="fas fa-check"></i>
-        </div>
-        <h3 class="notification-title">Thành công</h3>
-        <div class="notification-actions">
-          <button class="notification-btn ok" (click)="closeSuccessNotification()">
-            OK
-          </button>
-        </div>
-      </div>
     </div>
   </div>
 </div>

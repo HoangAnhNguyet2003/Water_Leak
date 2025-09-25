@@ -35,7 +35,7 @@ def create():
 @meter_bp.get("/get_all_meters")
 @swag_from(get_swagger_path('meter/get_all_meters.yml'))
 @jwt_required()
-@require_role("admin")
+@require_role("admin", "company_manager")
 def list_():
     page, page_size = parse_pagination(request.args)
     q = request.args.get("q")

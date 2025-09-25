@@ -7,7 +7,7 @@
 
 .filter-section {
   display: flex;
-  
+  justify-content: space-between;
   margin-bottom: 24px;
   align-items: center;
 
@@ -48,7 +48,6 @@
   }
 
   .filter-dropdown {
-    margin-right: 80px;
     .status-filter {
       padding: 12px 16px;
       border: 1px solid #e2e8f0;
@@ -175,28 +174,24 @@
   table-layout: fixed;
 
   th, td {
-    &.checkbox-column {
-      width: 50px;
-      text-align: center;
-    }
-    
-    &:nth-child(2) { // Name
-      width: 15%;
-    }
-    
-    &:nth-child(3) { // Address  
+
+    &:nth-child(1) { // Name
       width: 25%;
     }
     
-    &:nth-child(4) { // Status
-      width: 15%;
+    &:nth-child(2) { // Address  
+      width: 25%;
     }
     
-    &:nth-child(5) { // Join date
-      width: 15%;
+    &:nth-child(3) { // Status
+      width: 20%;
     }
     
-    &:nth-child(6) { // Actions
+    &:nth-child(4) { // Join date
+      width: 20%;
+    }
+    
+    &:nth-child(5) { // Actions
       width: 80px;
       text-align: center;
     }
@@ -273,7 +268,6 @@
 
         &.date-column {
           color: #4a5568;
-          font-family: 'Courier New', monospace;
         }
 
         &.actions-column {
