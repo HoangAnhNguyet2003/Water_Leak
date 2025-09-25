@@ -38,7 +38,7 @@
         <div class="header-title-row">
           <h3 class="table-title">Dữ liệu đồng hồ trạm cấp nước</h3>
         </div>
-        
+
         <div class="search-container">
           <div class="search-box">
             <i class="fas fa-search search-icon"></i>
@@ -70,13 +70,13 @@
               <tr *ngFor="let item of filteredData(); trackBy: trackByFn">
                 <td class="station-name" (click)="selectMeter(item)">
                   <span class="station-text" [class.active]="isMeterSelected(item)">
-                    {{ item.meter_data.name }} 
+                    {{ item.meter_data.name }}
                   </span>
                 </td>
-                <td class="branch">{{ item.branchName }}</td> 
+                <td class="branch">{{ item.branchName }}</td>
                 <td>
                   <span [class]="'status-badge ' + getStatusClass(item.meter_data.status)">
-                    {{ getStatusText(item.meter_data.status) }} 
+                    {{ getStatusText(item.meter_data.status) }}
                   </span>
                 </td>
               </tr>
@@ -89,31 +89,31 @@
       </div>
     </div>
 
-    <!-- Van Dau 8 Detail Section (60%) -->
+    <!-- Detail Section (60%) -->
     <div class="detail-section">
       <div class="detail-header">
         <!-- Title Row -->
         <div class="header-title-row">
           <h3 class="detail-title">{{ (selectedMeterName() || 'Chọn trạm để xem chi tiết') }}</h3>
         </div>
-        
+
         <!-- Tabs Row -->
         <div class="header-tabs-row">
           <div class="header-tabs">
-            <button 
-              class="header-tab-button" 
+            <button
+              class="header-tab-button"
               [class.active]="isActiveTab('general')"
               (click)="switchChartTab('general')">
               Tổng quát
             </button>
-            <button 
-              class="header-tab-button" 
+            <button
+              class="header-tab-button"
               [class.active]="isActiveTab('anomaly')"
               (click)="switchChartTab('anomaly')">
               Hiển thị bất thường
             </button>
-            <button 
-              class="header-tab-button" 
+            <button
+              class="header-tab-button"
               [class.active]="isActiveTab('anomaly-ai')"
               (click)="switchChartTab('anomaly-ai')">
               Hiển thị bất thường - AI
@@ -125,12 +125,11 @@
       <div class="detail-content">
         <!-- Chart Section -->
         <div class="chart-section">
-          <!-- Chart Content -->
           <div class="chart-content">
             <!-- Chart Header Info -->
             <div class="chart-header-info">
               <ng-container *ngIf="chartState().chartData as cd; else noData">
-                <h4 class="chart-main-title">{{ cd.config.title }}</h4>
+                <h4 class="chart-main-title">{{ selectedMeterName() || cd.meterName || cd.config.title }}</h4>
                 <p class="chart-subtitle">{{ cd.config.subtitle }}</p>
               </ng-container>
               <ng-template #noData>
@@ -138,68 +137,21 @@
                 <p class="chart-subtitle"></p>
               </ng-template>
             </div>
-            
-            <!-- Professional Chart -->
+
             <div class="chart-wrapper">
-              <div class="chart-container-with-grid">
-                <svg viewBox="0 0 900 350" class="flow-chart" preserveAspectRatio="xMidYMid meet">
-                  <!-- Background -->
-                  <rect width="100%" height="100%" fill="white"/>
-                  
-                  <!-- Chart border -->
-                  <rect x="70" y="30" width="800" height="280" fill="none" stroke="#e0e0e0" stroke-width="1"/>
-                  
-                  <!-- Horizontal grid lines -->
-                  <g stroke="#f0f0f0" stroke-width="1">
-                    <line x1="70" y1="310" x2="870" y2="310"/>
-                    <line x1="70" y1="240" x2="870" y2="240"/>
-                    <line x1="70" y1="170" x2="870" y2="170"/>
-                    <line x1="70" y1="100" x2="870" y2="100"/>
-                    <line x1="70" y1="30" x2="870" y2="30"/>
-                  </g>
-                  
-                  <!-- Vertical grid lines -->
-                  <g stroke="#f0f0f0" stroke-width="1">
-                    <line x1="70" y1="30" x2="70" y2="310"/>
-                    <line x1="185" y1="30" x2="185" y2="310"/>
-                    <line x1="300" y1="30" x2="300" y2="310"/>
-                    <line x1="415" y1="30" x2="415" y2="310"/>
-                    <line x1="530" y1="30" x2="530" y2="310"/>
-                    <line x1="645" y1="30" x2="645" y2="310"/>
-                    <line x1="760" y1="30" x2="760" y2="310"/>
-                    <line x1="870" y1="30" x2="870" y2="310"/>
-                  </g>
-                  
-                  <!-- Y-axis labels inside SVG -->
-                  <g fill="#666" font-size="11" font-family="Arial, sans-serif">
-                    <text x="60" y="315" text-anchor="end">0</text>
-                    <text x="60" y="245" text-anchor="end">10</text>
-                    <text x="60" y="175" text-anchor="end">20</text>
-                    <text x="60" y="105" text-anchor="end">30</text>
-                    <text x="60" y="35" text-anchor="end">40</text>
-                  </g>
-
-                  <!-- Legend inside chart -->
-                  <g class="chart-legend-group" *ngIf="chartState().chartData as cd">
-                    <rect x="90" y="45" [attr.width]="200" height="50" fill="white" stroke="#e0e0e0" stroke-width="1" rx="4"/>
-                    <ng-container *ngFor="let item of cd.config.legend; let i = index">
-                      <line [attr.x1]="100" [attr.y1]="60 + i * 20" [attr.x2]="120" [attr.y2]="60 + i * 20" [attr.stroke]="item.color" stroke-width="3"/>
-                      <text [attr.x]="125" [attr.y]="64 + i * 20" fill="#333" font-size="12" font-family="Arial, sans-serif">{{ item.label }}</text>
-                    </ng-container>
-                  </g>
-
-                  <ng-container *ngIf="chartState().chartData as cd">
-                    <polyline fill="none" [attr.stroke]="cd.config.legend[0].color" stroke-width="2.5" [attr.points]="getPolylinePoints(cd.data, 'value')"/>
-                    <polyline fill="none" [attr.stroke]="cd.config.legend[1].color" stroke-width="2.5" [attr.points]="getPolylinePoints(cd.data, 'predictedValue')"/>
-                  </ng-container>
-                </svg>
-              </div>
-              
-              <!-- X-axis labels -->
-              <div class="chart-x-axis" *ngIf="chartState().chartData as cd">
-                <span class="x-axis-label" *ngFor="let t of getXAxisLabels(cd.data)">{{ t }}</span>
-              </div>
+              <apx-chart
+                #chart
+                [series]="chartOptions().series"
+                [chart]="chartOptions().chart"
+                [xaxis]="chartOptions().xaxis"
+                [yaxis]="chartOptions().yaxis"
+                [stroke]="chartOptions().stroke"
+                [dataLabels]="chartOptions().dataLabels"
+                [tooltip]="chartOptions().tooltip"
+                [title]="chartOptions().title">
+              </apx-chart>
             </div>
+
           </div>
         </div>
       </div>

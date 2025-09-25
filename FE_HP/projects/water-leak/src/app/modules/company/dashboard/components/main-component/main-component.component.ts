@@ -1,22 +1,36 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, inject, OnInit, signal, computed, effect, ViewChild } from '@angular/core';
 import { Router } from '@angular/router';
 import { DashboardMainServiceService } from '../../services/dashboard-main-service.service';
-import { DashBoardData, DashBoardDataStatus } from '../../models';
+import { DashBoardData, DashBoardDataStatus, ChartOptions } from '../../models';
 import { catchError } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChartDataService } from '../../../../../core/services/company/chart-data.service';
 import { ClockServiceService } from '../../../water-clock/services/clock-service.service';
 import { of } from 'rxjs';
+import { NgApexchartsModule, ChartComponent } from "ng-apexcharts";
+
 
 @Component({
   selector: 'app-main-component',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, NgApexchartsModule],
   templateUrl: './main-component.component.html',
   styleUrls: ['./main-component.component.scss']
 })
 export class MainComponentComponent implements OnInit {
+  @ViewChild("chart") chart!: ChartComponent;
+  public chartOptions = signal<ChartOptions>({
+    series: [{ name: 'Lưu lượng', data: [] }],
+    chart: { type: 'line', height: 350 },
+    xaxis: { categories: [] },
+    dataLabels: { enabled: false },
+    stroke: { curve: 'smooth' },
+    yaxis: { title: { text: 'Lưu lượng' } },
+    tooltip: { x: { show: true } },
+    title: { text: 'Lưu lượng theo thời gian', align: 'left' }
+  });
+
   dashBoardService = inject(DashboardMainServiceService);
   router = inject(Router);
   private chartDataService = inject(ChartDataService);
@@ -24,76 +38,136 @@ export class MainComponentComponent implements OnInit {
   allData = signal<DashBoardData[]>([]);
   searchTerm = signal<string>('');
 
-  // Chart state management
   chartState = this.chartDataService.getState();
   selectedMeterId = signal<number | null>(null);
   selectedMeterName = signal<string | null>(null);
 
+  private readonly chartSyncEffect = effect(() => {
+    const cd = this.chartState().chartData;
+    if (!cd) return;
+
+    const chartData = cd.data ?? [];
+    const categories = chartData.map(d => d.timestamp);
+    const lineSeries = chartData.map(d => d.value);
+    // build anomaly scatter series: plot value where isAnomaly true, else null to keep positions
+    const anomalySeries = chartData.map(d => d.isAnomaly ? d.value : null);
+
+    const series: any[] = [
+      { name: 'Lưu lượng', type: 'line', data: lineSeries },
+    ];
+    // add anomaly series as scatter with red markers if any anomalies exist
+    if (anomalySeries.some(v => v !== null)) {
+      series.push({ name: 'Bất thường', type: 'scatter', data: anomalySeries });
+    }
+
+    this.chartOptions.set({
+      series,
+      chart: { type: 'line', height: 350 },
+      dataLabels: { enabled: false },
+      stroke: { curve: 'smooth' },
+      xaxis: { categories },
+      yaxis: { title: { text: 'Lưu lượng' } },
+      tooltip: { x: { show: true } },
+      title: { text: `Lưu lượng tức thời - ${this.selectedMeterName() ?? ''}`, align: 'left' },
+      markers: { size: 6 },
+      colors: ['#4285f4', '#e53935']
+    });
+
+    try {
+      this.chart?.updateOptions?.({ series: this.chartOptions().series, xaxis: this.chartOptions().xaxis }, false, true);
+    } catch (_e) {
+      // ignore
+    }
+  });
+
   totalAnomalies = computed(() => {
     const real = this.clockService.getAnomalyDetectedCount();
     if (real > 0) return real;
-    
-    // Giả sử bạn muốn đếm số lượng bất thường dựa trên status
-    return this.allData().filter(item => item.status === DashBoardDataStatus.ANOMALY).length;
+    const arr = this.allData() ?? [];
+    return arr.filter(item => item.status === DashBoardDataStatus.ANOMALY).length;
   });
 
   totalVerifiedAnomalies = computed(() => {
     const real = this.clockService.getOnFixingCount();
     if (real > 0) return real;
-    
-    // Tương tự như trên, bạn có thể kiểm tra trạng thái hoặc thuộc tính khác
-    return this.allData().filter(item => item.status === DashBoardDataStatus.ANOMALY).length;
+    const arr = this.allData() ?? [];
+    return arr.filter(item => item.status === DashBoardDataStatus.ANOMALY).length;
   });
 
   filteredData = computed(() => {
     const searchLower = this.searchTerm().toLowerCase();
     if (!searchLower) return this.allData();
-
     return this.allData().filter(item =>
       String(item.name).toLowerCase().includes(searchLower) ||
       String(item.branchName).toLowerCase().includes(searchLower)
     );
   });
 
-  // Current chart data
-  currentChartData = computed(() => this.chartState().chartData);
-
   ngOnInit() {
-  this.dashBoardService.getMeterData().pipe(
-    catchError((err) => {
-      console.error('Error fetching data', err);
-      return of([]); 
-    })
-  ).subscribe((data) => {
-    this.allData.set(data); 
-  });
-}
+    this.dashBoardService.getMeterData().pipe(
+      catchError((err) => {
+        console.error('Error fetching data', err);
+        return of([]);
+      })
+    ).subscribe((data) => {
+      this.allData.set(data);
+      if (data && data.length > 0 && this.selectedMeterId() === null) {
+        this.selectMeter(data[0]);
+      }
+    });
+
+    this.chartOptions.set({
+      series: [{ name: "Lưu lượng", data: [] }],
+      chart: { type: "line", height: 350 },
+      dataLabels: { enabled: false },
+      stroke: { curve: "smooth" },
+      xaxis: { categories: [] },
+      yaxis: { title: { text: "Lưu lượng" } },
+      tooltip: { x: { show: true } },
+      title: { text: "Lưu lượng theo thời gian", align: "left" }
+    });
+
+    effect(() => {
+      const cd = this.chartState().chartData;
+      if (!cd) return;
+      const chartData = cd.data ?? [];
+      const categories = chartData.map(d => d.timestamp);
+      const lineSeries = chartData.map(d => d.value);
+      const anomalySeries = chartData.map(d => d.isAnomaly ? d.value : null);
+
+      const series: any[] = [ { name: 'Lưu lượng', type: 'line', data: lineSeries } ];
+      if (anomalySeries.some(v => v !== null)) {
+        series.push({ name: 'Bất thường', type: 'scatter', data: anomalySeries });
+      }
+
+      this.chartOptions.set({
+        series,
+        chart: { type: 'line', height: 350 },
+        dataLabels: { enabled: false },
+        stroke: { curve: 'smooth' },
+        xaxis: { categories },
+        yaxis: { title: { text: 'Lưu lượng' } },
+        tooltip: { x: { show: true } },
+        title: { text: `Lưu lượng tức thời - ${this.selectedMeterName() ?? ''}`, align: 'left' },
+        markers: { size: 6 },
+        colors: ['#4285f4', '#e53935']
+      });
+      try {
+        this.chart?.updateOptions?.({ series: this.chartOptions().series, xaxis: this.chartOptions().xaxis }, false, true);
+      } catch (e) {
+        // ignore
+      }
+    });
+  }
 
   onSearchChange(event: any) {
     this.searchTerm.set(event.target.value);
   }
 
-  getStatusLabel(status: DashBoardDataStatus): string {
-    switch (status) {
-      case DashBoardDataStatus.NORMAL:
-        return 'Hoạt động';
-      case DashBoardDataStatus.ANOMALY:
-        return 'Bất thường';
-      case DashBoardDataStatus.LOST_CONNECTION:
-        return 'Lỗi';
-      default:
-        return 'Không xác định';
-    }
-  }
-
-
-
   trackByFn(index: number, item: DashBoardData): string | number {
     return item.id;
   }
 
-
-  // Chart tab methods
   switchChartTab(tab: 'general' | 'anomaly' | 'anomaly-ai') {
     this.chartDataService.changeChartType(tab);
   }
@@ -101,106 +175,64 @@ export class MainComponentComponent implements OnInit {
   isActiveTab(tab: 'general' | 'anomaly' | 'anomaly-ai'): boolean {
     return this.chartState().activeChartType === tab;
   }
+
   getStatusClass(status: DashBoardDataStatus): string {
     switch (status) {
-      case DashBoardDataStatus.NORMAL:
-        return 'status-normal';
-      case DashBoardDataStatus.ANOMALY:
-        return 'status-anomaly';
-      case DashBoardDataStatus.LOST_CONNECTION:
-        return 'status-lost-connection';
-      default:
-        return 'status-unknown';
+      case DashBoardDataStatus.NORMAL: return 'status-normal';
+      case DashBoardDataStatus.ANOMALY: return 'status-anomaly';
+      case DashBoardDataStatus.LOST_CONNECTION: return 'status-lost-connection';
+      default: return 'status-unknown';
     }
   }
 
   getStatusText(status: DashBoardDataStatus): string {
     switch (status) {
-      case DashBoardDataStatus.NORMAL:
-        return 'Bình thường';
-      case DashBoardDataStatus.ANOMALY:
-        return 'Bất thường';
-      case DashBoardDataStatus.LOST_CONNECTION:
-        return 'Mất kết nối';
-      default:
-        return 'Không xác định';
-    }
-  }
-  // Meter selection
-selectMeter(item: DashBoardData): void {
-  if (item.meter_data) {
-    const meterId = typeof item.meter_data.id === 'string' ? Number(item.meter_data.id) : item.meter_data.id;
-
-    this.selectedMeterId.set(meterId); 
-    this.selectedMeterName.set(item.meter_data.name);
-
-    this.updateChartDataForMeter(item);
-    } else {
-      console.warn('Meter data is not available for the selected item.');
+      case DashBoardDataStatus.NORMAL: return 'Bình thường';
+      case DashBoardDataStatus.ANOMALY: return 'Bất thường';
+      case DashBoardDataStatus.LOST_CONNECTION: return 'Mất kết nối';
+      default: return 'Không xác định';
     }
   }
 
-  // Kiểm tra trạm đang được chọn
-  isMeterSelected(item: DashBoardData): boolean {
-    const meterId = typeof item.meter_data?.id === 'string' ? Number(item.meter_data.id) : item.meter_data?.id;
-    return this.selectedMeterId() === meterId;
-  }
-
-  // Cập nhật dữ liệu biểu đồ cho trạm được chọn
-  private updateChartDataForMeter(item: DashBoardData): void {
+  async selectMeter(item: DashBoardData): Promise<void> {
     if (item.meter_data) {
-      const meterId = typeof item.meter_data.id === 'string' ? Number(item.meter_data.id) : item.meter_data.id;
-      this.chartDataService.selectMeter(meterId, item.meter_data.name);
-    } else {
-      console.warn('Meter data is not available for the selected item.');
+      const meterId = item.meter_data.id; // keep original type (string or number)
+      this.selectedMeterId.set(meterId as any);
+      this.selectedMeterName.set(item.meter_data.name);
+      await this.updateChartDataForMeter(item);
     }
   }
 
-  // Không cần tự tạo points — dùng service chung
-
-  // Helper để vẽ SVG (dùng trong template)
-  getPolylinePoints(data: Array<{ timestamp: string; value: number; predictedValue?: number }>, key: 'value' | 'predictedValue'): string {
-    if (!data || data.length === 0) return '';
-    return data.map((point, index) => {
-      const x = this.getXCoordinate(index, data.length);
-      const raw = key === 'value' ? point.value : (point.predictedValue ?? point.value);
-      const y = this.getYCoordinate(raw);
-      return `${x},${y}`;
-    }).join(' ');
+  isMeterSelected(item: DashBoardData): boolean {
+    const meterId = item.meter_data?.id;
+    return String(this.selectedMeterId()) === String(meterId);
   }
 
-  getXAxisLabels(data: Array<{ timestamp: string }>): string[] {
-    if (!data || data.length === 0) return [];
-    const totalLabels = 7;
-    const step = Math.max(1, Math.floor(data.length / totalLabels));
-    const labels: string[] = [];
-    for (let i = 0; i < data.length; i += step) {
-      labels.push(data[i].timestamp);
+  private async updateChartDataForMeter(item: DashBoardData): Promise<void> {
+  await this.chartDataService.selectMeter(item.meter_data.id as any, item.meter_data.name);
+
+    const chartData = this.chartState().chartData?.data ?? [];
+    this.chartOptions.set({
+      series: [{ name: 'Lưu lượng', data: chartData.map(d => d.value) }],
+      chart: { type: 'line', height: 350 },
+      dataLabels: { enabled: false },
+      stroke: { curve: 'smooth' },
+      xaxis: { categories: chartData.map(d => d.timestamp) },
+      yaxis: { title: { text: 'Lưu lượng' } },
+      tooltip: { x: { show: true } },
+      title: { text: `Lưu lượng - ${item.meter_data.name}`, align: 'left' }
+    });
+    // Trigger chart update if the chart component is available
+    try {
+      this.chart?.updateOptions?.({
+        series: this.chartOptions().series,
+        xaxis: this.chartOptions().xaxis
+      }, false, true);
+    } catch (e) {
+      // ignore - updateOptions may not be available immediately
     }
-    if (labels[labels.length - 1] !== data[data.length - 1].timestamp) {
-      labels[labels.length - 1] = data[data.length - 1].timestamp;
-    }
-    return labels;
   }
 
-  private getXCoordinate(index: number, totalPoints: number): number {
-    const chartWidth = 800;
-    const margin = 70;
-    if (totalPoints <= 1) return margin;
-    const step = chartWidth / (totalPoints - 1);
-    return margin + (index * step);
-  }
-
-  private getYCoordinate(value: number): number {
-    const chartHeight = 280;
-    const margin = 30;
-    const maxValue = 40;
-    const clamped = Math.max(0, Math.min(maxValue, value));
-    const scale = chartHeight / maxValue;
-    return margin + (chartHeight - (clamped * scale));
-  }
-
-  // Điều hướng đến trang thông tin đồng hồ với bộ lọc
   navigateToWaterClock(filterStatus: string): void {
     this.router.navigate(['/company/water-clock'], {
       queryParams: { statusFilter: filterStatus }

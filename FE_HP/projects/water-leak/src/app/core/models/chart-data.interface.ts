@@ -1,7 +1,9 @@
 export interface ChartDataPoint {
   timestamp: string;
   value: number;
-  predictedValue?: number;
+  predictedValue?: number | null;
+  isAnomaly?: boolean;
+  confidence?: number;
 }
 
 export interface ChartConfig {
@@ -16,7 +18,7 @@ export interface ChartConfig {
 }
 
 export interface ChartData {
-  meterId: number;
+  meterId: number | string;
   meterName: string;
   config: ChartConfig;
   data: ChartDataPoint[];
@@ -25,7 +27,7 @@ export interface ChartData {
 export type ChartType = 'general' | 'anomaly' | 'anomaly-ai';
 
 export interface ChartState {
-  selectedMeterId: number | null;
+  selectedMeterId: number | string | null;
   selectedMeterName: string | null;
   activeChartType: ChartType;
   chartData: ChartData | null;

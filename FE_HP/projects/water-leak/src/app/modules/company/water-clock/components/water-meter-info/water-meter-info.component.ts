@@ -67,7 +67,7 @@ export class WaterMeterInfoComponent implements OnInit, OnDestroy {
   }
 
   private isValidWaterMeter(meter: any): meter is WaterMeter {
-    return meter && 
+    return meter &&
            typeof meter.id === 'string' &&
            typeof meter.name === 'string' &&
            ['Normal', 'On fixing', 'Anomaly detected'].includes(meter.status);
@@ -82,9 +82,9 @@ export class WaterMeterInfoComponent implements OnInit, OnDestroy {
     const filtered = meters.filter(meter => {
       if (!this.isValidWaterMeter(meter)) return false;
 
-      const matchesSearch = !currentFilter.searchTerm || 
+      const matchesSearch = !currentFilter.searchTerm ||
         meter.name.toLowerCase().includes(currentFilter.searchTerm.toLowerCase());
-      const matchesStatus = !currentFilter.statusFilter || 
+      const matchesStatus = !currentFilter.statusFilter ||
         meter.status === currentFilter.statusFilter;
 
       return matchesSearch && matchesStatus;
@@ -116,7 +116,7 @@ export class WaterMeterInfoComponent implements OnInit, OnDestroy {
   onSelectAll(): void {
     const newSelectAll = !this.selectAll();
     this.selectAll.set(newSelectAll);
-    
+
     const updatedMeters = this.filteredMeters().map(meter => ({
       ...meter,
       selected: newSelectAll
@@ -197,7 +197,7 @@ export class WaterMeterInfoComponent implements OnInit, OnDestroy {
   isExpanded(meterId: string): boolean {
     const meter = this.filteredMeters().find(m => m.id === meterId);
     return meter?.expanded || false;
-  }
+  } 
 
   viewChart(meterId: string): void {
     const meter = this.filteredMeters().find(m => m.id === meterId);

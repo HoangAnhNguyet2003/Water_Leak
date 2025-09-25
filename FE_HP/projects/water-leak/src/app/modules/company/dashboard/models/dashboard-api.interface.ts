@@ -1,3 +1,15 @@
+import {
+  ApexAxisChartSeries,
+  ApexChart,
+  ApexXAxis,
+  ApexTitleSubtitle,
+  ApexStroke,
+  ApexDataLabels,
+  ApexTooltip,
+  ApexYAxis
+} from "ng-apexcharts";
+
+
 export interface DashBoardData {
   id: string | number;
   name: string;
@@ -16,3 +28,16 @@ export enum DashBoardDataStatus {
   ANOMALY = 'anomaly',
   LOST_CONNECTION = 'lost_connection'
 }
+
+export type ChartOptions = {
+  series: ApexAxisChartSeries;
+  chart: ApexChart;
+  xaxis: ApexXAxis;
+  yaxis: ApexYAxis;
+  stroke: ApexStroke;
+  tooltip: ApexTooltip;
+  dataLabels: ApexDataLabels;
+  title: ApexTitleSubtitle;
+  markers?: any;
+  colors?: string[];
+};
