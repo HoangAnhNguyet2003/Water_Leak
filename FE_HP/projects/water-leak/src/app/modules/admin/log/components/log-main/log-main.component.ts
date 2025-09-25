@@ -2,6 +2,7 @@ import { Component, signal, inject, OnInit, computed } from '@angular/core';
 import { LogMetaData, LogType } from '../../models';
 import { LogServiceService } from '../../services/log-service.service';
 import { catchError } from 'rxjs';
+import { WebsocketService } from 'projects/water-leak/src/app/core/services/websocket_services/websocket.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DateUtils, SearchFilterUtils } from 'projects/my-lib/src/lib/utils/search-filter.utils';
@@ -17,6 +18,7 @@ import autoTable from 'jspdf-autotable';
 })
 export class LogMainComponent implements OnInit {
   LogService = inject(LogServiceService);
+  WebsocketService = inject(WebsocketService);
   LogData = signal<LogMetaData[]>([]);
 
   selectedLogType = signal<number | null>(null);
@@ -58,8 +60,8 @@ export class LogMainComponent implements OnInit {
       this.LogData.set(data);
     });
 
-    this.LogService.connectSocket();
-    const obs = this.LogService.onLog();
+    this.WebsocketService.connectSocket();
+    const obs = this.WebsocketService.onLog();
     if (obs) {
       obs.subscribe((log) => {
         const current = this.LogData();

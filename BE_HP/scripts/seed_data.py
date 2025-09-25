@@ -212,16 +212,27 @@ def seed_meter_measurements():
     meters = list(db.meters.find({}, {"_id": 1}))
     docs = []
     now = datetime.now(timezone.utc)
-    for m in meters:
-        for i in range(10):
-            day = (now - timedelta(days=10 - i)).date()
-            for hour in random.sample([0, 5, 8, 12, 16, 20], k=random.choice([1, 2])):
+    start_date = (now - timedelta(days=13)).date()  
+    hourly_template = [
+        6.0, 4.9, 5.2, 6.4, 8.0, 12.6, 27.5, 25.6, 19.7, 18.2, 19.6, 18.6,
+        17.3, 13.7, 13.7, 15.9, 17.8, 30.9, 37.6, 31.1, 25.4, 19.7, 15.2, 9.5
+    ]
+
+    for idx, m in enumerate(meters):
+        meter_offset = random.uniform(-0.2, 0.3)
+        for day_offset in range(14):
+            day = start_date + timedelta(days=day_offset)
+            for hour in range(24):
                 ts = datetime.combine(day, time(hour, 0, 0, tzinfo=timezone.utc))
+                mean_flow = hourly_template[hour] + meter_offset
+
+                flow = round(max(0.0, random.gauss(mean_flow, 0.25)), 3)
+                pressure = round(random.uniform(1.60, 1.95), 3)
                 docs.append({
                     "meter_id": m["_id"],
                     "measurement_time": ts,
-                    "instant_flow": round(random.uniform(1.8, 3.5), 3),
-                    "instant_pressure": round(random.uniform(1.60, 1.95), 3),
+                    "instant_flow": flow,
+                    "instant_pressure": pressure,
                 })
     if docs:
         db.meter_measurements.insert_many(docs)
@@ -258,6 +269,7 @@ def seed_predictions():
     labels = ["normal", "leak", "anomaly_low_pressure", "anomaly_high_flow"]
 
     model = upsert("ai_models", {"name": "demo_model_v1"}, {"name": "demo_model_v1"})
+    model = upsert("ai_models",  {"name": "lstm_autoencoder"}, {"name": "lstm_autoencoder"})
     model_id = model["_id"]
 
     docs = []

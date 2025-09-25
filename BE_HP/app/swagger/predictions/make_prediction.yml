@@ -1,0 +1,52 @@
+tags:
+  - Prediction
+operationId: makePrediction
+summary: Thực hiện dự đoán rò rỉ cho một meter
+description: >
+  Nhận dữ liệu dòng chảy tức thời cho một `meter_id` và trả về kết quả dự đoán (rò rỉ hay bình thường) từ mô hình LSTM Autoencoder.
+produces:
+  - application/json
+consumes:
+  - application/json
+parameters:
+  - in: body
+    name: body
+    required: true
+    schema:
+      type: object
+      required:
+        - meter_id
+        - flow_rate
+      properties:
+        meter_id:
+          type: string
+          description: ID của đồng hồ (ObjectId dạng chuỗi)
+        flow_rate:
+          type: number
+          description: Giá trị lưu lượng tức thời (instant flow) để dự đoán
+responses:
+  200:
+    description: Kết quả dự đoán thành công
+    schema:
+      type: object
+      properties:
+        meter_id:
+          type: string
+        flow_rate:
+          type: number
+        is_anomaly:
+          type: boolean
+        predicted_label:
+          type: string
+        confidence:
+          type: number
+        reconstruction_error:
+          type: number
+        threshold:
+          type: number
+        message:
+          type: string
+  400:
+    description: Yêu cầu không hợp lệ (thiếu trường bắt buộc hoặc dữ liệu sai)
+  500:
+    description: Lỗi máy chủ
