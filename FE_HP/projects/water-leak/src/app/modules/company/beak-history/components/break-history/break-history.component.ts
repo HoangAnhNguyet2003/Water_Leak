@@ -65,7 +65,6 @@ export class BreakHistoryComponent implements OnInit, OnDestroy {
 
     if (this.searchTimeout) clearTimeout(this.searchTimeout);
     this.searchTimeout = setTimeout(() => {
-      this.updateSelectAllState();
     }, 250);
   }
 
@@ -86,37 +85,6 @@ export class BreakHistoryComponent implements OnInit, OnDestroy {
     return filtered;
   }
 
-  /** Chọn tất cả trong danh sách lọc */
-  onSelectAll(): void {
-    const newValue = !this.selectAll();
-    this.selectAll.set(newValue);
-
-    const filteredIds = this.filteredHistories().map(h => h.id);
-
-    const updated = this.breakHistories().map(h =>
-      filteredIds.includes(h.id) ? { ...h, selected: newValue } : h
-    );
-
-    this.breakHistories.set(updated);
-  }
-
-  /** Chọn từng item */
-  onItemSelect(historyId: string): void {
-    const updated = this.breakHistories().map(h =>
-      h.id === historyId ? { ...h, selected: !h.selected } : h
-    );
-    this.breakHistories.set(updated);
-
-    this.updateSelectAllState();
-  }
-
-  /** Cập nhật trạng thái selectAll theo danh sách lọc */
-  private updateSelectAllState(): void {
-    const list = this.filteredHistories();
-    const allSelected = list.length > 0 && list.every(h => h.selected);
-    this.selectAll.set(allSelected);
-  }
-
   /** Toggle chi tiết */
   viewDetails(historyId: string): void {
     const updated = this.breakHistories().map(h =>
@@ -128,12 +96,5 @@ export class BreakHistoryComponent implements OnInit, OnDestroy {
   /** TrackBy để tối ưu render */
   trackByHistoryId(index: number, history: BreakHistory): string {
     return history.id;
-  }
-
-  /** Xuất dữ liệu */
-  exportData(): void {
-    const selected = this.breakHistories().filter(h => h.selected);
-    console.log('Xuất dữ liệu lịch sử vỡ:', selected);
-    // TODO: Gọi service export hoặc download file CSV/Excel
   }
 }

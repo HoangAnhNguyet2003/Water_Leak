@@ -28,14 +28,6 @@
       <table class="break-history-table header-table">
         <thead>
           <tr>
-            <th class="checkbox-column">
-              <input 
-                type="checkbox" 
-                [checked]="selectAll()"
-                (change)="onSelectAll()"
-                class="table-checkbox"
-              >
-            </th>
             <th>Tên trạm</th>
             <th>Ngày ghi nhận</th>
             <th>Lí do vỡ</th>
@@ -57,14 +49,6 @@
               [class.selected]="history.selected"
               [class.expanded]="history.expanded"
             >
-              <td class="checkbox-column">
-                <input 
-                  type="checkbox" 
-                  [checked]="history.selected || false"
-                  (change)="onItemSelect(history.id)"
-                  class="table-checkbox"
-                >
-              </td>
               <td class="clock-column">{{ history.meterName }}</td>
               <td class="address-column">{{ history.recordedTime | date:'dd/MM/yyyy'  }}</td>
               <td class="date-column">{{ history.leakReason }}</td>
@@ -108,18 +92,13 @@
                       <div class="detail-item">
                         <span class="detail-label">Ngày phát hiện:</span>
                         <span class="detail-value">                    
-                            {{ history.recordedTime }}
+                            {{ history.recordedTime| date:'dd/MM/yyyy HH:mm' }}
                           </span>
                       </div>
 
                       <div class="detail-item">
                         <span class="detail-label">Ngày sửa chữa:</span>
-                        <span class="detail-value break-count">{{ history.repairTime}}</span>
-                      </div>
-
-                      <div class="detail-item">
-                        <span class="detail-label">Cách khắc phục:</span>
-                        <span class="detail-value">{{ history.leakFix}}</span>
+                        <span class="detail-value break-count">{{ history.repairTime | date:'dd/MM/yyyy HH:mm'}}</span>
                       </div>
 
                       <div class="detail-item">
