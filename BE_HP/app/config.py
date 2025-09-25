@@ -49,3 +49,17 @@ SWAGGER_TEMPLATE = {
         "application/json"
     ],
 }
+
+class MLConfig: 
+    BASE_DIR = os.path.dirname(__file__)
+    default_model_path = os.path.abspath(os.path.join(BASE_DIR, 'ml', 'lstm_autoencoder', 'pretrained_weights', 'lstm_ae.pth'))
+    LSTM_AE_MODEL_PATH = os.getenv('LSTM_AE_MODEL_PATH', default_model_path)
+
+    LSTM_AE_CONFIG = {
+        'input_size': int(os.getenv("LSTMAE_INPUT_SIZE", "1")),  
+        'hidden_size': int(os.getenv("LSTMAE_HIDDEN_SIZE", "32")),
+        'num_layers': int(os.getenv("LSTMAE_NUM_LAYERS", "1")),
+        'dropout_ratio': float(os.getenv("LSTMAE_DROPOUT_RATIO", "0.1")),
+        'seq_len': int(os.getenv("LSTMAE_SEQ_LEN", "168")),  
+        'use_act': os.getenv("LSTMAE_USE_ACT", "true").lower() == "true",
+    }
