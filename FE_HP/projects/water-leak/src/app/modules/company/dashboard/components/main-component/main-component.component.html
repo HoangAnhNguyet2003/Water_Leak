@@ -80,7 +80,7 @@
                   </span>
                 </td>
               </tr>
-              <tr *ngIf="filteredData().length === 0">
+              <tr *ngIf="(filteredData() || []).length === 0">
                 <td colspan="3" class="no-data">Không có dữ liệu</td>
               </tr>
             </tbody>

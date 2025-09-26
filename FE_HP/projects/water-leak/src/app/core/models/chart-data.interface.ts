@@ -4,6 +4,7 @@ export interface ChartDataPoint {
   predictedValue?: number | null;
   isAnomaly?: boolean;
   confidence?: number;
+  predictedLabel?: string | null;
 }
 
 export interface ChartConfig {

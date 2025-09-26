@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, map, catchError, of } from 'rxjs';
 import { ChartData, ChartType } from '../../models/chart-data.interface';
 
-interface RangeResponseItem { timestamp: string; flow: number; predicted_flow?: number | null; is_anomaly?: boolean; confidence?: number }
+interface RangeResponseItem { timestamp: string; flow: number; predicted_flow?: number | null; is_anomaly?: boolean; confidence?: number; status?: string; predicted_label?: string }
 interface RangeResponse { meter_id: number; start: string; end: string; items: RangeResponseItem[] }
 
 @Injectable({ providedIn: 'root' })
@@ -24,26 +24,20 @@ export class ChartApiService {
               const mm = String(d.getMinutes()).padStart(2, '0');
               label = `${hh}:${mm}`;
             }
-          } catch (e) {
-          }
-          return { timestamp: label, value: Number(i.flow), predictedValue: undefined };
+          } catch (e) {}
+          return { timestamp: label, value: Number(i.flow), predictedValue: null };
         });
 
-        const config = {
-          title: `Lưu lượng ${res.meter_id}`,
-          subtitle: `Dữ liệu ${hours} giờ gần nhất`,
-          yAxisLabel: 'Lưu lượng (m³/h)',
-          xAxisLabel: 'Thời gian',
-          legend: [
-            { label: 'Lưu lượng thực tế', color: '#4285f4' },
-            { label: 'Dự đoán (n/a)', color: '#34a853' }
-          ]
-        };
-
         const chartData: ChartData = {
-          meterId: res.meter_id,
-          meterName: `Meter ${res.meter_id}`,
-          config,
+          meterId: res.meter_id ?? idStr,
+          meterName: `Meter ${res.meter_id ?? idStr}`,
+          config: {
+            title: `Lưu lượng ${res.meter_id ?? idStr}`,
+            subtitle: `Dữ liệu ${hours} giờ gần nhất`,
+            yAxisLabel: 'Lưu lượng (m³/h)',
+            xAxisLabel: 'Thời gian',
+            legend: [{ label: 'Lưu lượng', color: '#4285f4' }]
+          },
           data: points
         };
 
@@ -51,11 +45,10 @@ export class ChartApiService {
       }),
       catchError(err => {
         console.error('Failed to load instant flow range', err);
-        // Return an empty ChartData observable so callers can handle no-data gracefully
         const empty: ChartData = {
           meterId: idStr,
           meterName: `Meter ${idStr}`,
-          config: { title: `Lưu lượng ${idStr}`, legend: [{ label: 'Lưu lượng', color: '#4285f4' }] },
+          config: { title: `Lưu lượng ${idStr}`, legend: [{ label: 'Lưu lượng', color: '#4285f4' }] } as any,
           data: []
         } as ChartData;
         return of(empty);
@@ -80,9 +73,10 @@ export class ChartApiService {
             return {
               timestamp: label,
               value: Number(i.flow),
-              predictedValue: i.predicted_flow !== undefined ? Number(i.predicted_flow) : null,
-              isAnomaly: !!i.is_anomaly,
-              confidence: i.confidence !== undefined ? Number(i.confidence) : 0
+                predictedValue: i.predicted_flow !== undefined ? Number(i.predicted_flow) : null,
+                isAnomaly: !!i.is_anomaly,
+                confidence: i.confidence !== undefined ? Number(i.confidence) : 0,
+                predictedLabel: i.status ?? i.predicted_label ?? null
             };
           });
 
@@ -91,10 +85,7 @@ export class ChartApiService {
             subtitle: `Dữ liệu ${hours} giờ gần nhất (kèm dự đoán)` ,
             yAxisLabel: 'Lưu lượng (m³/h)',
             xAxisLabel: 'Thời gian',
-            legend: [
-              { label: 'Lưu lượng thực tế', color: '#4285f4' },
-              { label: 'Dự đoán', color: '#34a853' }
-            ]
+            legend: [ { label: 'Lưu lượng', color: '#4285f4' } ]
           };
 
           const chartData: ChartData = {
