@@ -132,23 +132,24 @@ export class LogMainComponent implements OnInit {
     const doc = new jsPDF();
 
     doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Log Report', 105, 20, { align: 'center' });
+    doc.setFont('inter  ', 'bold');
+    const headerTitle = this.displayMessage('Log Report');
+    doc.text(headerTitle, 105, 20, { align: 'center' });
 
     doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('inter', 'normal');
     const exportDate = new Date().toLocaleString();
-    doc.text(`Export Date: ${exportDate}`, 20, 35);
-    doc.text(`Total Records: ${filteredData.length}`, 20, 45);
+    doc.text(this.displayMessage(`Export Date: ${exportDate}`), 20, 35);
+    doc.text(this.displayMessage(`Total Records: ${filteredData.length}`), 20, 45);
 
-    const tableColumns = ['STT', 'ID', 'Type', 'Created Time', 'Message', 'Nguồn phát sinh'];
+    const tableColumns = ['STT', 'ID', 'Type', 'Created Time', 'Message', 'Nguon phat sinh'];
     const tableRows = filteredData.map((log, index) => [
       index + 1,
-      log.id.toString(),
-      this.getLogTypeDisplay(log.log_type),
-      this.formatDateTime(log.created_time),
-      log.message,
-      (log as any).source || ''
+      this.displayMessage(String(log.id)),
+      this.displayMessage(this.getLogTypeDisplay(log.log_type)),
+      this.displayMessage(this.formatDateTime(log.created_time)),
+      this.displayMessage(log.message ?? ''),
+      this.displayMessage(((log as any).source) || '')
     ]);
 
     autoTable(doc, {
@@ -167,17 +168,18 @@ export class LogMainComponent implements OnInit {
       columnStyles: {
         0: { cellWidth: 20 },
         1: { cellWidth: 25 },
-        2: { cellWidth: 45 },
+        2: { cellWidth: 20 },
         3: { cellWidth: 'auto' },
       },
       didParseCell: (data) => {
-        if (data.section === 'body' && data.column.index === 1) {
-          const logType = data.cell.text[0];
-          if (logType === 'Error') {
+        if (data.section === 'body' && data.column.index === 2) {
+          const cellText = Array.isArray(data.cell.text) ? data.cell.text.join('') : String(data.cell.text);
+          const plain = this.stripDiacritics() ? this.stripAccents(cellText) : cellText;
+          if (plain.indexOf('Error') !== -1) {
             data.cell.styles.textColor = [220, 53, 69];
-          } else if (logType === 'Warning') {
+          } else if (plain.indexOf('Warning') !== -1) {
             data.cell.styles.textColor = [255, 193, 7];
-          } else if (logType === 'Info') {
+          } else if (plain.indexOf('Info') !== -1) {
             data.cell.styles.textColor = [40, 167, 69];
           }
         }
