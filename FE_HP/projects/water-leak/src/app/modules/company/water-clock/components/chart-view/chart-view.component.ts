@@ -24,11 +24,8 @@ export class ChartViewComponent implements OnInit {
   private chartDataService = inject(ChartDataService);
   private chartState = this.chartDataService.getState();
 
-  // Prediction popup state
   showPredictionPopup = signal<boolean>(false);
-  // debug: whether chart data has arrived
   public chartLoaded = signal<boolean>(false);
-  // Prediction data (placeholder or real data source)
   predictionData = signal<PredictionData[]>([
     { id: '1', thoi_gian: '**********', luu_luong: '**********', trang_thai: 'Bình thường' },
   ]);
@@ -42,7 +39,7 @@ export class ChartViewComponent implements OnInit {
   @ViewChild('chart') chart!: ChartComponent;
 
   // Apex chart options (similar to main component)
-  public chartOptions = signal<any>({
+    public chartOptions = signal<any>({
     series: [{ name: 'Lưu lượng', data: [] }],
     chart: { type: 'line', height: 350 },
     xaxis: { categories: [] },
@@ -52,23 +49,25 @@ export class ChartViewComponent implements OnInit {
     tooltip: { x: { show: true } },
     title: { text: 'Lưu lượng theo thời gian', align: 'left' },
     markers: { size: 6 },
-    colors: ['#4285f4', '#e53935']
+    colors: ['#4285f4', '#ff1744']
   });
 
-  // effect to sync chart state -> apex options
   private readonly chartSyncEffect = effect(() => {
     const cd = this.chartState().chartData;
     if (!cd) return;
     const chartData = cd.data ?? [];
     const categories = chartData.map(d => d.timestamp);
     const lineSeries = chartData.map(d => d.value);
-    const anomalySeries = chartData.map(d => d.isAnomaly ? d.value : null);
-    const series: any[] = [ { name: 'Lưu lượng', type: 'line', data: lineSeries } ];
-    if (anomalySeries.some(v => v !== null)) {
-      series.push({ name: 'Bất thường', type: 'scatter', data: anomalySeries });
+    const leakSeries = chartData.map(d => d.predictedLabel === 'leak' ? d.value : null);
+  const series: any[] = [ { name: 'Lưu lượng', type: 'line', data: lineSeries } ];
+
+  console.debug('[ChartView] activeType=', this.chartState().activeChartType, 'pointsSample=', chartData.slice(0,5));
+    const activeType = this.chartState().activeChartType;
+    const showAnomaly = activeType === 'anomaly' || activeType === 'anomaly-ai';
+    if (showAnomaly && leakSeries.some(v => v !== null)) {
+      series.push({ name: 'Leak', type: 'scatter', data: leakSeries, marker: { size: 8, fillColor: '#ff1744', strokeWidth: 1 } });
     }
 
-    // set apex options to reflect current data and config
     this.chartOptions.set({
       series,
       chart: { type: 'line', height: 350 },
@@ -76,22 +75,38 @@ export class ChartViewComponent implements OnInit {
       stroke: { curve: 'smooth' },
       xaxis: { categories },
       yaxis: { title: { text: cd.config?.yAxisLabel ?? 'Lưu lượng' } },
-      tooltip: { x: { show: true } },
+      tooltip: {
+        x: { show: true },
+        y: {
+          formatter: (val: any, opts: any) => {
+            try {
+              const idx = opts.dataPointIndex;
+              const seriesName = opts?.w?.config?.series?.[opts.seriesIndex]?.name ?? '';
+              const point = chartData[idx];
+              if (point) {
+                if (seriesName === 'Leak' || point.predictedLabel === 'leak') {
+                  const conf = point.confidence !== undefined && point.confidence !== null ? ` (conf: ${point.confidence})` : '';
+                  return `Lưu lượng: ${point.value} — Leak${conf}`;
+                }
+                return `Lưu lượng: ${point.value}`;
+              }
+            } catch (e) {}
+            return val;
+          }
+        }
+      },
       title: { text: `Lưu lượng - ${cd.meterName ?? this.meterName() ?? ''}`, align: 'left' },
       markers: { size: 6 },
-      colors: ['#4285f4', '#e53935']
+      colors: ['#4285f4', '#ff1744']
     });
 
-    // try to update existing chart instance if available to avoid full redraw
     try {
       this.chart?.updateOptions?.({ series: this.chartOptions().series, xaxis: this.chartOptions().xaxis }, false, true);
     } catch (e) {
-      // ignore update errors in SSR or during initialization
     }
-  });
+  }, { allowSignalWrites: true });
 
   ngOnInit(): void {
-    // Lấy thông tin từ route params
     this.route.params.subscribe(params => {
       if (params['id']) {
         this.meterId.set(params['id']);
@@ -99,20 +114,16 @@ export class ChartViewComponent implements OnInit {
       if (params['name']) {
         this.meterName.set(decodeURIComponent(params['name']));
       }
-      // when meter id is available, select it in chart service to load data
-      // name is optional; ChartDataService will use provided name or fallback
+
       if (this.meterId()) {
-        // try to coerce numeric ids to number so the API call uses a number when appropriate
         const raw = this.meterId();
         const maybeNum = Number(raw);
         const idArg: number | string = Number.isFinite(maybeNum) && String(maybeNum) === String(raw) ? maybeNum : raw;
-        // select and initialize chart using the same pattern as the main dashboard
         void this.loadMeterById(idArg, this.meterName());
       }
     });
   }
 
-  // load meter data and initialize apex options (mirrors MainComponent behavior)
   public async loadMeterById(id: number | string, name?: string | null): Promise<void> {
     try {
       await this.chartDataService.selectMeter(id as any, (name ?? '') as any);
@@ -121,7 +132,6 @@ export class ChartViewComponent implements OnInit {
       return;
     }
 
-    // update local meterName from chart state if available
     const cd = this.chartState().chartData;
     const chartData = cd?.data ?? [];
     const meterNameFromState = cd?.meterName ?? name ?? this.meterName();
@@ -140,10 +150,8 @@ export class ChartViewComponent implements OnInit {
       colors: ['#4285f4', '#e53935']
     });
 
-    // set chartLoaded flag
     this.chartLoaded.set((chartData?.length ?? 0) > 0);
 
-    // attempt to update apex chart instance
     try {
       this.chart?.updateOptions?.({ series: this.chartOptions().series, xaxis: this.chartOptions().xaxis }, false, true);
     } catch (e) {
@@ -151,10 +159,8 @@ export class ChartViewComponent implements OnInit {
     }
   }
 
-  // public computed array of data points from chart state (used by other computed values / template)
   public dataPoints = computed<ChartDataPoint[]>(() => this.chartState().chartData?.data ?? []);
 
-  // expose anomalies as simple index/value pairs (if template needs them in future)
   public anomalyPoints = computed(() => {
     return this.dataPoints().filter(p => !!p.isAnomaly).map(p => ({ timestamp: p.timestamp, value: p.value }));
   });
@@ -172,7 +178,7 @@ export class ChartViewComponent implements OnInit {
     // console debug to help diagnose missing data at runtime
     // eslint-disable-next-line no-console
     console.debug('[ChartView] chartData arrived:', { meterId: cd.meterId, points: len });
-  });
+  }, { allowSignalWrites: true });
 
 
 

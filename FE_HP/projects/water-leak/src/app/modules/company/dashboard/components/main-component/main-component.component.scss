@@ -49,11 +49,11 @@
   &.clickable-card {
     cursor: pointer;
     user-select: none;
-    
+
     &:hover {
       transform: translateY(-6px);
       box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
-      
+
       .card-hover-indicator {
         opacity: 1;
         transform: translateX(0);
@@ -217,7 +217,7 @@
 // Data Table Styles
 .table-wrapper {
   position: relative;
-  height: calc(100% - 120px); 
+  height: calc(100% - 120px);
   background: white;
   border-radius: 8px;
   overflow: hidden;
@@ -280,9 +280,9 @@
 
   thead {
     background: #438cd5;
-    
+
     tr {
-      height: 56px; 
+      height: 56px;
 
     }
   }
@@ -404,6 +404,12 @@
   margin: 0;
 }
 
+.chart-container,
+.apexcharts-canvas,
+.apexcharts-canvas * {
+  touch-action: none;
+}
+
 // Header Tabs Styling
 .header-tabs {
   display: flex;
@@ -429,7 +435,7 @@
   white-space: nowrap;
   position: relative;
   text-align: center;
-  
+
   &.active {
     background: white;
     color: #4285f4;
@@ -707,7 +713,7 @@
     padding: 16px;
     gap: 12px;
   }
-  
+
   .table-header {
     flex-direction: column;
   }

@@ -11,6 +11,25 @@ from datetime import datetime, timedelta, timezone
 
 m_bp = Blueprint("measurements", __name__)
 
+
+def _resolve_meter_oid(db, mid):
+    """Resolve mid which may be an ObjectId string or a meter_name.
+    Returns an ObjectId if found, otherwise raises ValueError.
+    """
+    try:
+        oid = to_object_id(mid)
+        # verify exists
+        if db.meters.find_one({"_id": oid}):
+            return oid
+    except Exception:
+        pass
+
+    # fallback: try meter_name lookup
+    m = db.meters.find_one({"meter_name": mid})
+    if m:
+        return m.get("_id")
+    raise ValueError(f"Meter not found for identifier '{mid}'")
+
 @m_bp.get("/<mid>/instant-flow")
 @swag_from(get_swagger_path('measurements/instant_flow.yml'))
 @jwt_required()
@@ -47,8 +66,9 @@ def measurements_range(mid):
 
     db = get_db()
     try:
+        meter_oid = _resolve_meter_oid(db, mid)
         docs = list(db.meter_measurements.find({
-            "meter_id": to_object_id(mid),
+            "meter_id": meter_oid,
             "measurement_time": {"$gte": start_dt, "$lte": end_dt}
         }).sort("measurement_time", 1))
     except Exception as e:
@@ -87,13 +107,14 @@ def measurements_range_with_predictions(mid):
 
     db = get_db()
     try:
+        meter_oid = _resolve_meter_oid(db, mid)
         docs = list(db.meter_measurements.find({
-            "meter_id": to_object_id(mid),
+            "meter_id": meter_oid,
             "measurement_time": {"$gte": start_dt, "$lte": end_dt}
         }).sort("measurement_time", 1))
 
         preds_cursor = db.predictions.find({
-            "meter_id": to_object_id(mid),
+            "meter_id": meter_oid,
             "prediction_time": {"$gte": start_dt, "$lte": end_dt}
         })
         preds = [p for p in preds_cursor]
@@ -122,10 +143,14 @@ def measurements_range_with_predictions(mid):
         }
         p = pred_map.get(ts)
         if p:
+            # predictions seeded may store the measured flow under different keys
             predicted_flow = p.get('predicted_flow') if 'predicted_flow' in p else p.get('flow')
-            is_anom = bool(p.get('is_anomaly', False))
+            if predicted_flow is None:
+                predicted_flow = p.get('recorded_instant_flow')
             conf = float(p.get('confidence', 0) or 0)
-            status = 'anomaly' if is_anom else 'normal'
+            status = p.get('predicted_label')
+            # treat any non-'normal' label as anomaly for display
+            is_anom = (status is not None) and (status != 'normal')
         else:
             predicted_flow = None
             is_anom = False

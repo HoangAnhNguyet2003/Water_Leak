@@ -49,15 +49,18 @@ export class MainComponentComponent implements OnInit {
     const chartData = cd.data ?? [];
     const categories = chartData.map(d => d.timestamp);
     const lineSeries = chartData.map(d => d.value);
-    // build anomaly scatter series: plot value where isAnomaly true, else null to keep positions
-    const anomalySeries = chartData.map(d => d.isAnomaly ? d.value : null);
+    // leakSeries: mark points where predictedLabel === 'leak'
+    const leakSeries = chartData.map(d => d.predictedLabel === 'leak' ? d.value : null);
 
-    const series: any[] = [
-      { name: 'Lưu lượng', type: 'line', data: lineSeries },
-    ];
-    // add anomaly series as scatter with red markers if any anomalies exist
-    if (anomalySeries.some(v => v !== null)) {
-      series.push({ name: 'Bất thường', type: 'scatter', data: anomalySeries });
+  const series: any[] = [ { name: 'Lưu lượng', type: 'line', data: lineSeries } ];
+  const activeType = this.chartState().activeChartType;
+  // debug
+  // eslint-disable-next-line no-console
+  console.debug('[MainComponent] activeType=', activeType, 'chartData sample=', chartData.slice(0,5));
+    const showAnomaly = activeType === 'anomaly' || activeType === 'anomaly-ai';
+    // Only show Leak markers (red) when anomaly view is active
+    if (showAnomaly && leakSeries.some(v => v !== null)) {
+      series.push({ name: 'Leak', type: 'scatter', data: leakSeries, marker: { size: 8, fillColor: '#ff1744', strokeWidth: 1 } });
     }
 
     this.chartOptions.set({
@@ -67,10 +70,30 @@ export class MainComponentComponent implements OnInit {
       stroke: { curve: 'smooth' },
       xaxis: { categories },
       yaxis: { title: { text: 'Lưu lượng' } },
-      tooltip: { x: { show: true } },
+      tooltip: {
+        x: { show: true },
+        y: {
+          formatter: (val: any, opts: any) => {
+            try {
+              const idx = opts.dataPointIndex;
+              const seriesName = opts?.w?.config?.series?.[opts.seriesIndex]?.name ?? '';
+              const point = chartData[idx];
+              if (point) {
+                // single-line tooltip: show flow and indicate Leak when appropriate
+                if (seriesName === 'Leak' || point.predictedLabel === 'leak') {
+                  const conf = point.confidence !== undefined && point.confidence !== null ? ` (conf: ${point.confidence})` : '';
+                  return `Lưu lượng: ${point.value} — Leak${conf}`;
+                }
+                return `Lưu lượng: ${point.value}`;
+              }
+            } catch (e) {}
+            return val;
+          }
+        }
+      },
       title: { text: `Lưu lượng tức thời - ${this.selectedMeterName() ?? ''}`, align: 'left' },
       markers: { size: 6 },
-      colors: ['#4285f4', '#e53935']
+      colors: ['#4285f4', '#ff1744']
     });
 
     try {
@@ -78,7 +101,7 @@ export class MainComponentComponent implements OnInit {
     } catch (_e) {
       // ignore
     }
-  });
+  }, { allowSignalWrites: true });
 
   totalAnomalies = computed(() => {
     const real = this.clockService.getAnomalyDetectedCount();
@@ -127,37 +150,7 @@ export class MainComponentComponent implements OnInit {
       title: { text: "Lưu lượng theo thời gian", align: "left" }
     });
 
-    effect(() => {
-      const cd = this.chartState().chartData;
-      if (!cd) return;
-      const chartData = cd.data ?? [];
-      const categories = chartData.map(d => d.timestamp);
-      const lineSeries = chartData.map(d => d.value);
-      const anomalySeries = chartData.map(d => d.isAnomaly ? d.value : null);
-
-      const series: any[] = [ { name: 'Lưu lượng', type: 'line', data: lineSeries } ];
-      if (anomalySeries.some(v => v !== null)) {
-        series.push({ name: 'Bất thường', type: 'scatter', data: anomalySeries });
-      }
-
-      this.chartOptions.set({
-        series,
-        chart: { type: 'line', height: 350 },
-        dataLabels: { enabled: false },
-        stroke: { curve: 'smooth' },
-        xaxis: { categories },
-        yaxis: { title: { text: 'Lưu lượng' } },
-        tooltip: { x: { show: true } },
-        title: { text: `Lưu lượng tức thời - ${this.selectedMeterName() ?? ''}`, align: 'left' },
-        markers: { size: 6 },
-        colors: ['#4285f4', '#e53935']
-      });
-      try {
-        this.chart?.updateOptions?.({ series: this.chartOptions().series, xaxis: this.chartOptions().xaxis }, false, true);
-      } catch (e) {
-        // ignore
-      }
-    });
+    // chartSyncEffect (field-level effect) handles syncing chart state -> options with allowSignalWrites
   }
 
   onSearchChange(event: any) {
@@ -211,7 +204,7 @@ export class MainComponentComponent implements OnInit {
   private async updateChartDataForMeter(item: DashBoardData): Promise<void> {
   await this.chartDataService.selectMeter(item.meter_data.id as any, item.meter_data.name);
 
-    const chartData = this.chartState().chartData?.data ?? [];
+    const chartData = this.chartState(  ).chartData?.data ?? [];
     this.chartOptions.set({
       series: [{ name: 'Lưu lượng', data: chartData.map(d => d.value) }],
       chart: { type: 'line', height: 350 },
