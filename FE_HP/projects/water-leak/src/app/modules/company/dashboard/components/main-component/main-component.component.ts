@@ -71,6 +71,8 @@ export class MainComponentComponent implements OnInit {
       xaxis: { categories },
       yaxis: { title: { text: 'Lưu lượng' } },
       tooltip: {
+        shared: false,
+        intersect: true,
         x: { show: true },
         y: {
           formatter: (val: any, opts: any) => {

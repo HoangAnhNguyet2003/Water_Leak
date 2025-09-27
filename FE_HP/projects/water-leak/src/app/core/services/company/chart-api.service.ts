@@ -2,13 +2,14 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, map, catchError, of } from 'rxjs';
 import { ChartData, ChartType } from '../../models/chart-data.interface';
+import { environment } from 'my-lib'
 
 interface RangeResponseItem { timestamp: string; flow: number; predicted_flow?: number | null; is_anomaly?: boolean; confidence?: number; status?: string; predicted_label?: string }
 interface RangeResponse { meter_id: number; start: string; end: string; items: RangeResponseItem[] }
 
 @Injectable({ providedIn: 'root' })
 export class ChartApiService {
-  private readonly API_BASE = 'http://localhost:5000/api/v1';
+  private readonly API_BASE = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
   public getInstantFlowRange(meterId: number | string, hours = 4): Observable<ChartData> {

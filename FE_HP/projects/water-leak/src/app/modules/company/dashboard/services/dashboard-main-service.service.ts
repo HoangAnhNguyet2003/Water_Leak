@@ -2,16 +2,17 @@ import { Injectable } from '@angular/core';
 import { DashBoardData, DashBoardDataStatus } from '../models';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, catchError, map, Observable, of } from 'rxjs';
+import { environment } from 'my-lib'
 
 @Injectable({
   providedIn: 'root'
 })
 export class DashboardMainServiceService {
   private meters$ = new BehaviorSubject<DashBoardData[] | null>(null);
-    private readonly API_BASE = 'http://localhost:5000/api/v1';
-  
+    private readonly API_BASE = environment.apiUrl;
+
     constructor(private http: HttpClient) { }
-  
+
     getMeterData(force = false): Observable<any> {
       if (force || !this.meters$.value) {
         this.http.get<{ items: any[] }>(`${this.API_BASE}/meters/get_all_meters`)
@@ -25,7 +26,7 @@ export class DashboardMainServiceService {
       return this.meters$.asObservable();
     }
 
-  
+
  private mapFromApi(apiMeter: any): DashBoardData {
       return {
         id: String(apiMeter.id),

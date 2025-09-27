@@ -2,13 +2,14 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, catchError, map, Observable, of } from 'rxjs';
 import { WaterMeter, WaterMeterStatus } from '../models/meter-manager.interface';
+import { environment } from 'projects/my-lib/src/lib/enviroments/enviroment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class MeterManagerService {
   private meters$ = new BehaviorSubject<WaterMeter[] | null>(null);
-  private readonly API_BASE = 'http://localhost:5000/api/v1';
+  private readonly API_BASE = environment.apiUrl;
 
   constructor(private http: HttpClient) { }
 
