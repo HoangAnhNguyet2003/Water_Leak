@@ -29,15 +29,11 @@ export class HeaderComponent {
     this.authService.logout().subscribe({
       next: () => {
         console.log('Logout successful');
-        setTimeout(() => {
-          window.location.href = 'http://localhost:4200/auth/login';
-        }, 100);
+        this.router.navigate(['/auth/login']);
       },
       error: (error) => {
         console.error('Logout error:', error);
-        setTimeout(() => {
-          window.location.href = 'http://localhost:4200/auth/login';
-        }, 100);
+        this.router.navigate(['/auth/login']);
       }
     });
   }
