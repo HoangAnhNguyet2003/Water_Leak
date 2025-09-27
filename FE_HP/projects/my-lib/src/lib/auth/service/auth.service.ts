@@ -291,8 +291,26 @@ export class AuthService {
   }
 
   private getErrorMessage(err: HttpErrorResponse): string {
-    if (err.error?.message) return err.error.message;
-    if (err.status === 401) return 'Sai tên đăng nhập hoặc mật khẩu';
+    // Try to extract a meaningful message from various server error shapes
+    const extractMessage = (obj: any, depth = 0): string | null => {
+      if (!obj || typeof obj !== 'object' || depth > 4) return null;
+      if (typeof obj.message === 'string' && obj.message.trim().length > 0) return obj.message;
+      for (const key of Object.keys(obj)) {
+        const val = obj[key];
+        if (typeof val === 'string' && key.toLowerCase().includes('message')) return val;
+        if (typeof val === 'object') {
+          const found = extractMessage(val, depth + 1);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    const serverMessage = extractMessage(err.error) || extractMessage(err) || null;
+    if (serverMessage) return serverMessage;
+
+    // Fallbacks
+    if (err.status === 401 || err.status === 400) return 'Sai tên đăng nhập hoặc mật khẩu';
     if (err.status === 0) return 'Không thể kết nối đến server';
     return 'Đã xảy ra lỗi, vui lòng thử lại';
   }

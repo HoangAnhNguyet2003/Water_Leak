@@ -2,7 +2,7 @@ import { Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, catchError, map, Observable, of } from 'rxjs';
 import { WaterMeter } from '../models';
-
+import { environment } from 'my-lib'
 @Injectable({
   providedIn: 'root',
 })
@@ -12,7 +12,7 @@ export class ClockServiceService {
   private onFixingCount = signal<number>(0);
 
   private meters$ = new BehaviorSubject<WaterMeter[]>([]);
-  private readonly API_BASE = 'http://localhost:5000/api/v1';
+  private readonly API_BASE = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 
@@ -52,7 +52,7 @@ export class ClockServiceService {
       id: String(apiMeter.id),
       name: apiMeter.meter_name,
       branchName: apiMeter.branchName,
-      status: apiMeter.status || 'Normal', 
+      status: apiMeter.status || 'Normal',
       installationDate: apiMeter.installation_time ? new Date(apiMeter.installation_time) : undefined,
       selected: false,
       expanded: false,

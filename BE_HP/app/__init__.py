@@ -11,18 +11,15 @@ def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
     
-    CORS(app,
-         supports_credentials=True,
-         resources={r"/api/*": {"origins": [
-            "http://localhost:4200",
-     ]}})
+    CORS(app, supports_credentials=True, resources={r"/api/*": {"origins": "*"}})
+
     
     
     register_blueprints(app)
     jwt.init_app(app)
     limiter.init_app(app)
     mongo.init_app(app)
-    socketio.init_app(app, cors_allowed_origins="http://localhost:4200")
+    socketio.init_app(app, cors_allowed_origins="*")
     register_error_handlers(app)
 
     with app.app_context():

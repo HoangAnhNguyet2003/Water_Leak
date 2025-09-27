@@ -67,9 +67,12 @@ def role_based_login():
 
         return response
 
-    except Exception as e:
+    except BadRequest as e:
         insert_log(message=f"Đăng nhập thất bại cho {data.username}: {str(e)}", log_type=LogType.ERROR)
-        raise e
+        return jsonify({"message": str(e), "authenticated": False}), 400
+    except Exception as e:
+        insert_log(message=f"Đăng nhập thất bại (server error) cho {getattr(data, 'username', 'unknown')}: {str(e)}", log_type=LogType.ERROR)
+        raise
     
 
 @auth_bp.post("/refresh")

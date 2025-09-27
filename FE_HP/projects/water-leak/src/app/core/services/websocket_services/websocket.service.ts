@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { LogMetaData } from '../../../modules/admin/log/models';
 import { io, Socket } from 'socket.io-client';
 import { Observable as RxObservable  } from 'rxjs';
+import { environment } from 'my-lib'
 
 @Injectable({
   providedIn: 'root'
@@ -9,7 +10,7 @@ import { Observable as RxObservable  } from 'rxjs';
 
 export class WebsocketService {
 
-  private urlAPI = 'http://localhost:5000';
+  private urlAPI = environment.wsUrl;
   private logObservable: RxObservable<LogMetaData> | null = null;
   private socket: Socket | null = null;
   constructor() { }

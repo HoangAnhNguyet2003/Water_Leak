@@ -3,12 +3,13 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, of } from 'rxjs';
 import { catchError, map, switchMap, take } from 'rxjs/operators';
+import { environment } from 'my-lib'
 
 @Injectable({
   providedIn: 'root'
 })
 export class UmServicesService {
-  private readonly API_BASE = 'http://localhost:5000/api/v1';
+  private readonly API_BASE = environment.apiUrl;
   private users$ = new BehaviorSubject<UserData[]>([]);
   private branch$ = new BehaviorSubject<Branch[]>([]);
 

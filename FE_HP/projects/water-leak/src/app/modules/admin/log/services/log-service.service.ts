@@ -2,13 +2,14 @@ import { LogMetaData } from './../models/log.interface';
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { map, Observable as RxObservable } from 'rxjs';
+import { environment } from 'my-lib'
 
 @Injectable({
   providedIn: 'root'
 })
 export class LogServiceService {
 
-  private urlAPI = 'http://localhost:5000/api/v1';
+  private urlAPI = environment.apiUrl;
   http = inject(HttpClient);
 
   getLogData() {
