@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, catchError, map, Observable, of } from 'rxjs';
 import { ManualModel } from '../models/manual-model.interface';
+import { environment } from 'my-lib';
 
 @Injectable({
   providedIn: 'root'
@@ -11,7 +12,7 @@ export class ManualMeterService {
     throw new Error('Method not implemented.');
   }
   private manualMeters$ = new BehaviorSubject<ManualModel[] | null>(null);
-  private readonly API_BASE = 'http://localhost:5000/api/v1';
+  private readonly API_BASE = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 

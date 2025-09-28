@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, catchError, map, Observable, of } from 'rxjs';
 import { PredictiveModel } from '../models';
+import { environment } from 'my-lib';
 
 @Injectable({
   providedIn: 'root'
@@ -13,7 +14,7 @@ export class PredictiveModelService {
   }
 
   private manualMeters$ = new BehaviorSubject<PredictiveModel[] | null>(null);
-  private readonly API_BASE = 'http://localhost:5000/api/v1';
+  private readonly API_BASE = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 
@@ -37,7 +38,7 @@ export class PredictiveModelService {
 
   private mapFromApi(apiMeter: any): PredictiveModel {
     const parseDate = (val: any): string | Date => {
-      if (val == null) return ''; 
+      if (val == null) return '';
       if (typeof val === 'object') {
         if ('$date' in val) {
           const d = new Date(val.$date);
