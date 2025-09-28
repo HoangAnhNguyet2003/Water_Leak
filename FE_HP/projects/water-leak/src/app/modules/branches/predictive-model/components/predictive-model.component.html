@@ -1,0 +1,47 @@
+<div class="predictive-container">
+  <div class="table-wrapper">
+    <div class="topbar">
+      <h2 class="title">Bảng theo dõi đồng hồ</h2>
+
+      <div class="filter">
+        <!-- chọn đồng hồ -->
+        <div class="filter-group">
+          <h4>Chọn đồng hồ:</h4>
+          <select (change)="onMeterChange($event)">
+            <option *ngFor="let meter of data" [value]="meter._id">
+              {{ meter.meter_name }}
+            </option>
+          </select>
+        </div>
+
+        <!-- chọn ngày -->
+        <div class="filter-group">
+          <h4>Chọn ngày:</h4>
+          <input type="date" (change)="onDateChange($event)" />
+        </div>
+      </div>
+    </div>
+
+    <h3 *ngIf="selectedMeter">Đồng hồ {{ selectedMeter.meter_name }}</h3>
+
+    <table *ngIf="dates.length > 0 && tableData.models.length > 0">
+      <tr>
+        <th>MÔ HÌNH DỰ ĐOÁN</th>
+        <th *ngFor="let d of dates">{{ d }}</th>
+      </tr>
+
+      <tr *ngFor="let m of tableData.models">
+        <td>{{ m.name }}</td>
+         <td *ngFor="let r of m.results" [style.color]="getColor(r)">
+          {{ r }}
+        </td>
+      </tr>
+      <tr>
+        <td>Kết luận</td>
+        <td *ngFor="let d of dates" [style.color]="getConclusionByDate(d).color">
+            {{ getConclusionByDate(d).text }}
+        </td>
+      </tr>
+    </table>
+  </div>
+</div>
