@@ -1,12 +1,12 @@
 import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
-
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { LoginComponent } from './modules/auth/login/login.component';
-import { PredictiveModelComponent } from './modules/branches/predictive-model/predictive-model.component';
-import { ManualModelComponent } from './modules/branches/manual-model/manual-model.component';
-import { MeterManagementComponent } from './modules/branches/meter-management/meter-management.component';
+import { PredictiveModelComponent } from './modules/branches/predictive-model/components/predictive-model.component';
+import { ManualModelComponent } from './modules/branches/manual-model/components/manual-model.component';
+import { MeterManagementComponent } from './modules/branches/meter-management/components/meter-management.component';
 import { DashboardComponentComponent } from './modules/admin/dashboard/components/dashboard-component/dashboard-component.component';
 import { UmComponentsComponent } from './modules/admin/user-manager/components/um-components/um-components.component';
 import { DropdownDetailsComponent } from './modules/admin/user-manager/components/dropdown-details/dropdown-details.component';
@@ -21,16 +21,17 @@ import { HttpClientModule } from '@angular/common/http';
 import { AuthModule } from 'my-lib';
 import { MainComponent } from "./core/layout/main/main.component";
 import { SearchComponent } from './core/component/search/search.component';
+import { RouterModule } from '@angular/router';
 
 @NgModule({
   declarations: [
     AppComponent,
     LoginComponent,
     PredictiveModelComponent,
-    ManualModelComponent,
-    
   ],
   imports: [
+    RouterModule.forRoot([]),
+    BrowserAnimationsModule,
     BrowserModule,
     AppRoutingModule,
     HttpClientModule,
@@ -48,6 +49,7 @@ import { SearchComponent } from './core/component/search/search.component';
     MainComponent,
     SearchComponent,
     MeterManagementComponent,
+    ManualModelComponent
 ],
   providers: [],
   bootstrap: [AppComponent]

@@ -45,35 +45,3 @@ h2{
     font-size: 15px;
     outline: none;
 }
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-}
-
-table th, table td {
-    border: 1px solid #ccc;
-    padding: 10px;
-    text-align: center;
-}
-
-table th {
-    background: #e9f0ff;
-}
-td{
-    white-space: normal;  
-    word-wrap: break-word; 
-    max-width: 20px;
-}
-.table-wrapper {
-    width: 100%;
-    overflow-x: auto; 
-    -webkit-overflow-scrolling: touch; 
-    min-width: 500px;
-}
-
-.low { color: green;  }
-.medium { color: goldenrod; }
-.high { color: red; }
-.unknown { color: gray;}

@@ -1,3 +1,53 @@
+// Nút xem biểu đồ trong bảng
+.detail-btn.primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(102,126,234,0.18);
+  transition: all 0.2s ease;
+  outline: none;
+}
+.detail-btn.primary:hover {
+  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  box-shadow: 0 4px 16px rgba(102,126,234,0.28);
+  transform: translateY(-2px) scale(1.05);
+}
+.detail-btn.primary:active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  transform: scale(1.0);
+  box-shadow: 0 2px 8px rgba(102,126,234,0.18);
+}
+.detail-btn.primary i {
+  font-size: 16px;
+  color: white;
+  margin-right: 4px;
+  transition: transform 0.2s;
+}
+// Badge màu vượt ngưỡng
+.threshold-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  min-width: 50px;
+  font-weight: 500;
+  display: inline-block;
+  &.threshold-red {
+    background-color: #fed7d7;
+    color: #c53030;
+  }
+  &.threshold-green {
+    background-color: #c6f6d5;
+    color: #22543d;
+  }
+}
 .water-meter-page {
   height: 100%;
   display: flex;
@@ -6,6 +56,45 @@
 }
 
 .filter-section {
+  .threshold-filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 12px;
+    select {
+      padding: 10px 14px;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      font-size: 14px;
+      background: white;
+      color: #4a5568;
+      cursor: pointer;
+      transition: border-color 0.2s ease;
+      &:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+    }
+    .threshold-input {
+      padding: 10px 14px;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      font-size: 14px;
+      background: white;
+      color: #2d3748;
+      transition: border-color 0.2s ease;
+      width: 80px;
+      &:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+      &::placeholder {
+        color: #a0aec0;
+      }
+    }
+  }
   display: flex;
   justify-content: space-between;
   margin-bottom: 24px;
@@ -66,27 +155,6 @@
     }
   }
 
-  .export-btn {
-    padding: 12px 24px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-
-    &:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-    }
-
-    &:active {
-      transform: translateY(0);
-    }
-  }
 }
 
 .table-container {
@@ -176,7 +244,7 @@
   th, td {
 
     &:nth-child(1) { // Name
-      width: 25%;
+      width: 5%;
     }
     
     &:nth-child(2) { // Address  
@@ -184,7 +252,7 @@
     }
     
     &:nth-child(3) { // Status
-      width: 20%;
+      width: 15%;
     }
     
     &:nth-child(4) { // Join date
@@ -192,8 +260,10 @@
     }
     
     &:nth-child(5) { // Actions
-      width: 80px;
-      text-align: center;
+      width: 25%;
+    }
+    &:nth-child(6) { // Join date
+      width: 15%;
     }
   }
 
@@ -248,20 +318,35 @@
             font-weight: 500;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-
-            &.status-normal {
-              background-color: #c6f6d5;
-              color: #22543d;
-            }
-
-            &.status-fixing {
+          }
+          .threshold-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            &.threshold-red {
               background-color: #fed7d7;
               color: #c53030;
             }
-
-            &.status-anomaly {
+            &.threshold-green {
+              background-color: #c6f6d5;
+              color: #22543d;
+            }
+          }
+          .prediction-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            &.prediction-red {
               background-color: #fbb6ce;
-              color: #97266d;
+              color: #c53030;
+            }
+            &.prediction-green {
+              background-color: #c6f6d5;
+              color: #22543d;
             }
           }
         }
@@ -275,31 +360,61 @@
             width: 36px;
             height: 36px;
             border: none;
-            background: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 50%;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(.4,0,.2,1);
+            box-shadow: 0 2px 8px rgba(102,126,234,0.18);
+            outline: none;
+            position: relative;
+            font-size: 18px;
+            border: 2px solid transparent;
+            i {
+              color: white;
+              font-size: 18px;
+              transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+            }
+            &:hover {
+              background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+              box-shadow: 0 4px 16px rgba(102,126,234,0.28);
+              transform: scale(1.12);
+              i {
+                transform: translateY(2px);
+              }
+            }
+            &:active {
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              transform: scale(1.0);
+              box-shadow: 0 2px 8px rgba(102,126,234,0.18);
+            }
+            &.rotated {
+              transform: rotate(180deg);
+              background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            }
 
             &:hover {
-              background: #5a67d8;
-              transform: scale(1.1);
+              background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+              transform: scale(1.12);
+              box-shadow: 0 4px 16px rgba(102,126,234,0.18);
+            }
+
+            &:active {
+              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+              transform: scale(1.0);
             }
 
             &.rotated {
               transform: rotate(180deg);
-              
-              &:hover {
-                transform: rotate(180deg) scale(1.1);
-              }
+              background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
             }
 
             i {
-              font-size: 12px;
-              transition: transform 0.3s ease;
+              font-size: 15px;
+              transition: transform 0.3s cubic-bezier(.4,0,.2,1);
             }
           }
         }

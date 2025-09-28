@@ -10,8 +10,6 @@ class RepairOut(BaseModel):
     repairTime: Optional[datetime] = None
     leakReason: Optional[str] = None
     leakFix: Optional[str] = None
-    replacementLocation: Optional[str] = None
-    replacementType: Optional[str] = None
 
     class Config:
         json_encoders = {
