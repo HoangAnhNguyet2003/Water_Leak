@@ -1,2 +1,4 @@
 __pycache__/
 *.pyc
+/BE_HP/venv/
+/FE_HP/node_modules/

@@ -266,30 +266,36 @@ def seed_meter_repairs():
 def seed_predictions():
     print("Seeding predictions ...")
     meters = list(db.meters.find({}, {"_id": 1}))
-    labels = ["normal", "leak", "anomaly_low_pressure", "anomaly_high_flow"]
+    labels = ["normal", "leak"]
 
     model = upsert("ai_models", {"name": "demo_model_v1"}, {"name": "demo_model_v1"})
     model = upsert("ai_models",  {"name": "lstm_autoencoder"}, {"name": "lstm_autoencoder"})
     model_id = model["_id"]
 
     docs = []
-    base = datetime.now(timezone.utc) - timedelta(days=14)
     for m in meters:
-        for i in range(7):
-            ts = base + timedelta(days=i*2, hours=random.choice([6, 13, 21]))
-            flow = round(random.uniform(2.0, 3.2), 2)
-            label = random.choices(labels, weights=[0.7, 0.15, 0.1, 0.05], k=1)[0]
+        measurements = list(db.meter_measurements.find({"meter_id": m["_id"]}, {"measurement_time": 1, "instant_flow": 1}))
+        if not measurements:
+            continue
+        for meas in measurements:
+            ts = meas.get("measurement_time")
+            flow = meas.get("instant_flow") if meas.get("instant_flow") is not None else round(random.uniform(2.0, 3.2), 2)
+
+            label = random.choices(labels, weights=[0.5, 0.5], k=1)[0]
             docs.append({
                 "meter_id": m["_id"],
                 "model_id": model_id,
                 "prediction_time": ts,
                 "predicted_threshold": round(random.uniform(1.8, 2.2), 2),
                 "predicted_label": label,
-                "confidence": round(random.uniform(0.6, 0.95), 2),
+                "confidence": round(random.uniform(0.6, 0.98), 2),
                 "recorded_instant_flow": flow
             })
     if docs:
-        db.predictions.insert_many(docs)
+        # Insert in reasonable batch sizes to avoid very large single insert
+        batch_size = 1000
+        for i in range(0, len(docs), batch_size):
+            db.predictions.insert_many(docs[i:i+batch_size])
 
 
 def seed_meter_consumptions():
