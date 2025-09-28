@@ -1,6 +1,6 @@
 from bson import ObjectId
 from flask import Blueprint, jsonify, request
-from flask_jwt_extended import get_jwt, jwt_required
+from flask_jwt_extended import get_jwt, jwt_required,get_jwt_identity
 from ...extensions import get_db
 from ...require import require_role
 from ...models.meter_schema import MeterCreate, MeterOut
@@ -89,3 +89,106 @@ def list_meters_with_status():
     date_str = request.args.get("date")  
     items = get_meters_list(date_str)
     return jsonify({"items": items}), 200
+
+@meter_bp.get("/get_my_meters")
+@swag_from(get_swagger_path('meter/get_my_meters.yml'))
+@jwt_required()
+@require_role("branch_manager")
+def get_my_meters():
+    db = get_db()
+    user_id = get_jwt_identity()
+    user_meter_docs = db.user_meter.find({"user_id": ObjectId(user_id)})
+    meter_ids = [doc["meter_id"] for doc in user_meter_docs]
+    meters = list(db.meters.find({"_id": {"$in": meter_ids}}))
+
+    out = []
+    for x in meters:
+        branch_name = None
+        if x.get("branch_id"):
+            branch = db["branches"].find_one({"_id": x["branch_id"]})
+            branch_name = branch.get("name") if branch else None
+
+        meter_id_str = str(x["_id"])
+
+        # Lấy threshold mới nhất
+        threshold_doc = db.meter_manual_thresholds.find_one(
+            {"meter_id": x["_id"]}, sort=[("set_time", -1)]
+        )
+        threshold = None
+        if threshold_doc:
+            threshold = {
+                "id": str(threshold_doc["_id"]),
+                "meter_id": str(threshold_doc["meter_id"]),
+                "set_time": threshold_doc["set_time"],
+                "threshold_value": threshold_doc["threshold_value"],
+            }
+
+        # Lấy measurement mới nhất
+        measurement_doc = db.meter_measurements.find_one(
+            {"meter_id": x["_id"]}, sort=[("measurement_time", -1)]
+        )
+        measurement = None
+        if measurement_doc:
+            measurement = {
+                "id": str(measurement_doc["_id"]),
+                "meter_id": str(measurement_doc["meter_id"]),
+                "measurement_time": measurement_doc["measurement_time"],
+                "instant_flow": measurement_doc["instant_flow"],
+                "instant_pressure": measurement_doc["instant_pressure"],
+            }
+
+        # Lấy thông tin sửa chữa mới nhất
+        repair_doc = db.meter_repairs.find_one(
+            {"meter_id": x["_id"]}, sort=[("repair_time", -1)]
+        )
+        repair = None
+        if repair_doc:
+            repair = {
+                "_id": str(repair_doc["_id"]),
+                "meter_id": str(repair_doc["meter_id"]),
+                "recorded_time": repair_doc.get("recorded_time"),
+                "repair_time": repair_doc.get("repair_time"),
+                "leak_reason": repair_doc.get("leak_reason"),
+            }
+
+        # 🔹 Lấy prediction mới nhất cho đồng hồ này
+        prediction_doc = db.predictions.find_one(
+            {"meter_id": x["_id"]}, sort=[("prediction_time", -1)]
+        )
+        prediction = None
+        if prediction_doc:
+            # Lấy model tương ứng
+            model_doc = db.ai_models.find_one({"_id": prediction_doc["model_id"]})
+            model_info = None
+            if model_doc:
+                model_info = {
+                    "_id": str(model_doc["_id"]),
+                    "name": model_doc.get("name"),
+                }
+
+            prediction = {
+                "_id": str(prediction_doc["_id"]),
+                "meter_id": str(prediction_doc["meter_id"]),
+                "model": model_info,
+                "prediction_time": prediction_doc["prediction_time"],
+                "predicted_threshold": prediction_doc.get("predicted_threshold"),
+                "predicted_label": prediction_doc.get("predicted_label"),
+                "confidence": prediction_doc.get("confidence"),
+                "recorded_instant_flow": prediction_doc.get("recorded_instant_flow"),
+            }
+
+            meter_out = {
+                "_id": meter_id_str,
+                "branch_id": str(x["branch_id"]),
+                "meter_name": x["meter_name"],
+                "installation_time": x.get("installation_time"),
+                "branchName": branch_name,
+                "threshold": threshold,
+                "measurement": measurement,
+                "repair": repair,
+                "prediction": prediction,  # thêm vào output
+            }
+
+        out.append(meter_out)
+
+    return json_ok({"items": out})

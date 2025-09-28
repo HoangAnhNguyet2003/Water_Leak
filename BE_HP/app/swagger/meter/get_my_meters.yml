@@ -1,0 +1,34 @@
+openapi: 3.0.0
+info:
+  title: Get My Meters
+  description: Lấy danh sách meter mà user đang đăng nhập quản lý
+  version: 1.0.0
+paths:
+  /api/v1/meters/get_my_meters:
+    get:
+      summary: Lấy danh sách meter theo user đang đăng nhập
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Danh sách meter
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        branch_id:
+                          type: string
+                        meter_name:
+                          type: string
+                        installation_time:
+                          type: string
+                        branchName:
+                          type: string
