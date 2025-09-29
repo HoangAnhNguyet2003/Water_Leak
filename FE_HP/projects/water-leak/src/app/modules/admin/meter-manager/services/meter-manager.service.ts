@@ -15,7 +15,7 @@ export class MeterManagerService {
 
   getMeterData(force = false): Observable<any> {
     if (force || !this.meters$.value) {
-      this.http.get<{ items: any[] }>(`${this.API_BASE}/meters/get_all_meters`)
+      this.http.get<{ items: any[] }>(`${this.API_BASE}/meters/get_all_meters?page_size=1000`)
         .pipe(map(res => res.items.map(item => this.mapFromApi(item))),
         catchError(err => {
                 console.error('Failed to load meters:', err);

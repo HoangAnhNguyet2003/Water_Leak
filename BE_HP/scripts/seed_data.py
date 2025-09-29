@@ -157,7 +157,6 @@ def update_branches_company_id():
         {"company_id": {"$exists": False}},
         {"$set": {"company_id": company_id}}
     )
-    print(f"Updated branches with company_id: {company_id}")
 
 def seed_org():
 
@@ -252,12 +251,12 @@ def seed_user_meter():
 def seed_meter_measurements(meter_ids: Dict[str, Any]):
     docs = []
     measurement_df = pd.read_csv('./scripts/datafiles/measurements.csv')
-    measurement_df.fillna('', inplace=True)
+    measurement_df.fillna('')
     measurement_data = measurement_df.to_dict(orient="records")
 
     for measurement in measurement_data: 
         meter_id = meter_ids.get(measurement["meter_name"])
-        measurement_time = measurement["measurement_time"]
+        measurement_time = datetime.fromisoformat(measurement["measurement_time"])
         instant_flow = measurement["instant_flow"] if measurement["instant_flow"] != '' else None
         instant_pressure = measurement["instant_pressure"] if measurement["instant_pressure"] != '' else None
 
@@ -276,19 +275,22 @@ def seed_meter_measurements(meter_ids: Dict[str, Any]):
 def seed_meter_repairs(meter_ids: Dict[str, Any]):
     docs = []
     repair_df = pd.read_csv('./scripts/datafiles/repairs.csv')
-    repair_df.fillna('', inplace=True)
+    repair_df.fillna('')
     repair_data = repair_df.to_dict(orient="records")
 
     for repair in repair_data: 
         meter_id = meter_ids.get(repair["meter_name"])
-        recorded_time = repair['recorded_time']
-        repair_time = repair["repair_time"]
-        leak_reason = repair["leak_reason"] if repair["leak_reason"] != '' else None
-        replacement_type = repair["replacement_type"] if repair["replacement_type"] != '' else None
-        replacement_location = repair["replacement_location"] if repair["replacement_location"] != '' else None
+        if not meter_id:
+            continue  
+        recorded_time = datetime.fromisoformat(repair['recorded_time']) if repair['recorded_time'] else None
+        repair_time = datetime.fromisoformat(repair["repair_time"]) if repair["repair_time"] else None
+        leak_reason = repair["leak_reason"] if repair["leak_reason"] != '' else "Unknown"
+        replacement_type = repair["replacement_type"] if repair["replacement_type"] != '' else "Not specified"
+        replacement_location = repair["replacement_location"] if repair["replacement_location"] != '' else "Not specified"
         
         doc = {
             "meter_id": meter_id,
+            "recorded_time": recorded_time,
             "repair_time": repair_time,
             "leak_reason": leak_reason,
             "replacement_type": replacement_type,
@@ -338,7 +340,7 @@ def seed_predictions():
 def seed_meter_consumptions(meter_ids: Dict[str, Any]):
     docs = []
     c_df = pd.read_csv('./scripts/datafiles/consumption.csv')
-    c_df.fillna('', inplace=True)
+    c_df.fillna('')
     c_data = c_df.to_dict(orient="records")
 
     for c in c_data:

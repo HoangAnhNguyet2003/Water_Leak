@@ -19,7 +19,7 @@ export class ClockServiceService {
   getMeterData(force = false): Observable<WaterMeter[]> {
     if (force || this.meters$.value.length === 0) {
       this.http
-        .get<{ items: any[] }>(`${this.API_BASE}/meters/get_all_meters`)
+        .get<{ items: any[] }>(`${this.API_BASE}/meters/get_all_meters?page_size=1000`)
         .pipe(
           map((res) => res.items.map((item) => this.mapFromApi(item))),
           catchError((err) => {

@@ -47,14 +47,11 @@ def measurements_range(mid):
     try:
         meter_oid = to_object_id(mid)
         latest_doc = list(db.meter_measurements.find({"meter_id": meter_oid}).sort("measurement_time", -1).limit(1))
-        if latest_doc:
-            mt = latest_doc[0]['measurement_time']
-            if isinstance(mt, str):
-                end_dt = datetime.fromisoformat(mt.replace('Z', '+00:00'))
-            else:
-                end_dt = mt
+        mt = latest_doc[0]['measurement_time']
+        if isinstance(mt, str):
+            end_dt = datetime.fromisoformat(mt.replace('Z', '+00:00'))
         else:
-            end_dt = datetime.now(timezone.utc)
+            end_dt = mt
         start_dt = end_dt - timedelta(hours=hours)
         docs = list(db.meter_measurements.find({
             "meter_id": meter_oid,
@@ -95,14 +92,12 @@ def measurements_range_with_predictions(mid):
     try:
         meter_oid = to_object_id(mid)
         latest_doc = list(db.meter_measurements.find({"meter_id": meter_oid}).sort("measurement_time", -1).limit(1))
-        if latest_doc:
-            mt = latest_doc[0]['measurement_time']
-            if isinstance(mt, str):
-                end_dt = datetime.fromisoformat(mt.replace('Z', '+00:00'))
-            else:
-                end_dt = mt
+        mt = latest_doc[0]['measurement_time']
+        if isinstance(mt, str):
+            end_dt = datetime.fromisoformat(mt.replace('Z', '+00:00'))
         else:
-            end_dt = datetime.now(timezone.utc)
+            end_dt = mt
+       
         start_dt = end_dt - timedelta(hours=hours)
         docs = list(db.meter_measurements.find({
             "meter_id": meter_oid,
