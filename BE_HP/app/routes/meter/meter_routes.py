@@ -47,9 +47,12 @@ def list_():
     out = []
     for x in items:
         branch_name = None
-        if x.get("branch_id"):
-            branch = db["branches"].find_one({"_id": ObjectId(x["branch_id"])})
-            branch_name = branch.get("name") if branch else None
+        if x.get("branch_id") and x["branch_id"]:
+            try:
+                branch = db["branches"].find_one({"_id": ObjectId(x["branch_id"])})
+                branch_name = branch.get("name") if branch else None
+            except:
+                branch_name = None
 
         meter_out = MeterOut(**x).model_dump(mode="json")
         meter_out["branchName"] = branch_name

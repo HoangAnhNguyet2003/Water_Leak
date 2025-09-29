@@ -10,8 +10,8 @@ from werkzeug.exceptions import NotFound
 from pathlib import Path
 
 DEFAULT_PAGE = 1
-DEFAULT_PAGE_SIZE = 20
-MAX_PAGE_SIZE = 100
+DEFAULT_PAGE_SIZE = 1000
+MAX_PAGE_SIZE = 10000
 
 def get_role_by_role_id(rid: str):
     db = get_db()

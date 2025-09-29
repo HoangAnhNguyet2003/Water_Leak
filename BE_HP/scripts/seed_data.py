@@ -1,5 +1,7 @@
 import os
 import random
+import pandas as pd
+import re
 from datetime import datetime, timezone, timedelta, time
 import bcrypt as bc
 from pymongo import MongoClient, ASCENDING, DESCENDING, ReturnDocument
@@ -21,6 +23,27 @@ db = client[MONGO_DB]
 def hash_password(plain: str) -> str:
     return bc.hashpw(plain.encode("utf-8"), bc.gensalt()).decode("utf-8")
 
+def remove_vietnamese(text):
+    patterns = {
+        '[áàảãạăắằẳẵặâấầẩẫậ]': 'a',
+        '[ÁÀẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬ]': 'A',
+        '[éèẻẽẹêếềểễệ]': 'e',
+        '[ÉÈẺẼẸÊẾỀỂỄỆ]': 'E',
+        '[íìỉĩị]': 'i',
+        '[ÍÌỈĨỊ]': 'I',
+        '[óòỏõọôốồổỗộơớờởỡợ]': 'o',
+        '[ÓÒỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢ]': 'O',
+        '[úùủũụưứừửữự]': 'u',
+        '[ÚÙỦŨỤƯỨỪỬỮỰ]': 'U',
+        '[ýỳỷỹỵ]': 'y',
+        '[ÝỲỶỸỴ]': 'Y',
+        '[đ]': 'd',
+        '[Đ]': 'D'
+    }
+    for pattern, repl in patterns.items():
+        text = re.sub(pattern, repl, text)
+    text = re.sub(r'\s+', '_', text)
+    return text.lower()
 
 def upsert(collection: str, query: Dict[str, Any], doc: Dict[str, Any]):
     return db[collection].find_one_and_update(
@@ -119,58 +142,77 @@ def seed_roles():
 # ======================
 # Seed: Organization
 # ======================
-def seed_org():
-    comp = upsert("companies", {"name": "Công ty Cấp Nước Hải Phòng"},
-                  {"name": "Công ty Cấp Nước Hải Phòng", "address": "Hải Phòng"})
-    company_id = comp["_id"]
+def seed_companies():
+    company = upsert("companies", {"name": "Công ty Cổ phần Cấp nước Hà Nội"}, {"name": "Công ty Cổ phần Cấp nước Hà Nội", "address": "Hà Nội"})
+    return company["_id"]
 
-    branches = [
-        {"company_id": company_id, "name": "Văn Đẩu",    "address": "Hải Phòng - Văn Đẩu"},
-        {"company_id": company_id, "name": "Bắc Sơn",    "address": "Hải Phòng - Bắc Sơn"},
-        {"company_id": company_id, "name": "Trường Sơn", "address": "Hải Phòng - Trường Sơn"},
-    ]
+def update_branches_company_id():
+    company = db["companies"].find_one({"name": "Công ty Cổ phần Cấp nước Hà Nội"})
+    if not company:
+        company_id = seed_companies()
+    else:
+        company_id = company["_id"]
+    
+    db["branches"].update_many(
+        {"company_id": {"$exists": False}},
+        {"$set": {"company_id": company_id}}
+    )
+    print(f"Updated branches with company_id: {company_id}")
+
+def seed_org():
+
+    branches_df = pd.read_csv('./scripts/datafiles/branches.csv')
+    branches_df.fillna('')
+    branches = branches_df.to_dict(orient="records")
+   
     branch_ids = {}
     for b in branches:
-        doc = upsert("branches", {"company_id": b["company_id"], "name": b["name"]}, b)
+        doc = upsert("branches", {"name": b["name"], "address": b["address"]}, b)
         branch_ids[b["name"]] = doc["_id"]
 
-    # Tạo 10 đồng hồ
-    meters = []
-    base_dates = {
-        "Văn Đẩu": datetime(2023, 5, 1),
-        "Bắc Sơn": datetime(2023, 6, 1),
-        "Trường Sơn": datetime(2023, 7, 1),
-    }
+    meters_df = pd.read_csv('./scripts/datafiles/meters.csv')
+    meters_df = meters_df.fillna('')  
+    meters = meters_df.to_dict(orient="records")
 
-    for branch_name, count in [("Văn Đẩu", 4), ("Bắc Sơn", 3), ("Trường Sơn", 3)]:
-        branch_id = branch_ids[branch_name]
-        base_date = base_dates[branch_name]
-        for i in range(1, count + 1):
-            meters.append({
-                "branch_id": branch_id,
-                "meter_name": f"Đồng hồ {branch_name} {i:02d}",
-                "installation_time": base_date + timedelta(days=10 * (i - 1))
-            })
-
+    meter_ids = {}
     for m in meters:
-        upsert("meters", {"branch_id": m["branch_id"], "meter_name": m["meter_name"]}, m)
+        branch_id = branch_ids[m["branch"]] if m["branch"] else None
+    
+        meter = {
+            "branch_id": branch_id,
+            "meter_name": m["meter_name"],
+            "installation_time": m["installation_time"] if m["installation_time"] else None,
+        }
 
-    return company_id, branch_ids
+        doc = upsert("meters", {"branch_id": meter["branch_id"], "meter_name": meter["meter_name"]}, meter)
+        meter_ids[m["meter_name"]] = doc["_id"]
 
+    return branch_ids, meter_ids
 
 # ======================
 # Seed: Users
 # ======================
-def seed_users(company_id, branch_ids: Dict[str, Any]):
+def seed_users(branch_ids: Dict[str, Any]):
     role_map = {r["role_name"]: r["_id"] for r in db.roles.find({}, {"role_name": 1})}
-
+    
     users = [
         {"username": "admin",          "password": hash_password("Admin@123"),   "role_id": role_map["admin"],            "branch_id": None},
-        {"username": "tongcongty",     "password": hash_password("Company@123"), "role_id": role_map["company_manager"],  "company_id": company_id, "branch_id": None},
-        {"username": "van_dau_mgr",    "password": hash_password("Branch@123"),  "role_id": role_map["branch_manager"],   "branch_id": branch_ids["Văn Đẩu"]},
-        {"username": "bac_son_mgr",    "password": hash_password("Branch@123"),  "role_id": role_map["branch_manager"],   "branch_id": branch_ids["Bắc Sơn"]},
-        {"username": "truong_son_mgr", "password": hash_password("Branch@123"),  "role_id": role_map["branch_manager"],   "branch_id": branch_ids["Trường Sơn"]},
+        {"username": "tongcongty",     "password": hash_password("Company@123"), "role_id": role_map["company_manager"],  "branch_id": None},
     ]
+    
+    branch_df = pd.read_csv('./scripts/datafiles/branches.csv')
+    branch_df.fillna('')
+    branch_list = branch_df.to_dict(orient="records") 
+
+    for b in branch_list:
+        user = {
+            "username": remove_vietnamese(b['name']),
+            "password": hash_password("Branch@123"),
+            "role_id": role_map["branch_manager"],
+            "branch_id": branch_ids.get(b["name"])
+        }
+
+        users.append(user)
 
     for u in users:
         upsert("users", {"username": u["username"]}, {**u, "is_active": True, "last_login": None})
@@ -179,7 +221,7 @@ def seed_users(company_id, branch_ids: Dict[str, Any]):
 # ======================
 # Seed: User-Meter Relationships
 # ======================
-def seed_user_meter(company_id, branch_ids: Dict[str, Any]):
+def seed_user_meter():
     users = list(db.users.find({}, {"_id": 1, "username": 1, "role_id": 1, "branch_id": 1}))
     meters = list(db.meters.find({}, {"_id": 1, "branch_id": 1}))
     roles = {r["_id"]: r["role_name"] for r in db.roles.find({}, {"_id": 1, "role_name": 1})}
@@ -207,58 +249,53 @@ def seed_user_meter(company_id, branch_ids: Dict[str, Any]):
 # ======================
 # Seed: Domain Data
 # ======================
-def seed_meter_measurements():
-    print("Seeding meter_measurements ...")
-    meters = list(db.meters.find({}, {"_id": 1}))
+def seed_meter_measurements(meter_ids: Dict[str, Any]):
     docs = []
-    now = datetime.now(timezone.utc)
-    start_date = (now - timedelta(days=13)).date()  
-    hourly_template = [
-        6.0, 4.9, 5.2, 6.4, 8.0, 12.6, 27.5, 25.6, 19.7, 18.2, 19.6, 18.6,
-        17.3, 13.7, 13.7, 15.9, 17.8, 30.9, 37.6, 31.1, 25.4, 19.7, 15.2, 9.5
-    ]
+    measurement_df = pd.read_csv('./scripts/datafiles/measurements.csv')
+    measurement_df.fillna('', inplace=True)
+    measurement_data = measurement_df.to_dict(orient="records")
 
-    for idx, m in enumerate(meters):
-        meter_offset = random.uniform(-0.2, 0.3)
-        for day_offset in range(14):
-            day = start_date + timedelta(days=day_offset)
-            for hour in range(24):
-                ts = datetime.combine(day, time(hour, 0, 0, tzinfo=timezone.utc))
-                mean_flow = hourly_template[hour] + meter_offset
+    for measurement in measurement_data: 
+        meter_id = meter_ids.get(measurement["meter_name"])
+        measurement_time = measurement["measurement_time"]
+        instant_flow = measurement["instant_flow"] if measurement["instant_flow"] != '' else None
+        instant_pressure = measurement["instant_pressure"] if measurement["instant_pressure"] != '' else None
 
-                flow = round(max(0.0, random.gauss(mean_flow, 0.25)), 3)
-                pressure = round(random.uniform(1.60, 1.95), 3)
-                docs.append({
-                    "meter_id": m["_id"],
-                    "measurement_time": ts,
-                    "instant_flow": flow,
-                    "instant_pressure": pressure,
-                })
+        doc = {
+            "meter_id": meter_id,
+            "measurement_time": measurement_time,
+            "instant_flow": instant_flow,
+            "instant_pressure": instant_pressure
+        }
+        docs.append(doc)
+
     if docs:
         db.meter_measurements.insert_many(docs)
 
 
-def seed_meter_repairs():
-    print("Seeding meter_repairs ...")
-    meters = list(db.meters.find({}, {"_id": 1}))
-    reasons = ["sensor_error", "leak_fix", "pipe_crack", "calibration"]
-    locations = ["pit_A1", "street_12", "junction_B3", "station_C"]
-    types = ["temporary", "full"]
-
+def seed_meter_repairs(meter_ids: Dict[str, Any]):
     docs = []
-    base = datetime.now(timezone.utc) - timedelta(days=180)
-    for m in meters:
-        for _ in range(random.choice([1, 1, 2])):
-            recorded = base + timedelta(days=random.randint(0, 150), hours=random.randint(0, 23))
-            repair   = recorded + timedelta(hours=random.randint(1, 48))
-            docs.append({
-                "meter_id": m["_id"],
-                "recorded_time": recorded,
-                "repair_time": repair,
-                "leak_reason": random.choice(reasons),
-                "replacement_location": random.choice(locations),
-                "replacement_type": random.choice(types),
-            })
+    repair_df = pd.read_csv('./scripts/datafiles/repairs.csv')
+    repair_df.fillna('', inplace=True)
+    repair_data = repair_df.to_dict(orient="records")
+
+    for repair in repair_data: 
+        meter_id = meter_ids.get(repair["meter_name"])
+        recorded_time = repair['recorded_time']
+        repair_time = repair["repair_time"]
+        leak_reason = repair["leak_reason"] if repair["leak_reason"] != '' else None
+        replacement_type = repair["replacement_type"] if repair["replacement_type"] != '' else None
+        replacement_location = repair["replacement_location"] if repair["replacement_location"] != '' else None
+        
+        doc = {
+            "meter_id": meter_id,
+            "repair_time": repair_time,
+            "leak_reason": leak_reason,
+            "replacement_type": replacement_type,
+            "replacement_location": replacement_location
+        }
+        docs.append(doc)
+
     if docs:
         db.meter_repairs.insert_many(docs)
 
@@ -298,22 +335,25 @@ def seed_predictions():
             db.predictions.insert_many(docs[i:i+batch_size])
 
 
-def seed_meter_consumptions():
-    print("Seeding meter_consumptions ...")
-    meters = list(db.meters.find({}, {"_id": 1}))
+def seed_meter_consumptions(meter_ids: Dict[str, Any]):
     docs = []
-    now = datetime.now(timezone.utc)
+    c_df = pd.read_csv('./scripts/datafiles/consumption.csv')
+    c_df.fillna('', inplace=True)
+    c_data = c_df.to_dict(orient="records")
 
-    for m in meters:
-        for i in range(6):
-            month_start = (now.replace(day=1) - timedelta(days=30 * i)).replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            recording_date = month_start
-            monthly_consumption = round(random.uniform(500, 3000), 2)
-            docs.append({
-                "meter_id": m["_id"],
-                "recording_date": recording_date,
-                "monthly_consumption": monthly_consumption
-            })
+    for c in c_data:
+        meter_id = meter_ids.get(c["meter_name"])
+        recording_date = c["date"]
+        month = c["month"]
+        consumption_value = c["monthly_consumption"] if c["monthly_consumption"] != '' else None
+
+        doc = {
+            "meter_id": meter_id,
+            "recording_date": recording_date,
+            "monthly_consumption": consumption_value, 
+            "month": month
+        }
+        docs.append(doc)
 
     if docs:
         db.meter_consumptions.insert_many(docs)
@@ -348,15 +388,16 @@ def main():
     print(f"Connecting to {MONGO_URI}, DB={MONGO_DB}")
     reset_collections()
     seed_roles()
-    company_id, branch_ids = seed_org()
-    seed_users(company_id, branch_ids)
-    seed_user_meter(company_id, branch_ids)
+    branch_ids, meter_ids = seed_org()
+    update_branches_company_id()  
+    seed_users(branch_ids)
+    seed_user_meter()
     init_indexes(db)
 
-    seed_meter_measurements()
-    seed_meter_repairs()
+    seed_meter_measurements(meter_ids)
+    seed_meter_repairs(meter_ids)
     seed_predictions()
-    seed_meter_consumptions()
+    seed_meter_consumptions(meter_ids)
     seed_meter_manual_thresholds()
 
     print("\nSeeding completed.")
