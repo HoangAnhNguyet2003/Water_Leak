@@ -2,8 +2,8 @@ export const environment = {
   production: false,
   // apiUrl: 'http://localhost:5000/api/v1',
   // wsUrl: 'http://localhost:5000',
-  apiUrl: 'demo-nhp-api.huce.edu.vn',
-  wsUrl: 'demo-nhp-api.huce.edu.vn',
+  apiUrl: 'https://demo-nhp.huce.edu.vn',
+  wsUrl: 'https://demo-nhp.huce.edu.vn',
   security: {
     enableLogging: true,
     tokenExpiry: 3600,
