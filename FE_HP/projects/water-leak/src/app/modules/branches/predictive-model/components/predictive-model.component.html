@@ -56,8 +56,9 @@
         <div class="sort-container">
             <label>Sắp xếp theo mức độ vượt ngưỡng: </label>
             <select [(ngModel)]="sortOrder" (change)="sortLeakingMeters()">
-                <option value="desc">Giảm dần</option>
-                <option value="asc">Tăng dần</option>
+                <option value="" selected>Sắp xếp...</option>
+                <option value="desc" selected>Cao nhất trước</option>
+                <option value="asc">Thấp nhất trước</option>
             </select>
         </div>
         <div class="leak-table" *ngIf="filteredLeakingMeters.length > 0">

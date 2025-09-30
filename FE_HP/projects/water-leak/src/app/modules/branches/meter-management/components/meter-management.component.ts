@@ -43,11 +43,13 @@ export class MeterManagementComponent implements OnInit {
   filter = signal<WaterMeterFilter & {
     thresholdOperator?: '>' | '<' | '=';
     thresholdValue?: number;
+    sortOrder?: 'asc' | 'desc';
   }>({
     searchTerm: '',
     statusFilter: '',
     thresholdOperator: '>',
-    thresholdValue: undefined
+    thresholdValue: undefined,
+    sortOrder: 'desc'
   });
 
   constructor(private router: Router, private waterMeterService: WaterMeterService,private route: ActivatedRoute) {}
@@ -89,6 +91,19 @@ export class MeterManagementComponent implements OnInit {
       }
       return matchesSearch && matchesStatus && matchesThreshold;
     });
+
+    if (currentFilter.sortOrder) {
+      filtered.sort((a, b) => {
+        const percentA = this.getThresholdInfo(a).percent;
+        const percentB = this.getThresholdInfo(b).percent;
+        if (currentFilter.sortOrder === 'asc') {
+          return percentA - percentB;
+        } else {
+          return percentB - percentA;
+        }
+      });
+    }
+
     this.filteredMeters.set(filtered);
   }
 
