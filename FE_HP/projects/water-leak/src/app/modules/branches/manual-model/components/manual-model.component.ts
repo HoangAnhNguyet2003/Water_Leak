@@ -37,7 +37,7 @@ export class ManualModelComponent implements OnInit, AfterViewInit {
     this.selectedDate = today.toISOString().slice(0, 10); // yyyy-mm-dd
     this.route.paramMap.subscribe(params => {
       const meterId = params.get('meterId');
-      this.manualMeterService.getManualMeters().subscribe(meters => {
+      this.manualMeterService.getManualMeters(true).subscribe(meters => {
         this.meters = meters;
         if (meters.length > 0) {
           if (meterId && meters.some(m => m._id === meterId)) {
