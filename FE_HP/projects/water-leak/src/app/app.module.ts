@@ -16,7 +16,7 @@ import { MeterDropdownDetailsComponent } from './modules/admin/meter-manager/com
 import { MeterMainComponentComponent } from './modules/admin/meter-manager/components/meter-main-component/meter-main-component.component';
 import { PopupConfirmComponent } from 'projects/my-lib/src/lib/components';
 import { LogMainComponent } from './modules/admin/log/components/log-main/log-main.component';
-import { ReactiveFormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { AuthModule } from 'my-lib';
 import { MainComponent } from "./core/layout/main/main.component";
@@ -46,6 +46,7 @@ import { RouterModule } from '@angular/router';
     AddUserFormComponent,
     LogMainComponent,
     ReactiveFormsModule,
+    FormsModule,
     MainComponent,
     SearchComponent,
     MeterManagementComponent,

@@ -54,7 +54,7 @@ export class MeterManagementComponent implements OnInit {
 
   ngOnInit(): void {
     const meterId = this.route.snapshot.paramMap.get('meterId');
-    this.waterMeterService.getMyMeters().subscribe(meters => {
+    this.waterMeterService.getMyMeters(true).subscribe(meters => {
       this.waterMeters.set(meters);
       this.filteredMeters.set(meters);
     });
@@ -70,7 +70,7 @@ export class MeterManagementComponent implements OnInit {
     if (!meters || !Array.isArray(meters)) return;
     let filtered = meters.filter(meter => {
       if (!this.isValidWaterMeter(meter)) return false;
-      const matchesSearch = !currentFilter.searchTerm || 
+      const matchesSearch = !currentFilter.searchTerm ||
         meter.meter_name.toLowerCase().includes(currentFilter.searchTerm.toLowerCase());
       const matchesStatus = !currentFilter.statusFilter || 'Normal' === currentFilter.statusFilter;
       // Lọc vượt ngưỡng
@@ -145,13 +145,13 @@ export class MeterManagementComponent implements OnInit {
 
   if (val instanceof Date) {
     d = val;
-  } 
+  }
   else if (typeof val === 'object' && (val as any).$date) {
     d = new Date((val as any).$date);
-  } 
+  }
   else if (typeof val === 'string') {
     d = new Date(val);
-  } 
+  }
   else {
     return '';
   }
@@ -174,12 +174,12 @@ export class MeterManagementComponent implements OnInit {
       }
     }
     return {
-      percent,
+      percent: percent > 0 ? percent : 0,
       className: percent > 30 ? 'threshold-red' : 'threshold-green'
     };
   }
-    
-  
+
+
    getMeterConclusionToday(meter: WaterMeter): { text: string; color: string } {
   if (!meter || !meter.prediction) {
     return { text: 'Chưa có dữ liệu', color: '' };

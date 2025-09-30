@@ -7,10 +7,10 @@ h2{
     height: 100%;
     background: #f8f9fa;
 }
-.topbar { 
+.topbar {
     top: 0;
     left: 0;
-    width: 100%;   
+    width: 100%;
     z-index: 2;
     background: #B8DCFF;
     box-sizing: border-box;
@@ -25,7 +25,7 @@ h2{
 }
 .filter{
     flex-direction: row;
-    display: flex; 
+    display: flex;
     justify-content: space-between;
     width: 100%;
 }
@@ -45,3 +45,5 @@ h2{
     font-size: 15px;
     outline: none;
 }
+
+

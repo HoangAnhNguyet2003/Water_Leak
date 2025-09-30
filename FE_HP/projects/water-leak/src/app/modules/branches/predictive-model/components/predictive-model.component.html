@@ -45,3 +45,33 @@
     </table>
   </div>
 </div>
+
+<!-- Popup hiển thị đồng hồ rò rỉ -->
+<div *ngIf="showLeakPopup" class="leak-popup-overlay">
+    <div class="leak-popup">
+        <div class="leak-header-row">
+            <h3 class="blue-title">Đồng hồ ghi nhận rò rỉ</h3>
+            <button class="close-btn" (click)="closeLeakPopup()">Đóng</button>
+        </div>
+        <div class="sort-container">
+            <label>Sắp xếp theo mức độ vượt ngưỡng: </label>
+            <select [(ngModel)]="sortOrder" (change)="sortLeakingMeters()">
+                <option value="desc">Giảm dần</option>
+                <option value="asc">Tăng dần</option>
+            </select>
+        </div>
+        <div class="leak-table" *ngIf="filteredLeakingMeters.length > 0">
+            <div class="leak-header">
+                <span>Tên đồng hồ</span>
+                <span>Mức độ vượt ngưỡng</span>
+            </div>
+            <div class="leak-row" *ngFor="let meter of filteredLeakingMeters">
+                <span class="meter-name">{{ meter.meter_name }}</span>
+                <span class="exceedance">{{ getExceedancePercentage(meter) }}%</span>
+            </div>
+        </div>
+        <div *ngIf="filteredLeakingMeters.length === 0" class="no-leak-message">
+            Không có dữ liệu.
+        </div>
+    </div>
+</div>
