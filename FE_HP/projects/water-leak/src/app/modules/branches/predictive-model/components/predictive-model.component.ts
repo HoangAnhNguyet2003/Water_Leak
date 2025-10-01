@@ -42,7 +42,11 @@ export class PredictiveModelComponent implements OnInit {
       this.leakingMeters = meters.filter(meter => {
         return meter.measurement && meter.threshold && meter.measurement.instant_flow > meter.threshold.threshold_value;
       });
-      this.showLeakPopup = this.leakingMeters.length > 0;
+      const leakPopupShown = sessionStorage.getItem('leakPopupShown');
+      this.showLeakPopup = this.leakingMeters.length > 0 && !leakPopupShown;
+      if (this.showLeakPopup) {
+        sessionStorage.setItem('leakPopupShown', 'true');
+      }
       this.filterLeakingMeters();
     });
   }
@@ -64,7 +68,6 @@ export class PredictiveModelComponent implements OnInit {
     }
   }
 
-  // Tạo mảng 7 ngày liên tiếp theo UTC, giữ nguyên ngày như API
   private generateDates(startDate: Date): void {
     this.dates = [];
     for (let i = 0; i < 7; i++) {
