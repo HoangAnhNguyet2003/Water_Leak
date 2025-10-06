@@ -303,83 +303,131 @@ def seed_meter_repairs(meter_ids: Dict[str, Any]):
 
 
 def seed_predictions(meter_ids: Dict[str, Any]):
-    print("Seeding predictions from CSV file...")
+    print("Seeding predictions from CSV files...")
     
-    # Tạo model lstm_autoencoder
-    model = upsert("ai_models", {"name": "lstm_autoencoder"}, {"name": "lstm_autoencoder"})
-    model_id = model["_id"]
+    # Tạo các AI models
+    lstm_ae_model = upsert("ai_models", {"name": "lstm_autoencoder"}, {"name": "lstm_autoencoder"})
+    lstm_model = upsert("ai_models", {"name": "lstm"}, {"name": "lstm"})
     
-    # Đọc file predictions.csv
-    try:
-        pred_df = pd.read_csv('./scripts/datafiles/predictions.csv')
-        pred_df.fillna('')
-        pred_data = pred_df.to_dict(orient="records")
-    except FileNotFoundError:
-        print("File predictions.csv not found, skipping predictions seeding")
-        return
+    lstm_ae_model_id = lstm_ae_model["_id"]
+    lstm_model_id = lstm_model["_id"]
     
-    # Sử dụng meter_ids được truyền vào thay vì query lại database
+    # Sử dụng meter_ids được truyền vào
     meter_name_to_id = meter_ids
     
-    docs = []
-    for pred in pred_data:
-        meter_name = pred.get("meter", "").strip()
-        date_str = pred.get("date", "").strip()
-        status = pred.get("status", "").strip().lower()
-        
-        # Skip nếu thiếu thông tin
-        if not meter_name or not date_str or not status:
-            continue
-            
-        # Lấy meter_id từ meter_name
-        meter_id = meter_name_to_id.get(meter_name)
-        if not meter_id:
-            print(f"Warning: Meter '{meter_name}' not found in database")
-            continue
-        
-        # Parse datetime
-        try:
-            prediction_time = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            print(f"Warning: Invalid date format '{date_str}' for meter '{meter_name}'")
-            continue
-        
-        # Map status: high -> leak, normal -> normal
-        if status == "high":
-            predicted_label = "leak"
-            confidence = round(random.uniform(0.75, 0.95), 2)  # High confidence for leak
-        elif status == "normal":
-            predicted_label = "normal"
-            confidence = round(random.uniform(0.65, 0.85), 2)  # Moderate confidence for normal
-        else:
-            print(f"Warning: Unknown status '{status}' for meter '{meter_name}', skipping")
-            continue
-        
-        # Lấy instant_flow từ measurement gần nhất (nếu có)
-        measurement = db.meter_measurements.find_one(
-            {"meter_id": meter_id, "measurement_time": {"$lte": prediction_time}},
-            sort=[("measurement_time", -1)]
-        )
-        recorded_instant_flow = measurement.get("instant_flow") if measurement else round(random.uniform(2.0, 3.5), 2)
-        
-        docs.append({
-            "meter_id": meter_id,
-            "model_id": model_id,
-            "prediction_time": prediction_time,
-            "predicted_threshold": round(random.uniform(1.5, 2.5), 2),  # Random threshold
-            "predicted_label": predicted_label,
-            "confidence": confidence,
-            "recorded_instant_flow": recorded_instant_flow
-        })
+    all_docs = []
     
-    if docs:
-        print(f"Inserting {len(docs)} prediction records...")
+    # ========== Xử lý LSTM AutoEncoder (predictions_lstm_ae.csv) ==========
+    try:
+        print("Processing LSTM AutoEncoder predictions...")
+        lstm_ae_df = pd.read_csv('./scripts/datafiles/predictions_lstm_ae.csv')
+        lstm_ae_df.fillna('')
+        lstm_ae_data = lstm_ae_df.to_dict(orient="records")
+        
+        for pred in lstm_ae_data:
+            meter_name = pred.get("meter", "").strip()
+            date_str = pred.get("date", "").strip()
+            status = pred.get("status", "").strip().lower()
+            confidence_raw = pred.get("confidence", "")
+            confidence_str = str(confidence_raw).strip() if confidence_raw is not None else ""
+            avg_instant_flow = pred.get("avg_instant_flow", 0)
+            
+            # Skip nếu thiếu thông tin
+            if not meter_name or not date_str or not status:
+                continue
+                
+            # Lấy meter_id từ meter_name
+            meter_id = meter_name_to_id.get(meter_name)
+            if not meter_id:
+                print(f"Warning: Meter '{meter_name}' not found for LSTM AE")
+                continue
+            
+            # Parse datetime
+            try:
+                prediction_time = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+            except ValueError:
+                print(f"Warning: Invalid date format '{date_str}' for LSTM AE")
+                continue
+            
+            # Giữ confidence dưới dạng string
+            confidence = confidence_str if confidence_str else "Unknown"
+            
+            # predicted_label từ status (LSTM AE)
+            predicted_label = status if status in ["normal", "leak"] else "normal"
+            
+            all_docs.append({
+                "meter_id": meter_id,
+                "model_id": lstm_ae_model_id,
+                "prediction_time": prediction_time,
+                "predicted_label": predicted_label,
+                "confidence": confidence,
+                "recorded_instant_flow": float(avg_instant_flow) if avg_instant_flow else 0.0
+            })
+            
+    except FileNotFoundError:
+        print("File predictions_lstm_ae.csv not found, skipping LSTM AE predictions")
+    
+    # ========== Xử lý LSTM (lstm_predictions.csv) ==========
+    try:
+        print("Processing LSTM predictions...")
+        lstm_df = pd.read_csv('./scripts/datafiles/lstm_predictions.csv')
+        lstm_df.fillna('')
+        lstm_data = lstm_df.to_dict(orient="records")
+        
+        for pred in lstm_data:
+            meter_name = pred.get("meter_name", "").strip()
+            date_str = pred.get("date", "").strip()
+            confidence_raw = pred.get("confidence", "")
+            confidence_str = str(confidence_raw).strip() if confidence_raw is not None else ""
+            avg_instant_flow = pred.get("avg_instant_flow", 0)
+            
+            # Skip nếu thiếu thông tin
+            if not meter_name or not date_str:
+                continue
+                
+            # Lấy meter_id từ meter_name
+            meter_id = meter_name_to_id.get(meter_name)
+            if not meter_id:
+                print(f"Warning: Meter '{meter_name}' not found for LSTM")
+                continue
+            
+            # Parse datetime - LSTM file chỉ có date, thêm thời gian mặc định
+            try:
+                prediction_time = datetime.strptime(date_str, "%Y-%m-%d")
+            except ValueError:
+                print(f"Warning: Invalid date format '{date_str}' for LSTM")
+                continue
+            
+            # Giữ confidence dưới dạng string
+            confidence = confidence_str if confidence_str else "Unknown"
+            
+            # predicted_label từ confidence (LSTM): NNthap -> normal, khác -> leak
+            if confidence_str == "NNthap":
+                predicted_label = "normal"
+            else:
+                predicted_label = "leak"
+            
+            all_docs.append({
+                "meter_id": meter_id,
+                "model_id": lstm_model_id,
+                "prediction_time": prediction_time,
+                "predicted_label": predicted_label,
+                "confidence": confidence,
+                "recorded_instant_flow": float(avg_instant_flow) if avg_instant_flow else 0.0
+            })
+            
+    except FileNotFoundError:
+        print("File lstm_predictions.csv not found, skipping LSTM predictions")
+    
+    # ========== Insert tất cả predictions ==========
+    if all_docs:
+        print(f"Inserting {len(all_docs)} prediction records from both models...")
         # Insert in batches
         batch_size = 1000
-        for i in range(0, len(docs), batch_size):
-            batch = docs[i:i+batch_size]
+        for i in range(0, len(all_docs), batch_size):
+            batch = all_docs[i:i+batch_size]
             db.predictions.insert_many(batch)
-            print(f"Inserted batch {i//batch_size + 1}/{(len(docs)-1)//batch_size + 1}")
+            print(f"Inserted batch {i//batch_size + 1}/{(len(all_docs)-1)//batch_size + 1}")
     else:
         print("No valid prediction data to insert")
 

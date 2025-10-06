@@ -4,7 +4,7 @@ import { Observable, map, catchError, of } from 'rxjs';
 import { ChartData, ChartType } from '../../models/chart-data.interface';
 import { environment } from 'my-lib'
 
-interface RangeResponseItem { timestamp: string; flow: number; predicted_flow?: number | null; is_anomaly?: boolean; confidence?: number; status?: string; predicted_label?: string }
+interface RangeResponseItem { timestamp: string; flow: number; predicted_flow?: number | null; is_anomaly?: boolean; confidence?: string; status?: string; predicted_label?: string }
 interface RangeResponse { meter_id: number; start: string; end: string; items: RangeResponseItem[] }
 
 @Injectable({ providedIn: 'root' })
@@ -14,16 +14,20 @@ export class ChartApiService {
   constructor(private http: HttpClient) {}
   public getInstantFlowRange(meterId: number | string, hours = 4): Observable<ChartData> {
     const idStr = String(meterId);
-    return this.http.get<RangeResponse>(`${this.API_BASE}/measurements/${encodeURIComponent(idStr)}/range?hours=${hours}`).pipe(
+    const cacheBuster = Date.now();
+    return this.http.get<RangeResponse>(`${this.API_BASE}/measurements/${encodeURIComponent(idStr)}/range?hours=${hours}&_=${cacheBuster}`).pipe(
       map(res => {
         const points = (res.items || []).map(i => {
           let label = i.timestamp;
           try {
             const d = new Date(i.timestamp);
             if (!isNaN(d.getTime())) {
+              const day = String(d.getDate()).padStart(2, '0');
+              const month = String(d.getMonth() + 1).padStart(2, '0');
+              const year = d.getFullYear();
               const hh = String(d.getHours()).padStart(2, '0');
               const mm = String(d.getMinutes()).padStart(2, '0');
-              label = `${hh}:${mm}`;
+              label = `${day}/${month}/${year} - ${hh}:${mm}`;
             }
           } catch (e) {}
           return { timestamp: label, value: Number(i.flow), predictedValue: null };
@@ -59,16 +63,20 @@ export class ChartApiService {
 
     public getInstantFlowRangeWithPredictions(meterId: number | string, hours = 4): Observable<ChartData> {
       const idStr = String(meterId);
-      return this.http.get<RangeResponse>(`${this.API_BASE}/measurements/${encodeURIComponent(idStr)}/range_with_predictions?hours=${hours}`).pipe(
+      const cacheBuster = Date.now();
+      return this.http.get<RangeResponse>(`${this.API_BASE}/measurements/${encodeURIComponent(idStr)}/range_with_predictions?hours=${hours}&_=${cacheBuster}`).pipe(
         map(res => {
           const points = (res.items || []).map(i => {
             let label = i.timestamp;
             try {
               const d = new Date(i.timestamp);
               if (!isNaN(d.getTime())) {
+                const day = String(d.getDate()).padStart(2, '0');
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const year = d.getFullYear();
                 const hh = String(d.getHours()).padStart(2, '0');
                 const mm = String(d.getMinutes()).padStart(2, '0');
-                label = `${hh}:${mm}`;
+                label = `${day}/${month}/${year} - ${hh}:${mm}`;
               }
             } catch (e) {}
             return {
@@ -76,7 +84,7 @@ export class ChartApiService {
               value: Number(i.flow),
                 predictedValue: i.predicted_flow !== undefined ? Number(i.predicted_flow) : null,
                 isAnomaly: !!i.is_anomaly,
-                confidence: i.confidence !== undefined ? Number(i.confidence) : 0,
+                confidence: i.confidence || "unknown",  // Giữ confidence dưới dạng string
                 predictedLabel: i.status ?? i.predicted_label ?? null
             };
           });
