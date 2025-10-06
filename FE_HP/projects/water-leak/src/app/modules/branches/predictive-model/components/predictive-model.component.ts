@@ -1,4 +1,5 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { PredictiveModelService } from '../services/predictive-model.service';
 import { PredictiveModel } from '../models';
 
@@ -13,6 +14,7 @@ export class PredictiveModelComponent implements OnInit {
   dates: string[] = [];
   tableData: { models: { name: string; results: string[] }[] } = { models: [] };
 
+  private router = inject(Router);
   constructor(private predictiveService: PredictiveModelService) {}
 
   ngOnInit(): void {
@@ -138,4 +140,39 @@ export class PredictiveModelComponent implements OnInit {
     this.loadData(true);
   }
   
+  // ===== Re-added: counting and navigation helpers used by the cards =====
+  private countByLevel(level: 'low' | 'medium' | 'high'): number {
+    const items = this.data || [];
+    const today = new Date();
+    const day = today.getUTCDate().toString().padStart(2, '0');
+    const month = (today.getUTCMonth() + 1).toString().padStart(2, '0');
+    const year = today.getUTCFullYear();
+    const todayStr = `${day}/${month}/${year}`;
+    return items.reduce((acc, m) => {
+      const text = this.getConclusionTodayText(m, todayStr);
+      if (level === 'high') return acc + (text === 'Nghi ngờ cao' ? 1 : 0);
+      if (level === 'medium') return acc + (text === 'Nghi ngờ trung bình' ? 1 : 0);
+      // low: 'Nghi ngờ thấp' or 'Chưa có dữ liệu'
+      return acc + (text === 'Nghi ngờ thấp' || text === 'Chưa có dữ liệu' ? 1 : 0);
+    }, 0);
+  }
+
+  navigateToMeters(level: 'low' | 'medium' | 'high'): void {
+    this.router.navigate(['/branches/meter-management'], { queryParams: { suspicion: level } });
+  }
+
+  private getConclusionTodayText(m: PredictiveModel, dateStr: string): 'Nghi ngờ cao'|'Nghi ngờ thấp'|'Nghi ngờ trung bình'|'Chưa có dữ liệu' {
+    if (!m || !m.prediction) return 'Chưa có dữ liệu';
+    const pd = new Date(m.prediction.prediction_time);
+    const d = `${pd.getUTCDate().toString().padStart(2,'0')}/${(pd.getUTCMonth()+1).toString().padStart(2,'0')}/${pd.getUTCFullYear()}`;
+    if (d !== dateStr) return 'Chưa có dữ liệu';
+    if (m.prediction.predicted_label === 'leak') return 'Nghi ngờ cao';
+    if (m.prediction.predicted_label === 'normal') return 'Nghi ngờ thấp';
+    return 'Nghi ngờ trung bình';
+  }
+
+  // Methods for template binding to ensure live recomputation
+  totalLow(): number { return this.countByLevel('low'); }
+  totalMedium(): number { return this.countByLevel('medium'); }
+  totalHigh(): number { return this.countByLevel('high'); }
 }
