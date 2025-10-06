@@ -1,5 +1,48 @@
 <div class="predictive-container">
   <div class="table-wrapper">
+    <div class="stats-row">
+      <div class="stat-card low-card clickable-card" (click)="navigateToMeters('low')">
+        <div class="stat-icon">
+          <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-title">Nghi ngờ thấp</div>
+          <div class="stat-number">{{ totalLow() }}</div>
+          <div class="stat-label">mức độ</div>
+        </div>
+        <div class="card-hover-indicator">
+          <i class="fas fa-arrow-right"></i>
+        </div>
+      </div>
+
+      <div class="stat-card medium-card clickable-card" (click)="navigateToMeters('medium')">
+        <div class="stat-icon">
+          <i class="fas fa-exclamation-circle"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-title">Nghi ngờ trung bình</div>
+          <div class="stat-number">{{ totalMedium() }}</div>
+          <div class="stat-label">mức độ</div>
+        </div>
+        <div class="card-hover-indicator">
+          <i class="fas fa-arrow-right"></i>
+        </div>
+      </div>
+
+      <div class="stat-card high-card clickable-card" (click)="navigateToMeters('high')">
+        <div class="stat-icon">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="stat-content">
+          <div class="stat-title">Nghi ngờ cao</div>
+          <div class="stat-number">{{ totalHigh() }}</div>
+          <div class="stat-label">mức độ</div>
+        </div>
+        <div class="card-hover-indicator">
+          <i class="fas fa-arrow-right"></i>
+        </div>
+      </div>
+    </div>
     <div class="topbar">
       <h2 class="title">Bảng theo dõi đồng hồ</h2>
 

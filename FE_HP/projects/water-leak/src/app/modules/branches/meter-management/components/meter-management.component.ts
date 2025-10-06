@@ -53,10 +53,16 @@ export class MeterManagementComponent implements OnInit {
   constructor(private router: Router, private waterMeterService: WaterMeterService,private route: ActivatedRoute) {}
 
   ngOnInit(): void {
-    const meterId = this.route.snapshot.paramMap.get('meterId');
+    const suspicion = this.route.snapshot.queryParamMap.get('suspicion');
     this.waterMeterService.getMyMeters().subscribe(meters => {
       this.waterMeters.set(meters);
-      this.filteredMeters.set(meters);
+      if (suspicion) {
+        // Filter by suspicion level computed from today's prediction
+        const filtered = meters.filter(m => this.matchSuspicion(m, suspicion as any));
+        this.filteredMeters.set(filtered);
+      } else {
+        this.filteredMeters.set(meters);
+      }
     });
   }
 
@@ -72,7 +78,7 @@ export class MeterManagementComponent implements OnInit {
       if (!this.isValidWaterMeter(meter)) return false;
       const matchesSearch = !currentFilter.searchTerm || 
         meter.meter_name.toLowerCase().includes(currentFilter.searchTerm.toLowerCase());
-      const matchesStatus = !currentFilter.statusFilter || 'Normal' === currentFilter.statusFilter;
+      const matchesStatus = !currentFilter.statusFilter || this.matchSuspicion(meter, currentFilter.statusFilter as any);
       // Lọc vượt ngưỡng
       let matchesThreshold = true;
       if (
@@ -193,6 +199,7 @@ export class MeterManagementComponent implements OnInit {
   const predStr = `${predDate.getUTCDate().toString().padStart(2,'0')}/${(predDate.getUTCMonth()+1).toString().padStart(2,'0')}/${predDate.getFullYear()}`;
 
   if (predStr !== todayStr) {
+    // not today -> treat as no data for AI column
     return { text: 'Chưa có dữ liệu', color: '' };
   }
   const score = pred.predicted_label === 'leak' ? 33 : 0;
@@ -201,5 +208,13 @@ export class MeterManagementComponent implements OnInit {
 
   return { text, color: colorClass };
 }
+
+  private matchSuspicion(meter: WaterMeter, level: 'low'|'medium'|'high'): boolean {
+    const { text } = this.getMeterConclusionToday(meter);
+    if (level === 'high') return text === 'Nghi ngờ cao';
+    if (level === 'low') return text === 'Nghi ngờ thấp' || text === 'Chưa có dữ liệu';
+    // medium currently not used unless a new label appears
+    return false;
+  }
 
 }
