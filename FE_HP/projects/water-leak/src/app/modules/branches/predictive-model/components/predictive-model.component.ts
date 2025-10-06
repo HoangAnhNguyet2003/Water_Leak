@@ -28,9 +28,16 @@ export class PredictiveModelComponent implements OnInit {
 
     private loadData(force = true): void {
     this.predictiveService.getManualMeters(force).subscribe(items => {
-      this.data = items;
-      if (items.length > 0) {
-        this.selectedMeter = items[0];
+      // Filter duplicate meters by meter_name, keep the first occurrence
+      const uniqueItems = items.filter((meter, index, arr) => 
+        arr.findIndex(m => m.meter_name === meter.meter_name) === index
+      );
+      
+      this.data = uniqueItems;
+      console.log('Original items:', items.length, 'Unique items:', uniqueItems.length);
+      
+      if (uniqueItems.length > 0) {
+        this.selectedMeter = uniqueItems[0];
         this.generateDates(new Date()); // tạo ngày hôm nay
         this.buildTable(this.selectedMeter);
       }
@@ -42,7 +49,11 @@ export class PredictiveModelComponent implements OnInit {
       this.leakingMeters = meters.filter(meter => {
         return meter.measurement && meter.threshold && meter.measurement.instant_flow > meter.threshold.threshold_value;
       });
-      this.showLeakPopup = this.leakingMeters.length > 0;
+      const leakPopupShown = sessionStorage.getItem('leakPopupShown');
+      this.showLeakPopup = this.leakingMeters.length > 0 && !leakPopupShown;
+      if (this.showLeakPopup) {
+        sessionStorage.setItem('leakPopupShown', 'true');
+      }
       this.filterLeakingMeters();
     });
   }

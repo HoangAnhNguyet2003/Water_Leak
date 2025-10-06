@@ -173,6 +173,7 @@ def get_my_meters():
                 "_id": str(prediction_doc["_id"]),
                 "meter_id": str(prediction_doc["meter_id"]),
                 "model": model_info,
+                "model_name": model_info.get("name") if model_info else None,
                 "prediction_time": prediction_doc["prediction_time"],
                 "predicted_threshold": prediction_doc.get("predicted_threshold"),
                 "predicted_label": prediction_doc.get("predicted_label"),
@@ -180,17 +181,18 @@ def get_my_meters():
                 "recorded_instant_flow": prediction_doc.get("recorded_instant_flow"),
             }
 
-            meter_out = {
-                "_id": meter_id_str,
-                "branch_id": str(x["branch_id"]),
-                "meter_name": x["meter_name"],
-                "installation_time": x.get("installation_time"),
-                "branchName": branch_name,
-                "threshold": threshold,
-                "measurement": measurement,
-                "repair": repair,
-                "prediction": prediction,  # thêm vào output
-            }
+        # Tạo meter_out object (di chuyển ra ngoài if prediction_doc)
+        meter_out = {
+            "_id": meter_id_str,
+            "branch_id": str(x["branch_id"]),
+            "meter_name": x["meter_name"],
+            "installation_time": x.get("installation_time"),
+            "branchName": branch_name,
+            "threshold": threshold,
+            "measurement": measurement,
+            "repair": repair,
+            "prediction": prediction,  # có thể là None nếu không có prediction
+        }
 
         out.append(meter_out)
 

@@ -302,39 +302,86 @@ def seed_meter_repairs(meter_ids: Dict[str, Any]):
         db.meter_repairs.insert_many(docs)
 
 
-def seed_predictions():
-    print("Seeding predictions ...")
-    meters = list(db.meters.find({}, {"_id": 1}))
-    labels = ["normal", "leak"]
-
-    model = upsert("ai_models", {"name": "demo_model_v1"}, {"name": "demo_model_v1"})
-    model = upsert("ai_models",  {"name": "lstm_autoencoder"}, {"name": "lstm_autoencoder"})
+def seed_predictions(meter_ids: Dict[str, Any]):
+    print("Seeding predictions from CSV file...")
+    
+    # Tạo model lstm_autoencoder
+    model = upsert("ai_models", {"name": "lstm_autoencoder"}, {"name": "lstm_autoencoder"})
     model_id = model["_id"]
-
+    
+    # Đọc file predictions.csv
+    try:
+        pred_df = pd.read_csv('./scripts/datafiles/predictions.csv')
+        pred_df.fillna('')
+        pred_data = pred_df.to_dict(orient="records")
+    except FileNotFoundError:
+        print("File predictions.csv not found, skipping predictions seeding")
+        return
+    
+    # Sử dụng meter_ids được truyền vào thay vì query lại database
+    meter_name_to_id = meter_ids
+    
     docs = []
-    for m in meters:
-        measurements = list(db.meter_measurements.find({"meter_id": m["_id"]}, {"measurement_time": 1, "instant_flow": 1}))
-        if not measurements:
+    for pred in pred_data:
+        meter_name = pred.get("meter", "").strip()
+        date_str = pred.get("date", "").strip()
+        status = pred.get("status", "").strip().lower()
+        
+        # Skip nếu thiếu thông tin
+        if not meter_name or not date_str or not status:
             continue
-        for meas in measurements:
-            ts = meas.get("measurement_time")
-            flow = meas.get("instant_flow") if meas.get("instant_flow") is not None else round(random.uniform(2.0, 3.2), 2)
-
-            label = random.choices(labels, weights=[0.5, 0.5], k=1)[0]
-            docs.append({
-                "meter_id": m["_id"],
-                "model_id": model_id,
-                "prediction_time": ts,
-                "predicted_threshold": round(random.uniform(1.8, 2.2), 2),
-                "predicted_label": label,
-                "confidence": round(random.uniform(0.6, 0.98), 2),
-                "recorded_instant_flow": flow
-            })
+            
+        # Lấy meter_id từ meter_name
+        meter_id = meter_name_to_id.get(meter_name)
+        if not meter_id:
+            print(f"Warning: Meter '{meter_name}' not found in database")
+            continue
+        
+        # Parse datetime
+        try:
+            prediction_time = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            print(f"Warning: Invalid date format '{date_str}' for meter '{meter_name}'")
+            continue
+        
+        # Map status: high -> leak, normal -> normal
+        if status == "high":
+            predicted_label = "leak"
+            confidence = round(random.uniform(0.75, 0.95), 2)  # High confidence for leak
+        elif status == "normal":
+            predicted_label = "normal"
+            confidence = round(random.uniform(0.65, 0.85), 2)  # Moderate confidence for normal
+        else:
+            print(f"Warning: Unknown status '{status}' for meter '{meter_name}', skipping")
+            continue
+        
+        # Lấy instant_flow từ measurement gần nhất (nếu có)
+        measurement = db.meter_measurements.find_one(
+            {"meter_id": meter_id, "measurement_time": {"$lte": prediction_time}},
+            sort=[("measurement_time", -1)]
+        )
+        recorded_instant_flow = measurement.get("instant_flow") if measurement else round(random.uniform(2.0, 3.5), 2)
+        
+        docs.append({
+            "meter_id": meter_id,
+            "model_id": model_id,
+            "prediction_time": prediction_time,
+            "predicted_threshold": round(random.uniform(1.5, 2.5), 2),  # Random threshold
+            "predicted_label": predicted_label,
+            "confidence": confidence,
+            "recorded_instant_flow": recorded_instant_flow
+        })
+    
     if docs:
-        # Insert in reasonable batch sizes to avoid very large single insert
+        print(f"Inserting {len(docs)} prediction records...")
+        # Insert in batches
         batch_size = 1000
         for i in range(0, len(docs), batch_size):
-            db.predictions.insert_many(docs[i:i+batch_size])
+            batch = docs[i:i+batch_size]
+            db.predictions.insert_many(batch)
+            print(f"Inserted batch {i//batch_size + 1}/{(len(docs)-1)//batch_size + 1}")
+    else:
+        print("No valid prediction data to insert")
 
 
 def seed_meter_consumptions(meter_ids: Dict[str, Any]):
@@ -398,7 +445,7 @@ def main():
 
     seed_meter_measurements(meter_ids)
     seed_meter_repairs(meter_ids)
-    seed_predictions()
+    seed_predictions(meter_ids)
     seed_meter_consumptions(meter_ids)
     seed_meter_manual_thresholds()
 
