@@ -1,0 +1,3 @@
+FE_HP/projects/my-lib/src/lib/environments/environment.ts merge=ours
+BE_HP/.env merge=ours
+BE_HP/app/config.py merge=ours
