@@ -43,3 +43,8 @@ testem.log
 # System files
 .DS_Store
 Thumbs.db
+
+# # Environment files - Local configuration only
+# BE_HP/.env
+
+# FE_HP/projects/my-lib/src/lib/environments/environment.ts
