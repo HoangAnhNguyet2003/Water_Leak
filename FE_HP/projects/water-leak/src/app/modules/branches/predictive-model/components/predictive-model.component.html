@@ -24,9 +24,6 @@
 
     <div class="meter-info" *ngIf="selectedMeter">
       <h3>Đồng hồ {{ selectedMeter.meter_name }}</h3>
-      <div class="model-count" *ngIf="getTotalModelsCount() > 0">
-        <span class="badge">{{ getTotalModelsCount() }} mô hình AI</span>
-      </div>
     </div>
 
     <table *ngIf="dates.length > 0 && tableData.models.length > 0">
