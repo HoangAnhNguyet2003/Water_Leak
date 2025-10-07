@@ -28,16 +28,33 @@ export class DashboardMainServiceService {
 
 
  private mapFromApi(apiMeter: any): DashBoardData {
+      let status: DashBoardDataStatus = DashBoardDataStatus.NORMAL;
+      if (apiMeter.status) {
+        switch (apiMeter.status) {
+          case 'normal':
+            status = DashBoardDataStatus.NORMAL;
+            break;
+          case 'anomaly':
+            status = DashBoardDataStatus.ANOMALY;
+            break;
+          case 'lost':
+            status = DashBoardDataStatus.LOST_CONNECTION;
+            break;
+          default:
+            status = DashBoardDataStatus.NORMAL;
+        }
+      }
+
       return {
         id: String(apiMeter.id),
         name: apiMeter.meter_name,
         branchName: apiMeter.branchName,
-        status: apiMeter.status ? apiMeter.status as DashBoardDataStatus : DashBoardDataStatus.NORMAL,
+        status: status,
         installationDate: apiMeter.installation_time ? new Date(apiMeter.installation_time) : undefined,
         meter_data: {
           id: String(apiMeter.id),
           name: apiMeter.meter_name,
-          status: apiMeter.status ? apiMeter.status as DashBoardDataStatus : DashBoardDataStatus.NORMAL
+          status: status
         }
       };
   }

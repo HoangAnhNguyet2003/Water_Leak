@@ -277,13 +277,13 @@
   border-collapse: separate;
   border-spacing: 0;
   background: white;
+  table-layout: fixed; // Đảm bảo cột có width cố định
 
   thead {
     background: #438cd5;
 
     tr {
       height: 56px;
-
     }
   }
 
@@ -296,6 +296,13 @@
     position: relative;
     background: #438cd5;
     white-space: nowrap;
+    vertical-align: middle;
+    box-sizing: border-box;
+
+    // Định nghĩa width cho từng cột
+    &:nth-child(1) { width: 35%; } // Tên trạm
+    &:nth-child(2) { width: 35%; } // Chi nhánh
+    &:nth-child(3) { width: 30%; } // Trạng thái
 
     &:first-child {
       border-top-left-radius: 8px;
@@ -303,6 +310,7 @@
 
     &:last-child {
       border-top-right-radius: 8px;
+      text-align: center; // Căn giữa cột trạng thái
     }
   }
 
@@ -312,9 +320,23 @@
     font-size: 14px;
     color: #333;
     background: white;
-  }
+    vertical-align: middle;
+    min-height: 50px;
+    text-align: left;
+    box-sizing: border-box;
+    word-wrap: break-word;
 
-  tbody tr {
+    // Định nghĩa width cho từng cột (khớp với header)
+    &:nth-child(1) { width: 35%; } // Tên trạm
+    &:nth-child(2) { width: 35%; } // Chi nhánh
+    &:nth-child(3) { width: 30%; } // Trạng thái
+
+    // Đặc biệt căn giữa cho cột trạng thái
+    &:last-child {
+      text-align: center;
+      vertical-align: middle;
+    }
+  }  tbody tr {
     transition: all 0.2s ease;
 
     &:hover {
@@ -596,12 +618,22 @@
 
 // Status Badges
 .status-badge {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: 15px;
+  font-size: 10px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  min-width: 80px;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  box-sizing: border-box;
+  margin: 0 auto;
 }
 
 .status-normal {
@@ -794,5 +826,24 @@
 
   .chart-x-axis {
     padding: 0 30px 0 60px;
+  }
+}
+
+// Override ApexCharts label truncation
+:host ::ng-deep {
+  .apexcharts-xaxis-texts-g text {
+    text-overflow: unset !important;
+    overflow: visible !important;
+    white-space: nowrap !important;
+    max-width: none !important;
+    width: auto !important;
+  }
+
+  .apexcharts-xaxis-label {
+    text-overflow: unset !important;
+    overflow: visible !important;
+    white-space: nowrap !important;
+    max-width: none !important;
+    width: auto !important;
   }
 }

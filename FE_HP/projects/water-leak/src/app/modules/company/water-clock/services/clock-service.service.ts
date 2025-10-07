@@ -48,11 +48,23 @@ export class ClockServiceService {
   }
 
   private mapFromApi(apiMeter: any): WaterMeter {
+    console.log('Mapping meter from API:', apiMeter);
+    console.log('meter_name field:', apiMeter.meter_name);
+    console.log('id field:', apiMeter.id);
+
+    // Xử lý trường hợp meter_name có thể là ID hoặc tên thực
+    let displayName = apiMeter.meter_name;
+
+    // Nếu meter_name trông giống như ObjectId hoặc chỉ là ID
+    if (displayName && (displayName.length === 24 || displayName === apiMeter.id)) {
+      displayName = `Trạm ${apiMeter.id?.slice(-6) || 'Unknown'}`; // Lấy 6 ký tự cuối của ID
+    }
+
     return {
       id: String(apiMeter.id),
-      name: apiMeter.meter_name,
-      branchName: apiMeter.branchName,
-      status: apiMeter.status || 'Normal',
+      name: displayName || `Trạm ${apiMeter.id || 'Unknown'}`,
+      branchName: apiMeter.branchName || 'Chưa xác định',
+      status: apiMeter.status || 'unknown',
       installationDate: apiMeter.installation_time ? new Date(apiMeter.installation_time) : undefined,
       selected: false,
       expanded: false,

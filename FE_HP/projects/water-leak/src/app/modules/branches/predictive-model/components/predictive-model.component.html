@@ -22,7 +22,12 @@
       </div>
     </div>
 
-    <h3 *ngIf="selectedMeter">Đồng hồ {{ selectedMeter.meter_name }}</h3>
+    <div class="meter-info" *ngIf="selectedMeter">
+      <h3>Đồng hồ {{ selectedMeter.meter_name }}</h3>
+      <div class="model-count" *ngIf="getTotalModelsCount() > 0">
+        <span class="badge">{{ getTotalModelsCount() }} mô hình AI</span>
+      </div>
+    </div>
 
     <table *ngIf="dates.length > 0 && tableData.models.length > 0">
       <tr>
@@ -30,16 +35,12 @@
         <th *ngFor="let d of dates">{{ d }}</th>
       </tr>
 
-      <tr *ngFor="let m of tableData.models">
-        <td>{{ m.name }}</td>
-         <td *ngFor="let r of m.results" [style.color]="getColor(r)">
+      <tr *ngFor="let m of tableData.models" [class]="m.name === 'Kết luận' ? 'conclusion-row' : ''">
+        <td class="model-name">{{ m.name }}</td>
+        <td *ngFor="let r of m.results"
+            [class]="getPredictionClass(r)"
+            [style.color]="getColor(r)">
           {{ r }}
-        </td>
-      </tr>
-      <tr>
-        <td>Kết luận</td>
-        <td *ngFor="let d of dates" [style.color]="getConclusionByDate(d).color">
-            {{ getConclusionByDate(d).text }}
         </td>
       </tr>
     </table>

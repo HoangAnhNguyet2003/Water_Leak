@@ -73,7 +73,19 @@ export class ChartViewComponent implements OnInit {
       chart: { type: 'line', height: 350 },
       dataLabels: { enabled: false },
       stroke: { curve: 'smooth' },
-      xaxis: { categories },
+      xaxis: {
+        categories,
+        labels: {
+          maxHeight: undefined,
+          rotate: -45,  // Xoay labels để hiển thị tốt hơn với format dài
+          trim: false,  // Không cắt bớt text
+          hideOverlappingLabels: false,  // Hiển thị tất cả labels
+          style: {
+            colors: [],
+            fontSize: '11px'
+          }
+        }
+      },
       yaxis: { title: { text: cd.config?.yAxisLabel ?? 'Lưu lượng' } },
       tooltip: {
         shared: false,   // ⬅ tắt tooltip chung
@@ -144,7 +156,19 @@ export class ChartViewComponent implements OnInit {
       chart: { type: 'line', height: 350 },
       dataLabels: { enabled: false },
       stroke: { curve: 'smooth' },
-      xaxis: { categories: chartData.map(d => d.timestamp) },
+      xaxis: {
+        categories: chartData.map(d => d.timestamp),
+        labels: {
+          maxHeight: undefined,
+          rotate: -45,  // Xoay labels để hiển thị tốt hơn với format dài
+          trim: false,  // Không cắt bớt text
+          hideOverlappingLabels: false,  // Hiển thị tất cả labels
+          style: {
+            colors: [],
+            fontSize: '11px'
+          }
+        }
+      },
       yaxis: { title: { text: 'Lưu lượng' } },
       tooltip: { x: { show: true } },
       title: { text: `Lưu lượng - ${meterNameFromState ?? ''}`, align: 'left' },

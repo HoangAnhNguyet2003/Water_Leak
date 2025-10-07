@@ -36,6 +36,36 @@ export class PredictiveModelService {
     return this.manualMeters$.asObservable().pipe(map(meters => meters ?? []));
   }
 
+  getLSTMAutoencoderPredictions(meterId: string): Observable<any[]> {
+    const url = `${this.API_BASE}/predictions/get_lstm_autoencoder_predictions/${meterId}`;
+
+    return this.http.get<{ predictions: any[] }>(url)
+      .pipe(
+        map(res => {
+          return res.predictions || [];
+        }),
+        catchError(err => {
+          console.error('Failed to load LSTM autoencoder predictions:', err);
+          return of([]);
+        })
+      );
+  }
+
+  getLSTMPredictions(meterId: string): Observable<any[]> {
+    const url = `${this.API_BASE}/predictions/get_lstm_predictions/${meterId}`;
+
+    return this.http.get<{ predictions: any[] }>(url)
+      .pipe(
+        map(res => {
+          return res.predictions || [];
+        }),
+        catchError(err => {
+          console.error('Failed to load LSTM predictions:', err);
+          return of([]);
+        })
+      );
+  }
+
   private mapFromApi(apiMeter: any): PredictiveModel {
     const parseDate = (val: any): string | Date => {
       if (val == null) return '';
@@ -62,6 +92,7 @@ export class PredictiveModelService {
       return String(val);
     };
 
+    // Legacy single prediction support
     const predictionRaw = apiMeter.prediction ?? null;
     const prediction = predictionRaw ? {
       meter_name: predictionRaw.meter_name ?? apiMeter.meter_name ?? '',
@@ -70,11 +101,29 @@ export class PredictiveModelService {
       predicted_label: predictionRaw.predicted_label ?? ''
     } : null;
 
+    // Multiple predictions support
+    const predictionsRaw = apiMeter.predictions ?? [];
+    const predictions = predictionsRaw.map((pred: any) => ({
+      _id: String(pred._id ?? ''),
+      meter_id: String(pred.meter_id ?? ''),
+      model: pred.model ? {
+        _id: String(pred.model._id ?? ''),
+        name: String(pred.model.name ?? '')
+      } : null,
+      model_name: pred.model_name ?? (pred.model ? pred.model.name : '') ?? '',
+      prediction_time: parseDate(pred.prediction_time),
+      predicted_threshold: pred.predicted_threshold,
+      predicted_label: pred.predicted_label ?? '',
+      confidence: pred.confidence ?? '',
+      recorded_instant_flow: pred.recorded_instant_flow
+    }));
+
     return {
       _id: String(apiMeter._id ?? ''),
       branch_id: String(apiMeter.branch_id ?? ''),
       meter_name: apiMeter.meter_name ?? '',
-      prediction
+      prediction,
+      predictions
     };
   }
 }

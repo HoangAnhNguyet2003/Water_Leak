@@ -60,9 +60,9 @@ def measurements_range(mid):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-    # Format timestamps as 'dd-mm-yyyy - H'
+    # Format timestamps as 'dd-mm-yyyy - H:M'
     def fmt(dt):
-        return dt.strftime('%d-%m-%Y - %H')
+        return dt.strftime('%d-%m-%Y - %H:%M')
 
     response = {
         "meter_id": mid,
@@ -113,7 +113,7 @@ def measurements_range_with_predictions(mid):
         return jsonify({"error": str(e)}), 500
 
     def fmt(dt):
-        return dt.strftime('%d-%m-%Y - %H')
+        return dt.strftime('%d-%m-%Y - %H:%M')
 
     pred_map = {}
     for p in preds:
@@ -122,7 +122,8 @@ def measurements_range_with_predictions(mid):
             continue
         key = fmt(pt)
         existing = pred_map.get(key)
-        if not existing or (p.get('confidence', 0) > existing.get('confidence', 0)):
+        # Không so sánh confidence nữa vì là string, chỉ lấy prediction mới nhất
+        if not existing:
             pred_map[key] = p
 
     items = []
@@ -138,14 +139,20 @@ def measurements_range_with_predictions(mid):
             predicted_flow = p.get('predicted_flow') if 'predicted_flow' in p else p.get('flow')
             if predicted_flow is None:
                 predicted_flow = p.get('recorded_instant_flow')
-            conf = float(p.get('confidence', 0) or 0)
+            # Xử lý confidence dưới dạng string từ database
+            conf_raw = p.get('confidence')
+            if conf_raw is not None:
+                conf = str(conf_raw)
+            else:
+                conf = "unknown"
+            
             status = p.get('predicted_label')
             # treat any non-'normal' label as anomaly for display
             is_anom = (status is not None) and (status != 'normal')
         else:
             predicted_flow = None
             is_anom = False
-            conf = 0.0
+            conf = "unknown"
             status = 'normal'
 
         base.update({

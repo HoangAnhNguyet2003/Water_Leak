@@ -4,7 +4,7 @@ from flask_jwt_extended import get_jwt, jwt_required,get_jwt_identity
 from ...extensions import get_db
 from ...require import require_role
 from ...models.meter_schema import MeterCreate, MeterOut
-from .meter_utils import create_meter_admin_only, get_meters_list, list_meters, remove_meter
+from .meter_utils import create_meter_admin_only, get_meters_list, list_meters, remove_meter, calculate_meter_status_and_confidence, get_detailed_prediction_with_status, get_detailed_predictions_with_status
 from ...error import BadRequest
 from ...utils import json_ok, created, parse_pagination, get_swagger_path
 import traceback
@@ -54,8 +54,21 @@ def list_():
             except:
                 branch_name = None
 
+        # Sử dụng utils để tính toán status và confidence
+        meter_id = x.get("_id") or x.get("id")
+        if meter_id:
+            status, confidence = calculate_meter_status_and_confidence(db, ObjectId(meter_id))
+        else:
+            status, confidence = "unknown", "unknown"
+
+        print(f"Raw meter data: {x}")
+        print(f"meter_name field: {x.get('meter_name')}")
+        
         meter_out = MeterOut(**x).model_dump(mode="json")
         meter_out["branchName"] = branch_name
+        meter_out["status"] = status  
+        meter_out["confidence"] = confidence  
+                
         out.append(meter_out)
 
     body = {"items": out, "page": page, "page_size": page_size}
@@ -78,17 +91,6 @@ def remove(mid):
 @jwt_required()
 @require_role(["company_manager"])
 def list_meters_with_status():
-    """
-    - Lấy toàn bộ danh sách đồng hồ và trạng thái dự đoán trong ngày, dùng cho dashboard và mục đồng hồ của tổng công ty
-    - Ví dụ mẫu trả về:
-    {
-        "id": "66a1b2c3d4e5f67890123456",
-        "meter_name": "Meter A",
-        "address": "ABCD",
-        "status": "anomaly",
-        "prediction_time": "2025-04-05T08:22:15Z"
-    }
-    """
     date_str = request.args.get("date")  
     items = get_meters_list(date_str)
     return jsonify({"items": items}), 200
@@ -140,7 +142,6 @@ def get_my_meters():
                 "instant_pressure": measurement_doc["instant_pressure"],
             }
 
-        # Lấy thông tin sửa chữa mới nhất
         repair_doc = db.meter_repairs.find_one(
             {"meter_id": x["_id"]}, sort=[("repair_time", -1)]
         )
@@ -154,43 +155,25 @@ def get_my_meters():
                 "leak_reason": repair_doc.get("leak_reason"),
             }
 
-        # 🔹 Lấy prediction mới nhất cho đồng hồ này
-        prediction_doc = db.predictions.find_one(
-            {"meter_id": x["_id"]}, sort=[("prediction_time", -1)]
-        )
-        prediction = None
-        if prediction_doc:
-            # Lấy model tương ứng
-            model_doc = db.ai_models.find_one({"_id": prediction_doc["model_id"]})
-            model_info = None
-            if model_doc:
-                model_info = {
-                    "_id": str(model_doc["_id"]),
-                    "name": model_doc.get("name"),
-                }
+        # Sử dụng utils để lấy predictions chi tiết và status
+        predictions, meter_status = get_detailed_predictions_with_status(db, x["_id"])
+        
+        # Cũng lấy prediction cũ để backward compatibility
+        prediction, _ = get_detailed_prediction_with_status(db, x["_id"])
 
-            prediction = {
-                "_id": str(prediction_doc["_id"]),
-                "meter_id": str(prediction_doc["meter_id"]),
-                "model": model_info,
-                "prediction_time": prediction_doc["prediction_time"],
-                "predicted_threshold": prediction_doc.get("predicted_threshold"),
-                "predicted_label": prediction_doc.get("predicted_label"),
-                "confidence": prediction_doc.get("confidence"),
-                "recorded_instant_flow": prediction_doc.get("recorded_instant_flow"),
-            }
-
-            meter_out = {
-                "_id": meter_id_str,
-                "branch_id": str(x["branch_id"]),
-                "meter_name": x["meter_name"],
-                "installation_time": x.get("installation_time"),
-                "branchName": branch_name,
-                "threshold": threshold,
-                "measurement": measurement,
-                "repair": repair,
-                "prediction": prediction,  # thêm vào output
-            }
+        meter_out = {
+            "_id": meter_id_str,
+            "branch_id": str(x["branch_id"]),
+            "meter_name": x["meter_name"],
+            "installation_time": x.get("installation_time"),
+            "branchName": branch_name,
+            "status": meter_status,  # Thêm status được tính toán
+            "threshold": threshold,
+            "measurement": measurement,
+            "repair": repair,
+            "prediction": prediction,  # Giữ lại prediction cũ
+            "predictions": predictions,  # Trả về mảng predictions mới
+        }
 
         out.append(meter_out)
 
