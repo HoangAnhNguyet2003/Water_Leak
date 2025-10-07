@@ -75,12 +75,11 @@ export class PredictiveModelComponent implements OnInit {
     }
   }
 
-  // Tạo mảng 7 ngày liên tiếp theo UTC, giữ nguyên ngày như API
   private generateDates(startDate: Date): void {
     this.dates = [];
     for (let i = 0; i < 7; i++) {
       const d = new Date(startDate);
-      d.setUTCDate(d.getUTCDate() + i); // tăng ngày theo UTC
+      d.setUTCDate(d.getUTCDate() + i);
       const day = d.getUTCDate().toString().padStart(2, '0');
       const month = (d.getUTCMonth() + 1).toString().padStart(2, '0');
       const year = d.getUTCFullYear();
@@ -88,147 +87,74 @@ export class PredictiveModelComponent implements OnInit {
     }
   }
 
-
-
-  getConclusionByDate(dateStr: string): { text: string, color: string } {
-    if (!this.tableData.models || this.tableData.models.length < 2) {
-      return { text: 'Chưa có dữ liệu', color: this.getColor('Chưa có dữ liệu') };
-    }
-
-    const idx = this.dates.indexOf(dateStr);
-    if (idx === -1) return { text: 'Chưa có dữ liệu', color: this.getColor('Chưa có dữ liệu') };
-
-    const lstmResult = this.tableData.models.find(m => m.name === 'LSTM')?.results[idx] || 'Chưa có dữ liệu';
-    const autoencoderResult = this.tableData.models.find(m => m.name === 'LSTM_AUTOENCODER')?.results[idx] || 'Chưa có dữ liệu';
-
-    const lstmLabel = lstmResult.split(' (')[0];
-    const autoencoderLabel = autoencoderResult.split(' (')[0];
-
-    // Logic kết hợp theo thứ tự ưu tiên: Rò rỉ > Nghi ngờ cao > Nghi ngờ trung bình > Nghi ngờ thấp > Bình thường
-    const priorityOrder = [
-      'Rò rỉ nghi ngờ cao', 'Rò rỉ nghi ngờ trung bình', 'Rò rỉ nghi ngờ thấp', 'Rò rỉ',
-      'Nghi ngờ cao', 'Nghi ngờ trung bình', 'Nghi ngờ thấp', 'Bình thường'
-    ];
-
-    for (const priority of priorityOrder) {
-      if (lstmLabel === priority || autoencoderLabel === priority) {
-        return { text: priority, color: this.getColor(priority) };
-      }
-    }
-
-    return { text: 'Chưa có dữ liệu', color: this.getColor('Chưa có dữ liệu') };
+  private formatDateFromPrediction(pred: any): string {
+    const dateString = pred.prediction_time?.$date || pred.prediction_time;
+    const predDate = new Date(dateString);
+    const day = predDate.getUTCDate().toString().padStart(2, '0');
+    const month = (predDate.getUTCMonth() + 1).toString().padStart(2, '0');
+    const year = predDate.getUTCFullYear();
+    return `${day}/${month}/${year}`;
   }
-
-  // Method riêng để tính conclusion với data trực tiếp sử dụng confidence hierarchy
   private getConclusionByDateDirect(dateStr: string, lstmAutoencoder: any[], lstmPredictions: any[]): string {
-    // Tìm prediction cho LSTM
-    const lstmPred = lstmPredictions.find(pred => {
-      const dateString = pred.prediction_time?.$date || pred.prediction_time;
-      const predDate = new Date(dateString);
-      const day = predDate.getUTCDate().toString().padStart(2, '0');
-      const month = (predDate.getUTCMonth() + 1).toString().padStart(2, '0');
-      const year = predDate.getUTCFullYear();
-      const predictionDate = `${day}/${month}/${year}`;
-      return predictionDate === dateStr;
-    });
+    const lstmPred = lstmPredictions.find(pred => this.formatDateFromPrediction(pred) === dateStr);
+    const autoencoderPredictions = lstmAutoencoder.filter(pred => this.formatDateFromPrediction(pred) === dateStr);
+    const autoencoderPred = autoencoderPredictions.length > 0 ? this.selectBestPredictionForDay(autoencoderPredictions) : null;
 
-    // Tìm prediction cho LSTM Autoencoder
-    const autoencoderPred = lstmAutoencoder.find(pred => {
-      const dateString = pred.prediction_time?.$date || pred.prediction_time;
-      const predDate = new Date(dateString);
-      const day = predDate.getUTCDate().toString().padStart(2, '0');
-      const month = (predDate.getUTCMonth() + 1).toString().padStart(2, '0');
-      const year = predDate.getUTCFullYear();
-      const predictionDate = `${day}/${month}/${year}`;
-      return predictionDate === dateStr;
-    });
+    if (!lstmPred && !autoencoderPred) return 'Chưa có dữ liệu';
 
-    const confidenceOrder = ['NNcao', 'NNTB', 'NNthap'];
-    let highestConfidence: string | null = null;
-    let conclusion = 'Chưa có dữ liệu';
+    const lstmIsLeak = lstmPred?.predicted_label === 'leak';
+    const autoencoderIsLeak = autoencoderPred?.predicted_label === 'leak';
+    const lstmIsNormal = lstmPred?.predicted_label === 'normal';
+    const autoencoderIsNormal = autoencoderPred?.predicted_label === 'normal';
 
-    [lstmPred, autoencoderPred].forEach(pred => {
-      if (pred && pred.confidence && confidenceOrder.includes(pred.confidence)) {
-        const confidenceRank = confidenceOrder.indexOf(pred.confidence);
-        const currentRank = highestConfidence ? confidenceOrder.indexOf(highestConfidence) : -1;
+    const getConfidenceWithLabel = (pred: any, isLeak: boolean): { confidence: string, rank: number } => {
+      if (!pred || !pred.confidence) return { confidence: 'N/A', rank: -1 };
+      const confidenceOrder = ['NNcao', 'NNTB', 'NNthap'];
+      const rank = confidenceOrder.indexOf(pred.confidence);
 
-        if (currentRank === -1 || confidenceRank < currentRank) {
-          highestConfidence = pred.confidence;
-          if (pred.confidence === 'NNcao') {
-            conclusion = pred.predicted_label === 'leak' ? 'Rò rỉ nghi ngờ cao' : 'Nghi ngờ cao';
-          } else if (pred.confidence === 'NNTB') {
-            conclusion = pred.predicted_label === 'leak' ? 'Rò rỉ nghi ngờ trung bình' : 'Nghi ngờ trung bình';
-          } else if (pred.confidence === 'NNthap') {
-            conclusion = pred.predicted_label === 'leak' ? 'Rò rỉ nghi ngờ thấp' : 'Bình thường';
-          }
-        }
+      if (rank !== -1 && isLeak) {
+        if (pred.confidence === 'NNcao') return { confidence: 'Rò rỉ nghi ngờ cao', rank };
+        if (pred.confidence === 'NNTB') return { confidence: 'Rò rỉ nghi ngờ trung bình', rank };
+        if (pred.confidence === 'NNthap') return { confidence: 'Rò rỉ nghi ngờ thấp', rank };
       }
-    });
+      return { confidence: isLeak ? 'Rò rỉ' : 'Bình thường', rank: 999 };
+    };
 
-    if (conclusion === 'Chưa có dữ liệu') {
-      const lstmLabel = lstmPred ? (
-        lstmPred.predicted_label === 'leak' ? 'Rò rỉ' :
-        lstmPred.predicted_label === 'normal' ? 'Bình thường' : null
-      ) : null;
-
-      const autoencoderLabel = autoencoderPred ? (
-        autoencoderPred.predicted_label === 'leak' ? 'Rò rỉ' :
-        autoencoderPred.predicted_label === 'normal' ? 'Bình thường' : null
-      ) : null;
-
-      if (lstmLabel === 'Rò rỉ' || autoencoderLabel === 'Rò rỉ') {
-        conclusion = 'Rò rỉ';
-      } else if (lstmLabel === 'Bình thường' || autoencoderLabel === 'Bình thường') {
-        conclusion = 'Bình thường';
+    if (lstmIsLeak || autoencoderIsLeak) {
+      if (lstmIsLeak && autoencoderIsLeak) {
+        const lstmConf = getConfidenceWithLabel(lstmPred, true);
+        const autoencoderConf = getConfidenceWithLabel(autoencoderPred, true);
+        return lstmConf.rank <= autoencoderConf.rank ? lstmConf.confidence : autoencoderConf.confidence;
       }
+      return lstmIsLeak ? getConfidenceWithLabel(lstmPred, true).confidence : getConfidenceWithLabel(autoencoderPred, true).confidence;
     }
-
-    return conclusion;
+    return (lstmIsNormal || autoencoderIsNormal) ? 'Bình thường' : 'Chưa có dữ liệu';
   }
 
   getColor(text: string): string {
-    // Extract the label part before parentheses for color determination
     const label = text.split(' (')[0];
-    switch (label) {
-      case 'Rò rỉ nghi ngờ cao':
-      case 'Rò rỉ':
-      case 'Nghi ngờ cao': return '#c62828';        // Đỏ đậm
-      case 'Rò rỉ nghi ngờ trung bình':
-      case 'Nghi ngờ trung bình': return '#f57c00'; // Cam
-      case 'Rò rỉ nghi ngờ thấp':
-      case 'Nghi ngờ thấp': return '#fbc02d';       // Vàng
-      case 'Bình thường': return '#2e7d32';         // Xanh
-      case 'Không xác định': return '#9e9e9e';      // Xám đậm
-      default: return '#616161';                    // Xám
-    }
+    const colorMap: { [key: string]: string } = {
+      'Rò rỉ nghi ngờ cao': '#c62828', 'Rò rỉ': '#c62828', 'Nghi ngờ cao': '#c62828',
+      'Rò rỉ nghi ngờ trung bình': '#f57c00', 'Nghi ngờ trung bình': '#f57c00',
+      'Rò rỉ nghi ngờ thấp': '#fbc02d', 'Nghi ngờ thấp': '#fbc02d',
+      'Bình thường': '#2e7d32', 'Không xác định': '#9e9e9e'
+    };
+    return colorMap[label] || '#616161';
   }
 
   getPredictionClass(text: string): string {
-    // Extract the label part before parentheses for class determination
     const label = text.split(' (')[0];
-    switch (label) {
-      case 'Rò rỉ nghi ngờ cao':
-      case 'Rò rỉ':
-      case 'Nghi ngờ cao': return 'prediction-high';
-      case 'Rò rỉ nghi ngờ trung bình':
-      case 'Nghi ngờ trung bình': return 'prediction-medium';
-      case 'Rò rỉ nghi ngờ thấp':
-      case 'Nghi ngờ thấp': return 'prediction-low';
-      case 'Bình thường': return 'prediction-normal';
-      case 'Không xác định': return 'prediction-undefined';
-      default: return 'prediction-unknown';
-    }
+    const classMap: { [key: string]: string } = {
+      'Rò rỉ nghi ngờ cao': 'prediction-high', 'Rò rỉ': 'prediction-high', 'Nghi ngờ cao': 'prediction-high',
+      'Rò rỉ nghi ngờ trung bình': 'prediction-medium', 'Nghi ngờ trung bình': 'prediction-medium',
+      'Rò rỉ nghi ngờ thấp': 'prediction-low', 'Nghi ngờ thấp': 'prediction-low',
+      'Bình thường': 'prediction-normal', 'Không xác định': 'prediction-undefined'
+    };
+    return classMap[label] || 'prediction-unknown';
   }
 
-  getTotalModelsCount(): number {
-    // Luôn trả về 2 vì chỉ có LSTM và LSTM_AUTOENCODER
-    return 2;
-  }
-
-  // Reload khi quay lại trang
-  reload(): void {
-    this.loadData(true);
-  }
+  getTotalModelsCount(): number { return 2; }
+  reload(): void { this.loadData(true); }
 
   getExceedancePercentage(meter: ManualModel): number {
     if (!meter.measurement || !meter.threshold) return 0;
@@ -253,11 +179,7 @@ export class PredictiveModelComponent implements OnInit {
     });
   }
 
-  closeLeakPopup() {
-    this.showLeakPopup = false;
-  }
-
-  // Method mới sử dụng 2 API riêng biệt
+  closeLeakPopup() { this.showLeakPopup = false; }
   private buildTableWithSeparateAPIs(meter: PredictiveModel): void {
     Promise.all([
       this.predictiveService.getLSTMAutoencoderPredictions(meter._id).toPromise(),
@@ -279,131 +201,60 @@ export class PredictiveModelComponent implements OnInit {
 
 
   private selectBestPredictionForDay(predictions: any[]): any {
-    if (predictions.length === 1) {
-      return predictions[0];
-    }
+    if (predictions.length === 1) return predictions[0];
 
-    // 1. Tách predictions theo label
     const leakPredictions = predictions.filter(p => p.predicted_label === 'leak');
-    const normalPredictions = predictions.filter(p => p.predicted_label === 'normal');
-
-    // 2. Ưu tiên leak predictions
-    let candidatePredictions = leakPredictions.length > 0 ? leakPredictions : normalPredictions;
-
-    // 3. Sắp xếp theo confidence hierarchy: NNcao > NNTB > NNthap
+    const candidatePredictions = leakPredictions.length > 0 ? leakPredictions : predictions.filter(p => p.predicted_label === 'normal');
     const confidenceRank: { [key: string]: number } = { 'NNcao': 3, 'NNTB': 2, 'NNthap': 1 };
 
-    candidatePredictions.sort((a, b) => {
-      const aRank = confidenceRank[a.confidence as string] || 0;
-      const bRank = confidenceRank[b.confidence as string] || 0;
-      return bRank - aRank; // Sắp xếp giảm dần (cao nhất trước)
-    });
-
+    candidatePredictions.sort((a, b) => (confidenceRank[b.confidence] || 0) - (confidenceRank[a.confidence] || 0));
     return candidatePredictions[0];
   }
 
   private buildCombinedTable(meter: PredictiveModel, lstmAutoencoder: any[], lstmPredictions: any[]): void {
+    const formatPredictionResult = (pred: any): string => {
+      if (!pred) return 'Chưa có dữ liệu';
 
-    const models = [];
+      const label = pred.predicted_label === 'leak' ? 'Rò rỉ' :
+                   pred.predicted_label === 'normal' ? 'Bình thường' : 'Không xác định';
 
-
-    models.push({
-      name: 'LSTM',
-      results: this.dates.map(dateStr => {
-        const predForDate = lstmPredictions.find(pred => {
-          // Parse MongoDB date format {$date: 'ISO_STRING'}
-          const dateString = pred.prediction_time?.$date || pred.prediction_time;
-          const predDate = new Date(dateString);
-
-          const day = predDate.getUTCDate().toString().padStart(2, '0');
-          const month = (predDate.getUTCMonth() + 1).toString().padStart(2, '0');
-          const year = predDate.getUTCFullYear();
-          const predictionDate = `${day}/${month}/${year}`;
-          return predictionDate === dateStr;
-        });
-
-        if (predForDate) {
-          const label = predForDate.predicted_label === 'leak' ? 'Rò rỉ' :
-                       predForDate.predicted_label === 'normal' ? 'Bình thường' :
-                       predForDate.predicted_label || 'Không xác định';
-          let confidence = 'N/A';
-
-          if (predForDate.confidence && predForDate.confidence !== 'nan') {
-            // Xử lý confidence Vietnamese hoặc số
-            if (['NNcao', 'NNTB', 'NNthap'].includes(predForDate.confidence)) {
-              confidence = predForDate.confidence; // Giữ nguyên Vietnamese confidence
-            } else if (!isNaN(Number(predForDate.confidence))) {
-              confidence = `${predForDate.confidence}%`; // Thêm % cho confidence số
-            } else {
-              confidence = predForDate.confidence; // Hiển thị as-is cho các format khác
-            }
-          }
-
-          return `${label} (${confidence})`;
+      let confidence = 'N/A';
+      if (pred.confidence && pred.confidence !== 'nan') {
+        if (['NNcao', 'NNTB', 'NNthap'].includes(pred.confidence)) {
+          confidence = pred.confidence;
+        } else if (!isNaN(Number(pred.confidence))) {
+          confidence = `${pred.confidence}%`;
+        } else {
+          confidence = pred.confidence;
         }
-        return 'Chưa có dữ liệu';
-      })
-    });
+      }
+      return `${label} (${confidence})`;
+    };
 
-    models.push({
-      name: 'LSTM_AUTOENCODER',
-      results: this.dates.map(dateStr => {
-        const predictionsForDate = lstmAutoencoder.filter(pred => {
-          const dateString = pred.prediction_time?.$date || pred.prediction_time;
-          const predDate = new Date(dateString);
-
-          const day = predDate.getUTCDate().toString().padStart(2, '0');
-          const month = (predDate.getUTCMonth() + 1).toString().padStart(2, '0');
-          const year = predDate.getUTCFullYear();
-          const predictionDate = `${day}/${month}/${year}`;
-          return predictionDate === dateStr;
-        });
-
-        if (predictionsForDate.length > 0) {
-          const bestPrediction = this.selectBestPredictionForDay(predictionsForDate);
-
-          const label = bestPrediction.predicted_label === 'leak' ? 'Rò rỉ' :
-                       bestPrediction.predicted_label === 'normal' ? 'Bình thường' :
-                       bestPrediction.predicted_label || 'Không xác định';
-          let confidence = 'N/A';
-
-          if (bestPrediction.confidence && bestPrediction.confidence !== 'nan') {
-            if (['NNcao', 'NNTB', 'NNthap'].includes(bestPrediction.confidence)) {
-              confidence = bestPrediction.confidence;
-            } else if (!isNaN(Number(bestPrediction.confidence))) {
-              confidence = `${bestPrediction.confidence}%`;
-            } else {
-              confidence = bestPrediction.confidence;
-            }
-          }
-
-          return `${label} (${confidence})`;
-        }
-        return 'Chưa có dữ liệu';
-      })
-    });    // 3. Dòng kết luận dựa trên quy tắc confidence
-    models.push({
-      name: 'Kết luận',
-      results: this.dates.map(dateStr => {
-        return this.getConclusionByDateDirect(dateStr, lstmAutoencoder, lstmPredictions);
-      })
-    });
+    const models = [
+      {
+        name: 'LSTM',
+        results: this.dates.map(dateStr => {
+          const pred = lstmPredictions.find(p => this.formatDateFromPrediction(p) === dateStr);
+          return formatPredictionResult(pred);
+        })
+      },
+      {
+        name: 'LSTM_AUTOENCODER',
+        results: this.dates.map(dateStr => {
+          const preds = lstmAutoencoder.filter(p => this.formatDateFromPrediction(p) === dateStr);
+          const bestPred = preds.length > 0 ? this.selectBestPredictionForDay(preds) : null;
+          return formatPredictionResult(bestPred);
+        })
+      },
+      {
+        name: 'Kết luận',
+        results: this.dates.map(dateStr => this.getConclusionByDateDirect(dateStr, lstmAutoencoder, lstmPredictions))
+      }
+    ];
 
     this.tableData = { models };
   }
 
-  private getPredictionResultForDate(predictions: any[], targetDate: string): string {
-    for (const pred of predictions) {
-      const predDate = new Date(pred.prediction_time);
-      const day = predDate.getUTCDate().toString().padStart(2, '0');
-      const month = (predDate.getUTCMonth() + 1).toString().padStart(2, '0');
-      const year = predDate.getUTCFullYear();
-      const predictionDate = `${day}/${month}/${year}`;
 
-      if (predictionDate === targetDate) {
-        return pred.predicted_label === 'normal' ? 'Nghi ngờ thấp' : 'Nghi ngờ cao';
-      }
-    }
-    return 'Chưa có dữ liệu';
-  }
 }
