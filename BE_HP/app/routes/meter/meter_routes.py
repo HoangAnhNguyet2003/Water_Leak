@@ -60,9 +60,6 @@ def list_():
             status, confidence = calculate_meter_status_and_confidence(db, ObjectId(meter_id))
         else:
             status, confidence = "unknown", "unknown"
-
-        print(f"Raw meter data: {x}")
-        print(f"meter_name field: {x.get('meter_name')}")
         
         meter_out = MeterOut(**x).model_dump(mode="json")
         meter_out["branchName"] = branch_name

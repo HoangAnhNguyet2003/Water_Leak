@@ -1,11 +1,13 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
+import atexit
 from app.config import Config, SWAGGER_CONFIG, SWAGGER_TEMPLATE
 from app.database import mongo
 from flasgger import Swagger
 from app.route import register_blueprints
 from .extensions import get_db, init_indexes, jwt, limiter, socketio
 from .error import register_error_handlers
+from .crawler.scheduler import crawler_scheduler
 
 def create_app():
     app = Flask(__name__)
@@ -25,9 +27,23 @@ def create_app():
     with app.app_context():
         db = get_db()
         init_indexes(db)
+        
+        crawler_scheduler.set_app(app)
+        
+        try:
+            crawler_scheduler.start_scheduler()
+        except Exception as e:
+            print(f"Không thể khởi động crawler scheduler: {e}")
 
     for rule in app.url_map.iter_rules():
         print("ROUTE:", rule.endpoint, rule.rule, rule.methods)
     Swagger(app, config=SWAGGER_CONFIG, template=SWAGGER_TEMPLATE)
+    
+    def shutdown_scheduler():
+        try:
+            crawler_scheduler.stop_scheduler()
+        except Exception:
+            pass
+    atexit.register(shutdown_scheduler)
 
     return app
