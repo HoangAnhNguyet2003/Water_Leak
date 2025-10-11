@@ -1,6 +1,5 @@
 import requests
 from datetime import datetime
-from ..extensions import get_db
 from ..models.log_schemas import LogType
 from ..routes.logs.log_utils import insert_log
 import os

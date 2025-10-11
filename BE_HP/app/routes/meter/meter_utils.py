@@ -95,18 +95,12 @@ def insert_meter(branch_id: ObjectId, meter_name: str, installation_time: Option
     }
 
 def create_meter_admin_only(data: MeterCreate) -> MeterOut:
-    print("Creating meter with data:", data)
     if _role_name() != "admin":
         raise Forbidden("Only admin can create meter")
     branch = find_branch_by_name(data.branch_name)
 
-    if exists_meter(
-        _meter_id_from_name(data.meter_name)
-    ):
-        print(exists_meter(_meter_id_from_name(data.meter_name)))
-        raise Conflict(
-            f"Meter '{data.meter_name}' already exists"
-        )
+    if exists_meter(_meter_id_from_name(data.meter_name)):
+        raise Conflict(f"Meter '{data.meter_name}' already exists")
 
     doc = insert_meter(branch["_id"], data.meter_name, data.installation_time)
     doc["branch_name"] = branch["name"]
@@ -180,15 +174,7 @@ def get_meters_list(date_str: str | None = None):
                 doc[k] = str(v)
     return result
 
-def list_meters(page:int, page_size:int, q: Optional[str], sort: Optional[str]):
-    company_id, branch_id, role_id, role_name = get_user_scope()
-    if branch_id:
-        return list_meter_paginated(page, page_size, [oid_str(branch_id)], q, sort)
-    if company_id:
-        branches = _branch_ids_in_company(company_id)
-        return list_meter_paginated(page, page_size, branches, q, sort)
-
-    return list_meter_paginated(page, page_size, None, q, sort)
+# Duplicate function removed - using the first definition above
 
 
 
@@ -497,4 +483,115 @@ def _build_prediction_dict(db, prediction_doc, override_label=None, override_con
         "confidence": override_confidence or prediction_doc.get("confidence"),
         "recorded_instant_flow": prediction_doc.get("recorded_instant_flow"),
     }
+
+# =====================================
+# THRESHOLD MANAGEMENT UTILS
+# =====================================
+
+def add_threshold_to_meter(meter_id: str, threshold_value: Optional[float] = None, user_id: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Thêm threshold mới cho meter
+    
+    Args:
+        meter_id: ID của meter
+        threshold_value: Giá trị threshold. Nếu None sẽ lấy giá trị của ngày hôm qua
+        user_id: ID người tạo (optional)
+        
+    Returns:
+        dict: Thông tin threshold đã tạo
+        
+    Raises:
+        BadRequest: Nếu có lỗi trong quá trình tạo
+    """
+    from datetime import datetime, timedelta
+    from bson import ObjectId
+    
+    db = get_db()
+    meter_oid = to_object_id(meter_id)
+    
+    meter = db.meters.find_one({"_id": meter_oid})
+    if not meter:
+        raise BadRequest("Meter not found")
+    
+    if threshold_value is None:
+        yesterday = datetime.utcnow() - timedelta(days=1)
+        yesterday_start = datetime(yesterday.year, yesterday.month, yesterday.day)
+        yesterday_end = yesterday_start + timedelta(days=1)
+        
+        yesterday_threshold = db.meter_manual_thresholds.find_one({
+            "meter_id": meter_oid,
+            "set_time": {"$gte": yesterday_start, "$lt": yesterday_end}
+        }, sort=[("set_time", -1)])
+        
+        if yesterday_threshold:
+            threshold_value = yesterday_threshold["threshold_value"]
+        else:
+            latest_threshold = db.meter_manual_thresholds.find_one({
+                "meter_id": meter_oid
+            }, sort=[("set_time", -1)])
+            
+            if latest_threshold:
+                threshold_value = latest_threshold["threshold_value"]
+            else:
+                threshold_value = 0.0
+    
+    # Tạo document threshold mới
+    threshold_doc = {
+        "meter_id": meter_oid,
+        "threshold_value": float(threshold_value),
+        "set_time": datetime.utcnow(),
+    }
+    
+    try:
+        result = db.meter_manual_thresholds.insert_one(threshold_doc)
+        
+        
+        return {
+            "meter_id": meter_id,
+            "meter_name": meter["meter_name"],
+            "threshold_value": threshold_value,
+            "set_time": threshold_doc["set_time"],
+        }
+        
+    except Exception as e:
+        raise BadRequest(f"Failed to create threshold: {str(e)}")
+
+def create_daily_thresholds_for_all_meters():
+
+    from datetime import datetime
+    
+    db = get_db()
+    
+    try:
+        # Lấy tất cả meters
+        meters = list(db.meters.find({}))
+        success_count = 0
+        error_count = 0
+        
+        
+        for meter in meters:
+            try:
+                meter_id = str(meter["_id"])
+                
+                # Kiểm tra xem hôm nay đã có threshold chưa
+                today = datetime.utcnow()
+                today_start = datetime(today.year, today.month, today.day)
+                today_end = today_start + timedelta(days=1)
+                
+                existing_threshold = db.meter_manual_thresholds.find_one({
+                    "meter_id": meter["_id"],
+                    "set_time": {"$gte": today_start, "$lt": today_end}
+                })
+                
+                if not existing_threshold:
+                    add_threshold_to_meter(meter_id, threshold_value=None)
+                    success_count += 1
+
+            except Exception as e:
+                error_count += 1
+        
+        return {"success_count": success_count, "error_count": error_count}
+        
+    except Exception as e:
+        raise
     

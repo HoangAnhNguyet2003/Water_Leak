@@ -4,7 +4,7 @@ from flask_jwt_extended import get_jwt, jwt_required,get_jwt_identity
 from ...extensions import get_db
 from ...require import require_role
 from ...models.meter_schema import MeterCreate, MeterOut
-from .meter_utils import create_meter_admin_only, get_meters_list, list_meters, remove_meter, calculate_meter_status_and_confidence, get_detailed_prediction_with_status, get_detailed_predictions_with_status
+from .meter_utils import create_meter_admin_only, get_meters_list, list_meters, remove_meter, calculate_meter_status_and_confidence, get_detailed_prediction_with_status, get_detailed_predictions_with_status, add_threshold_to_meter
 from ...error import BadRequest
 from ...utils import json_ok, created, parse_pagination, get_swagger_path
 import traceback
@@ -19,19 +19,41 @@ meter_bp = Blueprint("meters", __name__)
 @jwt_required()
 @require_role("admin")
 def create():
-    print("Creating meter...")
     try:
         current_user = get_jwt()
-        print("Current user claims:", current_user)
         data = MeterCreate(**(request.get_json(silent=True) or {}))
-        print("Parsed data:", data)
     except Exception as e:
         traceback.print_exc()
         raise BadRequest(f"Invalid request: {e}")
     m = create_meter_admin_only(data)
     return created(f"/api/v1/meters/create/{m.id}", m.model_dump())
 
-
+@meter_bp.post("/add_new_threshold/<string:mid>")
+@jwt_required()
+@require_role("branch_manager", "company_manager", "admin") 
+def add_new_threshold(mid):
+    """Thêm threshold mới cho meter"""
+    try: 
+        current_user = get_jwt()
+        user_id = get_jwt_identity()
+        data = request.get_json(silent=True) or {}
+        threshold_value = data.get("threshold_value")  # Có thể là None
+        
+        result = add_threshold_to_meter(mid, threshold_value, user_id)
+        
+        return jsonify({
+            "success": True,
+            "message": "Threshold đã được thêm thành công",
+            "data": result
+        }), 200
+        
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
+        
 @meter_bp.get("/get_all_meters")
 @swag_from(get_swagger_path('meter/get_all_meters.yml'))
 @jwt_required()
@@ -112,7 +134,6 @@ def get_my_meters():
 
         meter_id_str = str(x["_id"])
 
-        # Lấy threshold mới nhất
         threshold_doc = db.meter_manual_thresholds.find_one(
             {"meter_id": x["_id"]}, sort=[("set_time", -1)]
         )
@@ -125,7 +146,6 @@ def get_my_meters():
                 "threshold_value": threshold_doc["threshold_value"],
             }
 
-        # Lấy measurement mới nhất
         measurement_doc = db.meter_measurements.find_one(
             {"meter_id": x["_id"]}, sort=[("measurement_time", -1)]
         )
@@ -152,10 +172,7 @@ def get_my_meters():
                 "leak_reason": repair_doc.get("leak_reason"),
             }
 
-        # Sử dụng utils để lấy predictions chi tiết và status
         predictions, meter_status = get_detailed_predictions_with_status(db, x["_id"])
-        
-        # Cũng lấy prediction cũ để backward compatibility
         prediction, _ = get_detailed_prediction_with_status(db, x["_id"])
 
         meter_out = {

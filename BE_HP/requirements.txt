@@ -1,4 +1,5 @@
 flask
+apscheduler==3.11.0
 flasgger==0.9.7.1
 flask_socketio==5.5.1
 pydantic>=2

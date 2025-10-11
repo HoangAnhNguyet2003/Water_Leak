@@ -9,8 +9,8 @@ except ImportError:
 from ..extensions import get_db
 from ..models.log_schemas import LogType
 from ..routes.logs.log_utils import insert_log
-from .meter_measurements_crawler import crawl_measurements_data
-from .repair_data_crawler import crawl_repair_data
+from ..crawler.meter_measurements_crawler import crawl_measurements_data
+from ..crawler.repair_data_crawler import crawl_repair_data
 
 class CrawlerScheduler:
     def __init__(self):
@@ -19,23 +19,19 @@ class CrawlerScheduler:
         else:
             self.scheduler = None
         self.is_running = False
-        self.app = None  # Sẽ được set từ bên ngoài
+        self.app = None 
         
     def set_app(self, app):
-        """Set Flask app instance để tạo context"""
         self.app = app
         
     def crawl_all_data_with_lock(self):
-        """Wrapper method để tạo app context"""
         if self.app:
             with self.app.app_context():
                 self._crawl_all_data_with_lock()
         else:
-            # Fallback nếu không có app context
             self._crawl_all_data_with_lock()
     
     def _crawl_all_data_with_lock(self):
-        """Method thực tế chạy crawl với lock"""
         db = get_db()
         lock_collection = db["scheduler_locks"]
         
@@ -90,9 +86,10 @@ class CrawlerScheduler:
             return
         
         try:
+            # Job crawl dữ liệu hàng ngày lúc 4:00 AM
             self.scheduler.add_job(
                 self.crawl_all_data_with_lock,
-                trigger=CronTrigger(hour=19, minute=00),
+                trigger=CronTrigger(hour=4, minute=00),
                 id='daily_crawl_job',
                 name='Crawl dữ liệu hàng ngày',
                 replace_existing=True
@@ -100,7 +97,7 @@ class CrawlerScheduler:
             
             self.scheduler.start()
             self.is_running = True
-            insert_log("Đã khởi động scheduler crawl dữ liệu", LogType.INFO)
+            insert_log("Đã khởi động scheduler với crawl job (4:00 AM)", LogType.INFO)
             
         except Exception as e:
             insert_log(f"Lỗi khi khởi động scheduler: {str(e)}", LogType.ERROR)
@@ -113,10 +110,24 @@ class CrawlerScheduler:
             insert_log("Đã dừng scheduler crawl dữ liệu", LogType.INFO)
     
     def get_next_run_time(self):
+        """Lấy thời gian chạy tiếp theo của crawl job"""
         if self.is_running:
             job = self.scheduler.get_job('daily_crawl_job')
             if job:
                 return job.next_run_time
         return None
+    
+    def get_all_jobs_info(self):
+        """Lấy thông tin tất cả các job"""
+        jobs_info = []
+        if self.is_running:
+            for job in self.scheduler.get_jobs():
+                jobs_info.append({
+                    'id': job.id,
+                    'name': job.name,
+                    'next_run_time': job.next_run_time.strftime('%Y-%m-%d %H:%M:%S') if job.next_run_time else None,
+                    'trigger': str(job.trigger)
+                })
+        return jobs_info
 
 crawler_scheduler = CrawlerScheduler()

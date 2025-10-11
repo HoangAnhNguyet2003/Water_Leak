@@ -7,7 +7,7 @@ from flasgger import Swagger
 from app.route import register_blueprints
 from .extensions import get_db, init_indexes, jwt, limiter, socketio
 from .error import register_error_handlers
-from .crawler.scheduler import crawler_scheduler
+from .scheduler.crawler_scheduler import crawler_scheduler
 
 def create_app():
     app = Flask(__name__)

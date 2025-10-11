@@ -86,7 +86,7 @@ def save_measurements_data(data):
                     "meter_id": meter_id,
                     "measurement_time": measurement_time,
                     "instant_flow": instant_flow,
-                    "pressure": instant_pressure,
+                    "instant_pressure": instant_pressure,
                 }
                 
                 docs.append(doc)
