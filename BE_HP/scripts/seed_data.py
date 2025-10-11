@@ -187,10 +187,10 @@ def seed_org():
         meter_ids[m["meter_name"]] = doc["_id"]
 
     return branch_ids, meter_ids
-
 # ======================
 # Seed: Users
 # ======================
+
 def seed_users(branch_ids: Dict[str, Any]):
     role_map = {r["role_name"]: r["_id"] for r in db.roles.find({}, {"role_name": 1})}
     
@@ -221,6 +221,7 @@ def seed_users(branch_ids: Dict[str, Any]):
 # Seed: User-Meter Relationships
 # ======================
 def seed_user_meter():
+
     users = list(db.users.find({}, {"_id": 1, "username": 1, "role_id": 1, "branch_id": 1}))
     meters = list(db.meters.find({}, {"_id": 1, "branch_id": 1}))
     roles = {r["_id"]: r["role_name"] for r in db.roles.find({}, {"_id": 1, "role_name": 1})}
@@ -466,7 +467,8 @@ def seed_meter_manual_thresholds():
         num_thresholds = random.randint(1, 3)
         for _ in range(num_thresholds):
             days_ago = random.randint(0, 90)
-            set_time = now - timedelta(days=days_ago, hours=random.randint(0, 23))
+            set_time = (now - timedelta(days=days_ago)).date().strftime('%Y-%m-%d')
+
             threshold_value = round(random.uniform(1.5, 4.0), 3)
             docs.append({
                 "meter_id": m["_id"],
@@ -495,6 +497,7 @@ def main():
     seed_meter_repairs(meter_ids)
     seed_predictions(meter_ids)
     seed_meter_consumptions(meter_ids)
+
     seed_meter_manual_thresholds()
 
     print("\nSeeding completed.")

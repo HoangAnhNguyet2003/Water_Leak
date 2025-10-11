@@ -96,6 +96,17 @@ def find_by_id(uid: str, COL: str) -> Optional[Dict[str, Any]]:
     doc["id"] = oid_str(doc.pop("_id"))
     return doc
 
+def find_meterid_by_metername(meter_name: str) -> Optional[ObjectId]:
+    """Tìm meter_id (ObjectId) dựa trên meter_name"""
+    db = get_db()
+    try:
+        meter = db.meters.find_one({"meter_name": meter_name})
+        if meter:
+            return meter["_id"]
+        return None
+    except Exception:
+        return None
+
 def role_name() -> str | None:
     claims = get_jwt()
     return claims.get("role_name") if claims else None

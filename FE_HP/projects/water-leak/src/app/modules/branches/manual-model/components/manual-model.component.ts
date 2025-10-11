@@ -8,19 +8,32 @@ import ChartDataLabels from 'chartjs-plugin-datalabels';
 Chart.register(ChartDataLabels);
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { PopupConfirmComponent, PopupMode } from 'my-lib';
 
 @Component({
   selector: 'app-manual-model',
   standalone: true,
   templateUrl: './manual-model.component.html',
   styleUrls: ['./manual-model.component.scss'],
-  imports: [CommonModule, FormsModule]
+  imports: [CommonModule, FormsModule, PopupConfirmComponent]
 })
 export class ManualModelComponent implements OnInit, AfterViewInit {
   chart: Chart | null = null;
   meters: ManualModel[] = [];
   selectedMeterId: string = '';
   selectedDate: string = '';
+
+  showThresholdModal: boolean = false;
+  thresholdMethod: 'manual' | 'yesterday' = 'manual';
+  manualThresholdValue: number | null = null;
+  yesterdayThreshold: number | null = null;
+
+  showPopup: boolean = false;
+  popupTitle: string = '';
+  popupMessage: string = '';
+  popupMode: PopupMode = PopupMode.SUCCESS;
+  PopupMode = PopupMode;
+
   private route = inject(ActivatedRoute);
   private manualMeterService = inject(ManualMeterService);
 
@@ -170,5 +183,141 @@ export class ManualModelComponent implements OnInit, AfterViewInit {
         }
       },
     });
+  }
+
+  getTodayText(): string {
+    const today = new Date();
+    return today.toLocaleDateString('vi-VN', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  }
+
+  openThresholdModal(): void {
+    if (!this.selectedMeterId) return;
+    this.showThresholdModal = true;
+    this.thresholdMethod = 'manual';
+    this.manualThresholdValue = null;
+    this.loadYesterdayThreshold();
+  }
+
+  closeThresholdModal(): void {
+    this.showThresholdModal = false;
+    this.thresholdMethod = 'manual';
+    this.manualThresholdValue = null;
+    this.yesterdayThreshold = null;
+  }
+
+  onMethodChange(): void {
+    if (this.thresholdMethod === 'manual') {
+      this.manualThresholdValue = null;
+    }
+  }
+
+  getYesterdayText(): string {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    return yesterday.toLocaleDateString('vi-VN', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  }
+
+  getConfirmButtonText(): string {
+    if (this.thresholdMethod === 'manual') {
+      return 'Đặt ngưỡng';
+    } else {
+      return 'Sử dụng ngưỡng hôm qua';
+    }
+  }
+
+  loadYesterdayThreshold(): void {
+    if (!this.selectedMeterId) return;
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayString = yesterday.toISOString().split('T')[0];
+
+    this.manualMeterService.getThresholdByDate(this.selectedMeterId, yesterdayString)
+      .subscribe({
+        next: (threshold) => {
+          this.yesterdayThreshold = threshold;
+        },
+        error: (error) => {
+          console.error('Error loading yesterday threshold:', error);
+          this.yesterdayThreshold = null;
+        }
+      });
+  }
+
+  isValidThreshold(): boolean {
+    if (!this.selectedMeterId) return false;
+
+    if (this.thresholdMethod === 'manual') {
+      return this.manualThresholdValue !== null &&
+             this.manualThresholdValue >= 0 &&
+             !isNaN(this.manualThresholdValue);
+    } else {
+      return this.yesterdayThreshold !== null;
+    }
+  }
+
+  setThreshold(): void {
+    if (!this.selectedMeterId || !this.isValidThreshold()) {
+      return;
+    }
+
+    let thresholdValue: number;
+    let successMessage: string;
+
+    if (this.thresholdMethod === 'manual') {
+      thresholdValue = this.manualThresholdValue!;
+      successMessage = `Đã đặt ngưỡng ${thresholdValue} thành công!`;
+    } else {
+      thresholdValue = this.yesterdayThreshold!;
+      successMessage = `Đã sử dụng ngưỡng hôm qua (${thresholdValue}) thành công!`;
+    }
+
+    this.manualMeterService.setThreshold(this.selectedMeterId, thresholdValue)
+      .subscribe({
+        next: (response) => {
+          console.log('Threshold set successfully:', response);
+          this.showSuccessPopup(successMessage);
+          this.closeThresholdModal();
+          this.manualMeterService.getManualMeters(true).subscribe(meters => {
+            this.meters = meters;
+          });
+        },
+        error: (error) => {
+          console.error('Error setting threshold:', error);
+          this.showErrorPopup('Có lỗi xảy ra khi đặt ngưỡng. Vui lòng thử lại!');
+        }
+      });
+  }
+
+  showSuccessPopup(message: string): void {
+    this.popupTitle = 'Thành công';
+    this.popupMessage = message;
+    this.popupMode = PopupMode.SUCCESS;
+    this.showPopup = true;
+  }
+
+  showErrorPopup(message: string): void {
+    this.popupTitle = 'Lỗi';
+    this.popupMessage = message;
+    this.popupMode = PopupMode.ERROR;
+    this.showPopup = true;
+  }
+
+  onPopupConfirm(): void {
+    this.showPopup = false;
+  }
+
+  onPopupCancel(): void {
+    this.showPopup = false;
   }
 }
