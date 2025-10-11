@@ -23,7 +23,7 @@ export class MainComponentComponent implements OnInit {
   public chartOptions = signal<ChartOptions>({
     series: [{ name: 'Lưu lượng', data: [] }],
     chart: { type: 'line', height: 350 },
-    xaxis: { 
+    xaxis: {
       categories: [],
       labels: {
         maxHeight: undefined,
@@ -173,7 +173,7 @@ export class MainComponentComponent implements OnInit {
       chart: { type: "line", height: 350 },
       dataLabels: { enabled: false },
       stroke: { curve: "smooth" },
-      xaxis: { 
+      xaxis: {
         categories: [],
         labels: {
           maxHeight: undefined,

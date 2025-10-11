@@ -25,6 +25,7 @@ class LSTMAEPredictor:
             'num_layers': 2,
             'dropout_ratio': 0.1,
             'seq_len': 6,
+
             'use_act': True
         }
         self.debug = debug

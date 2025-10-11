@@ -92,7 +92,6 @@ export class PredictiveModelService {
       return String(val);
     };
 
-    // Legacy single prediction support
     const predictionRaw = apiMeter.prediction ?? null;
     const prediction = predictionRaw ? {
       meter_name: predictionRaw.meter_name ?? apiMeter.meter_name ?? '',
@@ -101,7 +100,6 @@ export class PredictiveModelService {
       predicted_label: predictionRaw.predicted_label ?? ''
     } : null;
 
-    // Multiple predictions support
     const predictionsRaw = apiMeter.predictions ?? [];
     const predictions = predictionsRaw.map((pred: any) => ({
       _id: String(pred._id ?? ''),

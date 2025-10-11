@@ -18,9 +18,6 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
     JWT_COOKIE_CSRF_PROTECT = False  # Tắt CSRF protection cho cookies
-    
-    CORS_SUPPORTS_CREDENTIALS = True
-
 
 class MLConfig:
     # LSTM AutoEncoder Configuration

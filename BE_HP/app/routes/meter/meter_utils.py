@@ -175,9 +175,6 @@ def get_meters_list(date_str: str | None = None):
                 doc[k] = str(v)
     return result
 
-# Duplicate function removed - using the first definition above
-
-
 
 def remove_meter(mid: str):
     company_id, branch_id, role_id, role_name = get_user_scope()

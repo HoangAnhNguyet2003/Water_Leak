@@ -71,7 +71,7 @@ export class WaterMeterInfoComponent implements OnInit, OnDestroy {
     return meter &&
            typeof meter.id === 'string' &&
            typeof meter.name === 'string' &&
-           typeof meter.status === 'string'; // Chấp nhận tất cả status string thay vì kiểm tra giá trị cụ thể
+           typeof meter.status === 'string';
   }
 
   onSearch(): void {

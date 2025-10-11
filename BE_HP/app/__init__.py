@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask
 from flask_cors import CORS
 import atexit
 from app.config import Config, SWAGGER_CONFIG, SWAGGER_TEMPLATE
@@ -15,12 +15,11 @@ def create_app():
     
     CORS(app, supports_credentials=True, resources={r"/api/*": {"origins": "*"}})
 
-    
-    
     register_blueprints(app)
     jwt.init_app(app)
     limiter.init_app(app)
     mongo.init_app(app)
+
     socketio.init_app(app, cors_allowed_origins="*")
     register_error_handlers(app)
 

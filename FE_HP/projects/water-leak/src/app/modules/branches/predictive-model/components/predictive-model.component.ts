@@ -1,7 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import { PredictiveModelService } from '../services/predictive-model.service';
-import { ManualMeterService } from '../../manual-model/services/manual-meter.service';
-import { ManualModel } from '../../manual-model/models/manual-model.interface';
 import { PredictiveModel } from '../models';
 
 @Component({
@@ -14,16 +12,11 @@ export class PredictiveModelComponent implements OnInit {
   selectedMeter: PredictiveModel | null = null;
   dates: string[] = [];
   tableData: { models: { name: string; results: string[] }[] } = { models: [] };
-  showLeakPopup: boolean = false;
-  leakingMeters: ManualModel[] = [];
-  filteredLeakingMeters: ManualModel[] = [];
-  sortOrder: 'asc' | 'desc' = 'desc';
 
-  constructor(private predictiveService: PredictiveModelService, private manualMeterService: ManualMeterService) {}
+  constructor(private predictiveService: PredictiveModelService) {}
 
   ngOnInit(): void {
     this.loadData();
-    this.loadLeakingMeters();
   }
 
     private loadData(force = true): void {
@@ -41,20 +34,6 @@ export class PredictiveModelComponent implements OnInit {
         this.generateDates(new Date('2025-10-04'));
         this.buildTableWithSeparateAPIs(this.selectedMeter);
       }
-    });
-  }
-
-  private loadLeakingMeters(): void {
-    this.manualMeterService.getManualMeters(true).subscribe(meters => {
-      this.leakingMeters = meters.filter(meter => {
-        return meter.measurement && meter.threshold && meter.measurement.instant_flow > meter.threshold.threshold_value;
-      });
-      const leakPopupShown = sessionStorage.getItem('leakPopupShown');
-      this.showLeakPopup = this.leakingMeters.length > 0 && !leakPopupShown;
-      if (this.showLeakPopup) {
-        sessionStorage.setItem('leakPopupShown', 'true');
-      }
-      this.filterLeakingMeters();
     });
   }
 
@@ -155,31 +134,6 @@ export class PredictiveModelComponent implements OnInit {
 
   getTotalModelsCount(): number { return 2; }
   reload(): void { this.loadData(true); }
-
-  getExceedancePercentage(meter: ManualModel): number {
-    if (!meter.measurement || !meter.threshold) return 0;
-    const exceed = meter.measurement.instant_flow - meter.threshold.threshold_value;
-    return Math.round((exceed / meter.threshold.threshold_value) * 100);
-  }
-
-  filterLeakingMeters() {
-    this.filteredLeakingMeters = this.leakingMeters.filter(m => this.getExceedancePercentage(m) >= 0); // all
-    this.sortLeakingMeters();
-  }
-
-  sortLeakingMeters() {
-    this.filteredLeakingMeters.sort((a, b) => {
-      const aExceed = this.getExceedancePercentage(a);
-      const bExceed = this.getExceedancePercentage(b);
-      if (this.sortOrder === 'asc') {
-        return aExceed - bExceed;
-      } else {
-        return bExceed - aExceed;
-      }
-    });
-  }
-
-  closeLeakPopup() { this.showLeakPopup = false; }
   private buildTableWithSeparateAPIs(meter: PredictiveModel): void {
     Promise.all([
       this.predictiveService.getLSTMAutoencoderPredictions(meter._id).toPromise(),

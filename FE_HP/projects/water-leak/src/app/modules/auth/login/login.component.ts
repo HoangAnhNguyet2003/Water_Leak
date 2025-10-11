@@ -84,7 +84,7 @@ export class LoginComponent {
     }
 
     if (role === 'branch' || role === 'branch_manager') {
-      this.router.navigate(['/branches/predictive-model']);
+      this.router.navigate(['/branches/dashboard']);
       return;
     }
 
