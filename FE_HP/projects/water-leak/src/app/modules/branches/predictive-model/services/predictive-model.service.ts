@@ -92,6 +92,7 @@ export class PredictiveModelService {
       return String(val);
     };
 
+    // Legacy single prediction support
     const predictionRaw = apiMeter.prediction ?? null;
     const prediction = predictionRaw ? {
       meter_name: predictionRaw.meter_name ?? apiMeter.meter_name ?? '',

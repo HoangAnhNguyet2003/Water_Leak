@@ -19,7 +19,6 @@ def create_app():
     jwt.init_app(app)
     limiter.init_app(app)
     mongo.init_app(app)
-
     socketio.init_app(app, cors_allowed_origins="*")
     register_error_handlers(app)
 

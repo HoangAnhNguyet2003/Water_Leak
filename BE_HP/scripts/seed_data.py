@@ -190,7 +190,6 @@ def seed_org():
 # ======================
 # Seed: Users
 # ======================
-
 def seed_users(branch_ids: Dict[str, Any]):
     role_map = {r["role_name"]: r["_id"] for r in db.roles.find({}, {"role_name": 1})}
     
@@ -221,7 +220,6 @@ def seed_users(branch_ids: Dict[str, Any]):
 # Seed: User-Meter Relationships
 # ======================
 def seed_user_meter():
-
     users = list(db.users.find({}, {"_id": 1, "username": 1, "role_id": 1, "branch_id": 1}))
     meters = list(db.meters.find({}, {"_id": 1, "branch_id": 1}))
     roles = {r["_id"]: r["role_name"] for r in db.roles.find({}, {"_id": 1, "role_name": 1})}
@@ -497,7 +495,6 @@ def main():
     seed_meter_repairs(meter_ids)
     seed_predictions(meter_ids)
     seed_meter_consumptions(meter_ids)
-
     seed_meter_manual_thresholds()
 
     print("\nSeeding completed.")
