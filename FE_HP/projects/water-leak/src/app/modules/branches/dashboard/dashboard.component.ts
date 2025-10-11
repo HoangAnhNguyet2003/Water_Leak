@@ -37,17 +37,20 @@ export class DashboardComponent implements OnInit {
     { id: '12', meterName: 'Đồng hồ Khu L', location: 'Khu L - Tầng 4', leakDays: 0, suspicionLevel: 'low' }
   ]);
 
-  searchTerm: string = '';
+  // Make searchTerm a signal so the computed re-evaluates when it changes
+  searchTerm = signal<string>('');
+  // optional computed helper for template binding
+  searchValue = computed(() => this.searchTerm());
 
   // Logic tìm kiếm theo tên đồng hồ
   filteredData = computed(() => {
-    const searchLower = this.searchTerm.toLowerCase().trim();
+    const searchLower = this.searchTerm().toLowerCase().trim();
     if (!searchLower) return this.mockData();
-    
+
     return this.mockData().filter(item => {
       const meterName = item.meterName.toLowerCase();
       const location = item.location.toLowerCase();
-      
+
       // Tìm kiếm theo tên đồng hồ hoặc vị trí
       return meterName.includes(searchLower) || location.includes(searchLower);
     });
@@ -69,8 +72,26 @@ export class DashboardComponent implements OnInit {
     // Initialize dashboard data
   }
 
-  onSearchChange(): void {
-    // Search is handled by computed signal
+  // Call this from template on input or bind ngModel to searchTerm()
+  onSearchChange(value?: string | Event): void {
+    if (value == null) return;
+    if (typeof value === 'string') {
+      this.searchTerm.set(value);
+      return;
+    }
+    const target = (value as any).target;
+    if (target) this.searchTerm.set(target.value ?? '');
+  }
+
+  // Debounced search input handler (mirrors meter-management pattern)
+  private searchTimeout: any;
+  onSearchTermChange(event: Event | string): void {
+    const value = typeof event === 'string' ? event : ((event as any).target?.value ?? '');
+    // Small debounce to avoid excessive computations while typing
+    if (this.searchTimeout) clearTimeout(this.searchTimeout);
+    this.searchTimeout = setTimeout(() => {
+      this.searchTerm.set(value);
+    }, 250);
   }
 
   trackByFn(index: number, item: DashboardMeter): string {

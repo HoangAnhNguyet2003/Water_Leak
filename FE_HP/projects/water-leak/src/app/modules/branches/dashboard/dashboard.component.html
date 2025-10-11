@@ -51,9 +51,9 @@
         type="text" 
         class="search-input" 
         placeholder="Tìm kiếm"
-        [value]="searchTerm"
-        (input)="onSearchChange()"
-      >
+        [ngModel]="searchValue()"
+        (ngModelChange)="onSearchTermChange($event)"
+      />
       <i class="fas fa-search search-icon"></i>
     </div>
   </div>
