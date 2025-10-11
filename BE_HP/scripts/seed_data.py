@@ -466,7 +466,7 @@ def seed_meter_manual_thresholds():
         num_thresholds = random.randint(1, 3)
         for _ in range(num_thresholds):
             days_ago = random.randint(0, 90)
-            set_time = now - timedelta(days=days_ago, hours=random.randint(0, 23))
+            set_time = (now - timedelta(days=days_ago)).date().strftime('%Y-%m-%d')
             threshold_value = round(random.uniform(1.5, 4.0), 3)
             docs.append({
                 "meter_id": m["_id"],

@@ -66,4 +66,25 @@ export class ManualMeterService {
       anomalyDetected: apiMeter.anomalyDetected ?? undefined
     };
   }
+
+  setThreshold(meterId: string, thresholdValue: number): Observable<any> {
+    const body = thresholdValue > 0 ? { threshold_value: thresholdValue } : {};
+
+    return this.http.post(`${this.API_BASE}/meters/add_new_threshold/${meterId}`, body).pipe(
+      catchError(err => {
+        console.error('Failed to set threshold:', err);
+        throw err;
+      })
+    );
+  }
+
+  getThresholdByDate(meterId: string, date: string): Observable<number | null> {
+    return this.http.get<any>(`${this.API_BASE}/meters/threshold/${meterId}/${date}`).pipe(
+      map(response => response.success ? response.threshold_value : null),
+      catchError(err => {
+        console.error('Failed to get threshold by date:', err);
+        return of(null);
+      })
+    );
+  }
 }

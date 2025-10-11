@@ -53,6 +53,35 @@ def add_new_threshold(mid):
             "success": False,
             "error": str(e)
         }), 400
+
+@meter_bp.get("/threshold/<string:mid>/<string:date>")
+@jwt_required()
+@require_role("branch_manager", "company_manager", "admin")
+def get_threshold_by_date(mid, date):
+    """Lấy giá trị ngưỡng cho meter tại ngày cụ thể"""
+    try:
+        from .meter_utils import get_threshold_by_date
+        
+        threshold = get_threshold_by_date(mid, date)
+        
+        if threshold:
+            return jsonify({
+                "success": True,
+                "threshold_value": threshold["threshold_value"],
+                "set_time": threshold["set_time"]
+            }), 200
+        else:
+            return jsonify({
+                "success": False,
+                "message": "Không tìm thấy ngưỡng cho ngày này"
+            }), 404
+            
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 400
         
 @meter_bp.get("/get_all_meters")
 @swag_from(get_swagger_path('meter/get_all_meters.yml'))

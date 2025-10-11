@@ -16,6 +16,11 @@
             <h4>Chọn ngày:</h4>
             <input type="date" [value]="selectedDate" (change)="onDateChange($event)" />
         </div>
+        <div class="filter-group">
+            <button class="threshold-btn" (click)="openThresholdModal()" [disabled]="!selectedMeterId">
+                Đặt ngưỡng cho {{ getTodayText() }}
+            </button>
+        </div>
             </div>
         </div>
     </div>
@@ -27,4 +32,91 @@
         </div>
     </div>
 </div>
+
+<!-- Modal đặt ngưỡng -->
+<div class="modal-overlay" *ngIf="showThresholdModal" (click)="closeThresholdModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+            <h3>Đặt ngưỡng cho {{ selectedMeter?.meter_name }}</h3>
+            <button class="close-btn" (click)="closeThresholdModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-info">Ngày: <strong>{{ getTodayText() }}</strong></p>
+
+            <!-- Lựa chọn phương thức đặt ngưỡng -->
+            <div class="threshold-options">
+                <h4>Chọn cách đặt ngưỡng:</h4>
+                <div class="radio-group">
+                    <label class="radio-option">
+                        <input type="radio"
+                               name="thresholdMethod"
+                               value="manual"
+                               [(ngModel)]="thresholdMethod"
+                               (change)="onMethodChange()">
+                        <span class="radio-label">Nhập giá trị ngưỡng</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio"
+                               name="thresholdMethod"
+                               value="yesterday"
+                               [(ngModel)]="thresholdMethod"
+                               (change)="onMethodChange()">
+                        <span class="radio-label">Lấy ngưỡng của ngày hôm qua</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Input manual threshold -->
+            <div class="input-section" *ngIf="thresholdMethod === 'manual'">
+                <div class="input-group">
+                    <label for="thresholdInput">Giá trị ngưỡng:</label>
+                    <input
+                        id="thresholdInput"
+                        type="number"
+                        [(ngModel)]="manualThresholdValue"
+                        placeholder="Nhập giá trị ngưỡng..."
+                        min="0"
+                        step="0.01"
+                        class="threshold-input">
+                </div>
+            </div>
+
+            <!-- Yesterday threshold info -->
+            <div class="yesterday-section" *ngIf="thresholdMethod === 'yesterday'">
+                <div class="info-section">
+                    <p class="yesterday-info">
+                        <i class="info-icon">📅</i>
+                        Sử dụng ngưỡng của ngày {{ getYesterdayText() }}
+                        <span *ngIf="yesterdayThreshold" class="threshold-preview">
+                            (Giá trị: {{ yesterdayThreshold }})
+                        </span>
+                        <span *ngIf="!yesterdayThreshold" class="no-threshold">
+                            (Chưa có ngưỡng cho ngày hôm qua)
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" (click)="closeThresholdModal()">Hủy</button>
+            <button
+                class="btn-confirm"
+                (click)="setThreshold()"
+                [disabled]="!isValidThreshold()">
+                {{ getConfirmButtonText() }}
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Popup thông báo -->
+<lib-popup-confirm
+    [isVisible]="showPopup"
+    [title]="popupTitle"
+    [message]="popupMessage"
+    [mode]="popupMode"
+    [confirmText]="'Đóng'"
+    (confirm)="onPopupConfirm()"
+    (cancel)="onPopupCancel()">
+</lib-popup-confirm>
 

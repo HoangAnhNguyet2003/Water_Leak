@@ -7,7 +7,7 @@ from flasgger import Swagger
 from app.route import register_blueprints
 from .extensions import get_db, init_indexes, jwt, limiter, socketio
 from .error import register_error_handlers
-from .scheduler.crawler_scheduler import crawler_scheduler
+from .scheduler.app_scheduler import app_scheduler
 
 def create_app():
     app = Flask(__name__)
@@ -28,12 +28,12 @@ def create_app():
         db = get_db()
         init_indexes(db)
         
-        crawler_scheduler.set_app(app)
+        app_scheduler.set_app(app)
         
         try:
-            crawler_scheduler.start_scheduler()
+            app_scheduler.start_scheduler()
         except Exception as e:
-            print(f"Không thể khởi động crawler scheduler: {e}")
+            print(f"Không thể khởi động app scheduler: {e}")
 
     for rule in app.url_map.iter_rules():
         print("ROUTE:", rule.endpoint, rule.rule, rule.methods)
@@ -41,7 +41,7 @@ def create_app():
     
     def shutdown_scheduler():
         try:
-            crawler_scheduler.stop_scheduler()
+            app_scheduler.stop_scheduler()
         except Exception:
             pass
     atexit.register(shutdown_scheduler)

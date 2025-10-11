@@ -9,4 +9,5 @@ export * from './lib/auth/service/auth.service';
 export * from './lib/auth/guards/guards.guard';
 export * from './lib/auth/models';
 export * from './lib/auth/auth.module';
+export * from './lib/components';
 
