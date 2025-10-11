@@ -21,10 +21,10 @@ class LSTMAEPredictor:
         self.model_path = model_path or default_path
         self.config = config or {
             'input_size': 1,
-            'hidden_size': 32,
-            'num_layers': 1,
+            'hidden_size': 64,
+            'num_layers': 2,
             'dropout_ratio': 0.1,
-            'seq_len': 168,
+            'seq_len': 6,
             'use_act': True
         }
         self.debug = debug
@@ -45,16 +45,20 @@ class LSTMAEPredictor:
     def load_model(self):
         if LSTMAE is None:
             print("Không tìm thấy lớp LSTM-AutoEncoder!")
-            return
+            return False
 
         self.model = LSTMAE(**self.config)
         if os.path.exists(self.model_path):
             self.model.load_state_dict(torch.load(self.model_path, map_location=self.device))
-            print(f"Đã tải mô hình từ {self.model_path}")
+            if self.debug:
+                print(f"Đã tải mô hình từ {self.model_path}")
         else:
-            print(f"Không tìm thấy tệp mô hình tại {self.model_path}, sử dụng mô hình chưa được huấn luyện")
+            print(f"Model file not found: {self.model_path}")
+            return False
+            
         self.model.to(self.device)
         self.model.eval()
+        return True
 
     def prepare_data(self, data):
         arr = np.array(data).reshape(-1, 1)

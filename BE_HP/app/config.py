@@ -21,6 +21,26 @@ class Config:
     
     CORS_SUPPORTS_CREDENTIALS = True
 
+
+class MLConfig:
+    # LSTM AutoEncoder Configuration
+    LSTM_AE_CONFIG = {
+        'input_size': 1,
+        'hidden_size': 64,
+        'num_layers': 2,
+        'dropout_ratio': 0.1,
+        'seq_len': 6,
+        'use_act': True
+    }
+    
+    LSTM_AE_MODEL_PATH = os.path.join(os.path.dirname(__file__), 'ml', 'lstm_autoencoder', 'pretrained_weights', 'lstm_ae.pth')
+    SCALER_PATH = os.path.join(os.path.dirname(__file__), 'ml', 'lstm_autoencoder', 'pretrained_weights', 'scaler.pkl')
+    
+    PREDICTION_NIGHT_START_HOUR = 1
+    PREDICTION_NIGHT_END_HOUR = 4
+    HISTORICAL_DATA_DAYS = 60
+    MIN_NIGHT_MEASUREMENTS = 18  
+
 SWAGGER_CONFIG = {
     "headers": [], 
     "specs": [

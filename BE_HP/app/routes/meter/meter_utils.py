@@ -528,9 +528,15 @@ def add_threshold_to_meter(meter_id: str, threshold_value: Optional[float] = Non
     }
     
     try:
-        result = db.meter_manual_thresholds.insert_one(threshold_doc)
-        
-        
+        today_threshold = get_threshold_by_date(meter_id, today_str)
+        if today_threshold:
+            result = db.meter_manual_thresholds.update_one(
+                {"_id": today_threshold["_id"]},
+                {"$set": {"threshold_value": float(threshold_value)}}
+            )
+        else: 
+            result = db.meter_manual_thresholds.insert_one(threshold_doc)
+
         return {
             "meter_id": meter_id,
             "meter_name": meter["meter_name"],
