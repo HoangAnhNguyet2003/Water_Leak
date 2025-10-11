@@ -291,7 +291,39 @@
   padding: 40px 24px;
 }
 
-// ========================================
+
+// ...existing code...
+
+/* Ensure header and body tables share same layout/widths so columns align */
+.header-table,
+.body-table {
+  width: 100%;
+  table-layout: fixed; /* important: force columns follow th widths */
+}
+
+/* Define column widths on header and mirror them on body */
+.header-table th:nth-child(1),
+.body-table td:nth-child(1) { width: 6%;  text-align: center; }  /* STT */
+.header-table th:nth-child(2),
+.body-table td:nth-child(2) { width: 36%; text-align: left;   padding-left: 16px; } /* Tên đồng hồ */
+.header-table th:nth-child(3),
+.body-table td:nth-child(3) { width: 36%; text-align: left;   padding-left: 16px; } /* Vị trí */
+.header-table th:nth-child(4),
+.body-table td:nth-child(4) { width: 22%; text-align: right;  padding-right: 89px; } /* Số ngày rò rỉ */
+
+/* Fix .text-right alignment (was incorrect value) */
+.dashboard-table td.text-right {
+  text-align: right;
+}
+
+/* Optional: prevent header text from wrapping so alignment stays consistent */
+.header-table th {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
 // LEAK DAYS BADGES
 // ========================================
 
