@@ -1,7 +1,6 @@
 <div class="dashboard-container">
-  <!-- Statistics Cards -->
   <div class="stats-row">
-    <div class="stat-card low-card clickable-card" (click)="navigateToMeters('low')">
+    <div class="stat-card low-card clickable-card" (click)="navigateToMeters('NNthap')">
       <div class="stat-icon">
         <i class="fas fa-check-circle"></i>
       </div>
@@ -15,7 +14,7 @@
       </div>
     </div>
 
-    <div class="stat-card medium-card clickable-card" (click)="navigateToMeters('medium')">
+    <div class="stat-card medium-card clickable-card" (click)="navigateToMeters('NNTB')">
       <div class="stat-icon">
         <i class="fas fa-exclamation-circle"></i>
       </div>
@@ -29,7 +28,7 @@
       </div>
     </div>
 
-    <div class="stat-card high-card clickable-card" (click)="navigateToMeters('high')">
+    <div class="stat-card high-card clickable-card" (click)="navigateToMeters('NNcao')">
       <div class="stat-icon">
         <i class="fas fa-exclamation-triangle"></i>
       </div>
@@ -44,21 +43,19 @@
     </div>
   </div>
 
-  <!-- Search Section -->
   <div class="search-section">
     <div class="search-container">
       <input 
         type="text" 
         class="search-input" 
         placeholder="Tìm kiếm"
-        [value]="searchTerm"
+        [(ngModel)]="searchTerm"
         (input)="onSearchChange()"
       >
       <i class="fas fa-search search-icon"></i>
     </div>
   </div>
 
-  <!-- Data Table -->
   <div class="table-container">
     <div class="table-header-fixed">
       <table class="dashboard-table header-table">
@@ -67,28 +64,24 @@
             <th>STT</th>
             <th>Tên đồng hồ</th>
             <th>Vị trí</th>
-            <th class="text-right">Số ngày rò rỉ</th>
+            <th class="text-right">Số ngày rò rỉ liên tiếp</th>
           </tr>
         </thead>
       </table>
     </div>
 
-    <!-- Scrollable Body -->
     <div class="table-body-scrollable">
       <table class="dashboard-table body-table">
         <tbody>
-          <tr *ngFor="let item of filteredData(); let i = index; trackBy: trackByFn">
+          <tr *ngFor="let item of dashboardData(); let i = index; trackBy: trackByFn">
             <td>{{ i + 1 }}</td>
-            <td>{{ item.meterName }}</td>
-            <td>{{ item.location }}</td>
+            <td>{{ item.meter_name }}</td>
+            <td>{{ item.location || 'nan' }}</td>
             <td class="text-right">
-              <span class="leak-days-badge" [ngClass]="getLeakDaysClass(item.leakDays)">
-                {{ item.leakDays }}
+              <span class="leak-days-badge" [ngClass]="getLeakDaysClass(item.leakDays || 0)">
+                {{ item.leakDays || 0 }}
               </span>
             </td>
-          </tr>
-          <tr *ngIf="filteredData().length === 0">
-            <td colspan="4" class="no-data">Không có dữ liệu</td>
           </tr>
         </tbody>
       </table>

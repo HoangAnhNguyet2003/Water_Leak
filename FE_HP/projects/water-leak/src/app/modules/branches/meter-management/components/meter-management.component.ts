@@ -56,9 +56,16 @@ export class MeterManagementComponent implements OnInit {
 
   ngOnInit(): void {
     const meterId = this.route.snapshot.paramMap.get('meterId');
+    const statusFilter = this.route.snapshot.queryParamMap.get('statusFilter');
+
     this.waterMeterService.getMyMeters(true).subscribe(meters => {
       this.waterMeters.set(meters);
       this.filteredMeters.set(meters);
+
+      if (statusFilter) {
+        this.filter.update(curr => ({ ...curr, statusFilter }));
+        this.onSearch();
+      }
     });
   }
 
@@ -74,7 +81,7 @@ export class MeterManagementComponent implements OnInit {
       if (!this.isValidWaterMeter(meter)) return false;
       const matchesSearch = !currentFilter.searchTerm ||
         meter.meter_name.toLowerCase().includes(currentFilter.searchTerm.toLowerCase());
-      const matchesStatus = !currentFilter.statusFilter || 'Normal' === currentFilter.statusFilter;
+      const matchesStatus = !currentFilter.statusFilter || meter.prediction?.predicted_label === currentFilter.statusFilter;
       // Lọc vượt ngưỡng
       let matchesThreshold = true;
       if (
