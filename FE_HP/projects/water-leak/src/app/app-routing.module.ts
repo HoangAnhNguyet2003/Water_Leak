@@ -4,7 +4,7 @@ import { LoginComponent } from './modules/auth/login/login.component';
 import { PredictiveModelComponent } from './modules/branches/predictive-model/components/predictive-model.component';
 import { ManualModelComponent } from './modules/branches/manual-model/components/manual-model.component';
 import { MeterManagementComponent } from './modules/branches/meter-management/components/meter-management.component';
-import { DashboardComponent } from './modules/branches/dashboard/dashboard.component';
+import { DashboardComponent } from './modules/branches/dashboard/components/dashboard.component';
 import { MainComponent } from './core/layout/main/main.component';
 import { authGuard } from 'my-lib';
 
