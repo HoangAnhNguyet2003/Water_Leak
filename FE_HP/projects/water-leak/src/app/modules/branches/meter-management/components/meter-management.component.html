@@ -2,9 +2,9 @@
   <!-- Search and Filter Section -->
   <div class="filter-section">
     <div class="search-container">
-      <input 
-        type="text" 
-        class="search-input" 
+      <input
+        type="text"
+        class="search-input"
         placeholder="Tìm theo tên đồng hồ"
         [ngModel]="filter().searchTerm"
         (input)="onSearchTermChange($event)"
@@ -13,15 +13,26 @@
     </div>
     <!--  thêm filter lọc % vượt ngưỡng -->
     <div class="filter-dropdown">
-      <select 
+      <select
         class="status-filter"
         [(ngModel)]="filter().statusFilter"
         (change)="onFilterChange()"
       >
         <option value="">Lọc theo trạng thái</option>
-        <option value="low">Nghi ngờ thấp</option>
-        <option value="medium">Nghi ngờ trung bình</option>
-        <option value="high">Nghi ngờ cao</option>
+        <option value="NNthap">Nghi ngờ thấp</option>
+        <option value="NNTB">Nghi ngờ TB</option>
+        <option value="NNcao">Nghi ngờ cao</option>
+      </select>
+    </div>
+    <!-- Sắp xếp theo mức độ vượt ngưỡng -->
+    <div class="filter-dropdown">
+      <select
+        class="sort-filter"
+        [(ngModel)]="filter().sortOrder"
+        (change)="onFilterChange()"
+      >
+        <option value="asc">Tăng dần</option>
+        <option value="desc" selected>Giảm dần</option>
       </select>
     </div>
     <!-- Chỉ giữ filter nhập số và chọn dấu so sánh -->
@@ -64,7 +75,7 @@
       <table class="water-meter-table body-table">
         <tbody>
           <ng-container *ngFor="let meter of filteredMeters(); let i = index; trackBy: trackByMeterId">
-            <tr 
+            <tr
               class="table-row"
               [class.selected]="meter.selected"
               [class.expanded]="meter.expanded"
@@ -83,8 +94,8 @@
                 </span>
               </td>
               <td class="actions-column">
-                <button 
-                  class="action-btn" 
+                <button
+                  class="action-btn"
                   (click)="viewDetails(meter._id)"
                   [class.rotated]="meter.expanded"
                 >
@@ -93,8 +104,8 @@
               </td>
             </tr>
             <!-- Detail Row -->
-            <tr 
-              class="detail-row" 
+            <tr
+              class="detail-row"
               *ngIf="meter.expanded"
               [@slideInOut]
             >
@@ -158,7 +169,7 @@
                         </span>
                       </div>
                       <td class="actions-column">
-                        <button 
+                        <button
                             class="detail-btn primary"
                             (click)="viewChart(meter._id)">
                             <i class="fas fa-chart-line"></i>

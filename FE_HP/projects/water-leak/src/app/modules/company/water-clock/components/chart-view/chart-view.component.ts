@@ -73,19 +73,33 @@ export class ChartViewComponent implements OnInit {
       chart: { type: 'line', height: 350 },
       dataLabels: { enabled: false },
       stroke: { curve: 'smooth' },
-      xaxis: { categories },
+      xaxis: {
+        categories,
+        labels: {
+          maxHeight: undefined,
+          rotate: -45,  // Xoay labels để hiển thị tốt hơn với format dài
+          trim: false,  // Không cắt bớt text
+          hideOverlappingLabels: false,  // Hiển thị tất cả labels
+          style: {
+            colors: [],
+            fontSize: '11px'
+          }
+        }
+      },
       yaxis: { title: { text: cd.config?.yAxisLabel ?? 'Lưu lượng' } },
       tooltip: {
+        shared: false,   // ⬅ tắt tooltip chung
+        intersect: true, // ⬅ chỉ hiển thị đúng điểm được hover
         x: { show: true },
         y: {
           formatter: (val: any, opts: any) => {
             try {
               const idx = opts.dataPointIndex;
-              const seriesName = opts?.w?.config?.series?.[opts.seriesIndex]?.name ?? '';
+              const seriesName = opts.w.config.series[opts.seriesIndex].name;
               const point = chartData[idx];
               if (point) {
-                if (seriesName === 'Leak' || point.predictedLabel === 'leak') {
-                  const conf = point.confidence !== undefined && point.confidence !== null ? ` (conf: ${point.confidence})` : '';
+                if (seriesName === 'Leak') {
+                  const conf = point.confidence !== undefined ? ` (conf: ${point.confidence})` : '';
                   return `Lưu lượng: ${point.value} — Leak${conf}`;
                 }
                 return `Lưu lượng: ${point.value}`;
@@ -142,7 +156,19 @@ export class ChartViewComponent implements OnInit {
       chart: { type: 'line', height: 350 },
       dataLabels: { enabled: false },
       stroke: { curve: 'smooth' },
-      xaxis: { categories: chartData.map(d => d.timestamp) },
+      xaxis: {
+        categories: chartData.map(d => d.timestamp),
+        labels: {
+          maxHeight: undefined,
+          rotate: -45,  // Xoay labels để hiển thị tốt hơn với format dài
+          trim: false,  // Không cắt bớt text
+          hideOverlappingLabels: false,  // Hiển thị tất cả labels
+          style: {
+            colors: [],
+            fontSize: '11px'
+          }
+        }
+      },
       yaxis: { title: { text: 'Lưu lượng' } },
       tooltip: { x: { show: true } },
       title: { text: `Lưu lượng - ${meterNameFromState ?? ''}`, align: 'left' },

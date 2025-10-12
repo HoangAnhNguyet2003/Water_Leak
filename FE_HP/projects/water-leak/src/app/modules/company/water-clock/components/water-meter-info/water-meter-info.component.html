@@ -10,26 +10,27 @@
   <!-- Search and Filter Section -->
   <div class="filter-section">
     <div class="search-container">
-      <input 
-        type="text" 
-        class="search-input" 
+      <input
+        type="text"
+        class="search-input"
         placeholder="Tìm theo tên đồng hồ"
         [ngModel]="filter().searchTerm"
         (input)="onSearchTermChange($event)"
       >
       <i class="fas fa-search search-icon"></i>
     </div>
-    
+
     <div class="filter-dropdown">
-      <select 
+      <select
         class="status-filter"
         [ngModel]="filter().statusFilter"
         (ngModelChange)="onStatusFilterChange($event)"
       >
         <option value="">Lọc theo trạng thái</option>
-        <option value="Normal">Bình thường</option>
-        <option value="On fixing">Đang sửa chữa</option>
-        <option value="Anomaly detected">Phát hiện bất thường</option>
+        <option value="normal">Bình thường</option>
+        <option value="anomaly">Bất thường</option>
+        <option value="lost">Mất kết nối</option>
+        <option value="unknown">Không xác định</option>
       </select>
     </div>
   </div>
@@ -57,7 +58,7 @@
         <tbody>
           <ng-container *ngFor="let meter of filteredMeters(); trackBy: trackByMeterId">
             <!-- Main Row -->
-            <tr 
+            <tr
               class="table-row"
               [class.selected]="meter.selected"
               [class.expanded]="meter.expanded"
@@ -73,7 +74,7 @@
                 {{ meter.installationDate | date:'dd/MM/yyyy' }}
               </td>
               <td class="actions-column">
-                <button 
+                <button
                     class="detail-btn primary"
                     (click)="viewChart(meter.id)"
                   >
@@ -81,7 +82,7 @@
                     Xem biểu đồ
                   </button>
               </td>
-            </tr>         
+            </tr>
           </ng-container>
         </tbody>
       </table>

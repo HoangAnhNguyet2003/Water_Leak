@@ -10,8 +10,8 @@ from werkzeug.exceptions import NotFound
 from pathlib import Path
 
 DEFAULT_PAGE = 1
-DEFAULT_PAGE_SIZE = 20
-MAX_PAGE_SIZE = 100
+DEFAULT_PAGE_SIZE = 1000
+MAX_PAGE_SIZE = 10000
 
 def get_role_by_role_id(rid: str):
     db = get_db()
@@ -95,6 +95,17 @@ def find_by_id(uid: str, COL: str) -> Optional[Dict[str, Any]]:
         return None
     doc["id"] = oid_str(doc.pop("_id"))
     return doc
+
+def find_meterid_by_metername(meter_name: str) -> Optional[ObjectId]:
+    """Tìm meter_id (ObjectId) dựa trên meter_name"""
+    db = get_db()
+    try:
+        meter = db.meters.find_one({"meter_name": meter_name})
+        if meter:
+            return meter["_id"]
+        return None
+    except Exception:
+        return None
 
 def role_name() -> str | None:
     claims = get_jwt()

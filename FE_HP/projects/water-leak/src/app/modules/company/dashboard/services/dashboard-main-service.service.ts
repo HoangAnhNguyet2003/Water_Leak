@@ -2,19 +2,20 @@ import { Injectable } from '@angular/core';
 import { DashBoardData, DashBoardDataStatus } from '../models';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, catchError, map, Observable, of } from 'rxjs';
+import { environment } from 'my-lib'
 
 @Injectable({
   providedIn: 'root'
 })
 export class DashboardMainServiceService {
   private meters$ = new BehaviorSubject<DashBoardData[] | null>(null);
-    private readonly API_BASE = 'http://localhost:5000/api/v1';
-  
+    private readonly API_BASE = environment.apiUrl;
+
     constructor(private http: HttpClient) { }
-  
+
     getMeterData(force = false): Observable<any> {
       if (force || !this.meters$.value) {
-        this.http.get<{ items: any[] }>(`${this.API_BASE}/meters/get_all_meters`)
+        this.http.get<{ items: any[] }>(`${this.API_BASE}/meters/get_all_meters?page_size=1000`)
           .pipe(map(res => res.items.map(item => this.mapFromApi(item))),
           catchError(err => {
                   console.error('Failed to load meters:', err);
@@ -25,18 +26,35 @@ export class DashboardMainServiceService {
       return this.meters$.asObservable();
     }
 
-  
+
  private mapFromApi(apiMeter: any): DashBoardData {
+      let status: DashBoardDataStatus = DashBoardDataStatus.NORMAL;
+      if (apiMeter.status) {
+        switch (apiMeter.status) {
+          case 'normal':
+            status = DashBoardDataStatus.NORMAL;
+            break;
+          case 'anomaly':
+            status = DashBoardDataStatus.ANOMALY;
+            break;
+          case 'lost':
+            status = DashBoardDataStatus.LOST_CONNECTION;
+            break;
+          default:
+            status = DashBoardDataStatus.NORMAL;
+        }
+      }
+
       return {
         id: String(apiMeter.id),
         name: apiMeter.meter_name,
         branchName: apiMeter.branchName,
-        status: apiMeter.status ? apiMeter.status as DashBoardDataStatus : DashBoardDataStatus.NORMAL,
+        status: status,
         installationDate: apiMeter.installation_time ? new Date(apiMeter.installation_time) : undefined,
         meter_data: {
           id: String(apiMeter.id),
           name: apiMeter.meter_name,
-          status: apiMeter.status ? apiMeter.status as DashBoardDataStatus : DashBoardDataStatus.NORMAL
+          status: status
         }
       };
   }

@@ -54,7 +54,12 @@ export class LoginComponent {
         error: (error: any) => {
           console.error('❌ Login error in component:', error);
           this.isLoading = false;
-          this.errorMessage = error.message || 'Username hoặc mật khẩu không đúng. Vui lòng thử lại.';
+
+          if (error.error?.message) {
+            this.errorMessage = error.error.message;
+          } else {
+            this.errorMessage = 'Username hoặc mật khẩu không đúng. Vui lòng thử lại.';
+          }
         }
       });
     } else {
@@ -79,7 +84,7 @@ export class LoginComponent {
     }
 
     if (role === 'branch' || role === 'branch_manager') {
-      this.router.navigate(['/branches/predictive-model']);
+      this.router.navigate(['/branches/dashboard']);
       return;
     }
 

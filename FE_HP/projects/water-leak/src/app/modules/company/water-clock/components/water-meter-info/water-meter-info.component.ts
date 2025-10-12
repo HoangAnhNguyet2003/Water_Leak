@@ -48,6 +48,7 @@ export class WaterMeterInfoComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Lấy dữ liệu từ API
     this.dataSubscription = this.clockService.getMeterData().subscribe(meters => {
+      console.log('Meters loaded:', meters);
       this.waterMeters.set(meters);
       this.filteredMeters.set(meters);
       this.updateCountsForDashboard();
@@ -70,7 +71,7 @@ export class WaterMeterInfoComponent implements OnInit, OnDestroy {
     return meter &&
            typeof meter.id === 'string' &&
            typeof meter.name === 'string' &&
-           ['Normal', 'On fixing', 'Anomaly detected'].includes(meter.status);
+           typeof meter.status === 'string';
   }
 
   onSearch(): void {
@@ -157,20 +158,28 @@ export class WaterMeterInfoComponent implements OnInit, OnDestroy {
   }
 
   getStatusClass(status: string): string {
-    switch (status) {
-      case 'Normal': return 'status-normal';
-      case 'On fixing': return 'status-fixing';
-      case 'Anomaly detected': return 'status-anomaly';
-      default: return '';
+    switch (status?.toLowerCase()) {
+      case 'normal': return 'status-normal';
+      case 'anomaly': return 'status-anomaly';
+      case 'lost': return 'status-lost';
+      case 'unknown': return 'status-unknown';
+      // Legacy support
+      case 'on fixing': return 'status-fixing';
+      case 'anomaly detected': return 'status-anomaly';
+      default: return 'status-unknown';
     }
   }
 
   getStatusText(status: string): string {
-    switch (status) {
-      case 'Normal': return 'Bình thường';
-      case 'On fixing': return 'Đang sửa chữa';
-      case 'Anomaly detected': return 'Bất thường';
-      default: return status;
+    switch (status?.toLowerCase()) {
+      case 'normal': return 'Bình thường';
+      case 'anomaly': return 'Bất thường';
+      case 'lost': return 'Mất kết nối';
+      case 'unknown': return 'Không xác định';
+      // Legacy support
+      case 'on fixing': return 'Đang sửa chữa';
+      case 'anomaly detected': return 'Bất thường';
+      default: return status || 'Không xác định';
     }
   }
 
@@ -197,14 +206,51 @@ export class WaterMeterInfoComponent implements OnInit, OnDestroy {
   isExpanded(meterId: string): boolean {
     const meter = this.filteredMeters().find(m => m.id === meterId);
     return meter?.expanded || false;
-  } 
+  }
 
   viewChart(meterId: string): void {
+    console.log('ViewChart called with meterId:', meterId);
     const meter = this.filteredMeters().find(m => m.id === meterId);
-    if (meter && this.isValidWaterMeter(meter)) {
-      const encodedName = encodeURIComponent(meter.name);
-      this.router.navigate(['/company', 'water-clock', 'chart', meterId, encodedName]);
+    console.log('Found meter:', meter);
+
+    if (!meter) {
+      console.error('Meter not found with id:', meterId);
+      return;
     }
+
+    if (!this.isValidWaterMeter(meter)) {
+      console.error('Invalid meter:', meter);
+      return;
+    }
+
+    try {
+      const encodedName = encodeURIComponent(meter.name || 'Unknown');
+      const navigationPath = ['/company', 'water-clock', 'chart', meterId, encodedName];
+      console.log('Navigating to:', navigationPath);
+
+      this.router.navigate(navigationPath).then(
+        success => {
+          console.log('Navigation success:', success);
+          if (!success) {
+            console.error('Navigation failed but no error thrown');
+          }
+        },
+        error => {
+          console.error('Navigation error:', error);
+        }
+      );
+    } catch (error) {
+      console.error('Error in viewChart:', error);
+    }
+  }
+
+  // Method test navigation đơn giản
+  testNavigation(): void {
+    console.log('Testing navigation...');
+    this.router.navigate(['/company', 'dashboard']).then(
+      success => console.log('Test navigation success:', success),
+      error => console.error('Test navigation error:', error)
+    );
   }
 
   ngOnDestroy(): void {

@@ -3,7 +3,7 @@ export interface ChartDataPoint {
   value: number;
   predictedValue?: number | null;
   isAnomaly?: boolean;
-  confidence?: number;
+  confidence?: string;
   predictedLabel?: string | null;
 }
 

@@ -1,48 +1,5 @@
 <div class="predictive-container">
   <div class="table-wrapper">
-    <div class="stats-row">
-      <div class="stat-card low-card clickable-card" (click)="navigateToMeters('low')">
-        <div class="stat-icon">
-          <i class="fas fa-check-circle"></i>
-        </div>
-        <div class="stat-content">
-          <div class="stat-title">Nghi ngờ thấp</div>
-          <div class="stat-number">{{ totalLow() }}</div>
-          <div class="stat-label">mức độ</div>
-        </div>
-        <div class="card-hover-indicator">
-          <i class="fas fa-arrow-right"></i>
-        </div>
-      </div>
-
-      <div class="stat-card medium-card clickable-card" (click)="navigateToMeters('medium')">
-        <div class="stat-icon">
-          <i class="fas fa-exclamation-circle"></i>
-        </div>
-        <div class="stat-content">
-          <div class="stat-title">Nghi ngờ trung bình</div>
-          <div class="stat-number">{{ totalMedium() }}</div>
-          <div class="stat-label">mức độ</div>
-        </div>
-        <div class="card-hover-indicator">
-          <i class="fas fa-arrow-right"></i>
-        </div>
-      </div>
-
-      <div class="stat-card high-card clickable-card" (click)="navigateToMeters('high')">
-        <div class="stat-icon">
-          <i class="fas fa-exclamation-triangle"></i>
-        </div>
-        <div class="stat-content">
-          <div class="stat-title">Nghi ngờ cao</div>
-          <div class="stat-number">{{ totalHigh() }}</div>
-          <div class="stat-label">mức độ</div>
-        </div>
-        <div class="card-hover-indicator">
-          <i class="fas fa-arrow-right"></i>
-        </div>
-      </div>
-    </div>
     <div class="topbar">
       <h2 class="title">Bảng theo dõi đồng hồ</h2>
 
@@ -65,7 +22,9 @@
       </div>
     </div>
 
-    <h3 *ngIf="selectedMeter">Đồng hồ {{ selectedMeter.meter_name }}</h3>
+    <div class="meter-info" *ngIf="selectedMeter">
+      <h3>Đồng hồ {{ selectedMeter.meter_name }}</h3>
+    </div>
 
     <table *ngIf="dates.length > 0 && tableData.models.length > 0">
       <tr>
@@ -73,16 +32,12 @@
         <th *ngFor="let d of dates">{{ d }}</th>
       </tr>
 
-      <tr *ngFor="let m of tableData.models">
-        <td>{{ m.name }}</td>
-         <td *ngFor="let r of m.results" [style.color]="getColor(r)">
+      <tr *ngFor="let m of tableData.models" [class]="m.name === 'Kết luận' ? 'conclusion-row' : ''">
+        <td class="model-name">{{ m.name }}</td>
+        <td *ngFor="let r of m.results"
+            [class]="getPredictionClass(r)"
+            [style.color]="getColor(r)">
           {{ r }}
-        </td>
-      </tr>
-      <tr>
-        <td>Kết luận</td>
-        <td *ngFor="let d of dates" [style.color]="getConclusionByDate(d).color">
-            {{ getConclusionByDate(d).text }}
         </td>
       </tr>
     </table>

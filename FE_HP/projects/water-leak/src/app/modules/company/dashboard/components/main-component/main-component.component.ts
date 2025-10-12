@@ -23,7 +23,19 @@ export class MainComponentComponent implements OnInit {
   public chartOptions = signal<ChartOptions>({
     series: [{ name: 'Lưu lượng', data: [] }],
     chart: { type: 'line', height: 350 },
-    xaxis: { categories: [] },
+    xaxis: {
+      categories: [],
+      labels: {
+        maxHeight: undefined,
+        rotate: -45,
+        trim: false,
+        hideOverlappingLabels: false,
+        style: {
+          colors: [],
+          fontSize: '11px'
+        }
+      }
+    },
     dataLabels: { enabled: false },
     stroke: { curve: 'smooth' },
     yaxis: { title: { text: 'Lưu lượng' } },
@@ -68,9 +80,23 @@ export class MainComponentComponent implements OnInit {
       chart: { type: 'line', height: 350 },
       dataLabels: { enabled: false },
       stroke: { curve: 'smooth' },
-      xaxis: { categories },
+      xaxis: {
+        categories,
+        labels: {
+          maxHeight: undefined,
+          rotate: -45,  // Xoay labels để hiển thị tốt hơn với format dài
+          trim: false,  // Không cắt bớt text
+          hideOverlappingLabels: false,  // Hiển thị tất cả labels
+          style: {
+            colors: [],
+            fontSize: '11px'
+          }
+        }
+      },
       yaxis: { title: { text: 'Lưu lượng' } },
       tooltip: {
+        shared: false,
+        intersect: true,
         x: { show: true },
         y: {
           formatter: (val: any, opts: any) => {
@@ -97,7 +123,10 @@ export class MainComponentComponent implements OnInit {
     });
 
     try {
-      this.chart?.updateOptions?.({ series: this.chartOptions().series, xaxis: this.chartOptions().xaxis }, false, true);
+      if (this.chart && this.chart.updateOptions) {
+        // Use smooth animation and avoid redrawing paths unnecessarily
+        this.chart.updateOptions(this.chartOptions(), false, true, true);
+      }
     } catch (_e) {
       // ignore
     }
@@ -144,7 +173,19 @@ export class MainComponentComponent implements OnInit {
       chart: { type: "line", height: 350 },
       dataLabels: { enabled: false },
       stroke: { curve: "smooth" },
-      xaxis: { categories: [] },
+      xaxis: {
+        categories: [],
+        labels: {
+          maxHeight: undefined,
+          rotate: -45,
+          trim: false,
+          hideOverlappingLabels: false,
+          style: {
+            colors: [],
+            fontSize: '11px'
+          }
+        }
+      },
       yaxis: { title: { text: "Lưu lượng" } },
       tooltip: { x: { show: true } },
       title: { text: "Lưu lượng theo thời gian", align: "left" }
@@ -202,28 +243,8 @@ export class MainComponentComponent implements OnInit {
   }
 
   private async updateChartDataForMeter(item: DashBoardData): Promise<void> {
-  await this.chartDataService.selectMeter(item.meter_data.id as any, item.meter_data.name);
-
-    const chartData = this.chartState(  ).chartData?.data ?? [];
-    this.chartOptions.set({
-      series: [{ name: 'Lưu lượng', data: chartData.map(d => d.value) }],
-      chart: { type: 'line', height: 350 },
-      dataLabels: { enabled: false },
-      stroke: { curve: 'smooth' },
-      xaxis: { categories: chartData.map(d => d.timestamp) },
-      yaxis: { title: { text: 'Lưu lượng' } },
-      tooltip: { x: { show: true } },
-      title: { text: `Lưu lượng - ${item.meter_data.name}`, align: 'left' }
-    });
-    // Trigger chart update if the chart component is available
-    try {
-      this.chart?.updateOptions?.({
-        series: this.chartOptions().series,
-        xaxis: this.chartOptions().xaxis
-      }, false, true);
-    } catch (e) {
-      // ignore - updateOptions may not be available immediately
-    }
+    // Only call selectMeter, let chartSyncEffect handle the chart updates
+    await this.chartDataService.selectMeter(item.meter_data.id as any, item.meter_data.name);
   }
 
   navigateToWaterClock(filterStatus: string): void {
