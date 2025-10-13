@@ -96,7 +96,14 @@
 
       <!-- Popup Content -->
       <div class="prediction-popup-content">
-        <div class="prediction-table-container">
+        <!-- Loading Indicator -->
+        <div *ngIf="isLoadingPredictions()" class="loading-indicator">
+          <i class="fas fa-spinner fa-spin"></i>
+          <span>Đang tải dữ liệu dự đoán...</span>
+        </div>
+
+        <!-- Data Table -->
+        <div *ngIf="!isLoadingPredictions()" class="prediction-table-container">
           <!-- Table Header -->
           <div class="popup-table-header">
             <div class="popup-header-cell">Thời gian</div>

@@ -24,7 +24,7 @@ export class DashboardComponent implements OnInit {
     return this.dashboardData().map(item => ({
       ...item,
       location: item.location || 'nan',
-      leakDays: this.calculateLeakDays(item) 
+      leakDays: this.calculateLeakDays(item)
     }));
   });
 
@@ -45,7 +45,7 @@ export class DashboardComponent implements OnInit {
       this.dashboardData.set(
         data.map(item => ({
           ...item,
-          location: 'nan', 
+          location: '0',
           leakDays: this.calculateLeakDays(item)
         }))
       );

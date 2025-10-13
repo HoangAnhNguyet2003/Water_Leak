@@ -46,6 +46,11 @@ def measurements_range(mid):
     db = get_db()
     try:
         meter_oid = to_object_id(mid)
+        
+        # Lấy thông tin meter để có meter_name
+        meter_doc = db.meters.find_one({"_id": meter_oid})
+        meter_name = meter_doc.get("meter_name", f"Meter {mid}") if meter_doc else f"Meter {mid}"
+        
         latest_doc = list(db.meter_measurements.find({"meter_id": meter_oid}).sort("measurement_time", -1).limit(1))
         mt = latest_doc[0]['measurement_time']
         if isinstance(mt, str):
@@ -66,6 +71,7 @@ def measurements_range(mid):
 
     response = {
         "meter_id": mid,
+        "meter_name": meter_name,
         "start": fmt(start_dt),
         "end": fmt(end_dt),
         "items": [
@@ -91,6 +97,11 @@ def measurements_range_with_predictions(mid):
     db = get_db()
     try:
         meter_oid = to_object_id(mid)
+        
+        # Lấy thông tin meter để có meter_name
+        meter_doc = db.meters.find_one({"_id": meter_oid})
+        meter_name = meter_doc.get("meter_name", f"Meter {mid}") if meter_doc else f"Meter {mid}"
+        
         latest_doc = list(db.meter_measurements.find({"meter_id": meter_oid}).sort("measurement_time", -1).limit(1))
         mt = latest_doc[0]['measurement_time']
         if isinstance(mt, str):
@@ -165,6 +176,7 @@ def measurements_range_with_predictions(mid):
 
     response = {
         "meter_id": mid,
+        "meter_name": meter_name,
         "start": fmt(start_dt),
         "end": fmt(end_dt),
         "items": items
