@@ -97,7 +97,6 @@ def get_lstm_autoencoder_predictions(meter_id):
         oid = ObjectId(meter_id)
         db = get_db()
         
-        # Tìm AI model có tên là "lstm_autoencoder"
         lstm_models = list(db.ai_models.find({
             "name": "lstm_autoencoder"
         }))
@@ -107,7 +106,6 @@ def get_lstm_autoencoder_predictions(meter_id):
             
         model_ids = [model["_id"] for model in lstm_models]
         
-        # Lấy toàn bộ LSTM autoencoder predictions cho meter này
         predictions = list(db.predictions.find({
             "meter_id": oid,
             "model_id": {"$in": model_ids}

@@ -30,8 +30,7 @@ export class PredictiveModelComponent implements OnInit {
 
       if (uniqueItems.length > 0) {
         this.selectedMeter = uniqueItems[0];
-        // Bắt đầu từ ngày có dữ liệu (04/10/2025)
-        this.generateDates(new Date('2025-10-04'));
+        this.generateDates(new Date());
         this.buildTableWithSeparateAPIs(this.selectedMeter);
       }
     });
@@ -81,33 +80,32 @@ export class PredictiveModelComponent implements OnInit {
 
     if (!lstmPred && !autoencoderPred) return 'Chưa có dữ liệu';
 
-    const lstmIsLeak = lstmPred?.predicted_label === 'leak';
-    const autoencoderIsLeak = autoencoderPred?.predicted_label === 'leak';
-    const lstmIsNormal = lstmPred?.predicted_label === 'normal';
-    const autoencoderIsNormal = autoencoderPred?.predicted_label === 'normal';
-
-    const getConfidenceWithLabel = (pred: any, isLeak: boolean): { confidence: string, rank: number } => {
-      if (!pred || !pred.confidence) return { confidence: 'N/A', rank: -1 };
-      const confidenceOrder = ['NNcao', 'NNTB', 'NNthap'];
-      const rank = confidenceOrder.indexOf(pred.confidence);
-
-      if (rank !== -1 && isLeak) {
-        if (pred.confidence === 'NNcao') return { confidence: 'Rò rỉ nghi ngờ cao', rank };
-        if (pred.confidence === 'NNTB') return { confidence: 'Rò rỉ nghi ngờ trung bình', rank };
-        if (pred.confidence === 'NNthap') return { confidence: 'Rò rỉ nghi ngờ thấp', rank };
+    const getScore = (pred: any): number => {
+      if (!pred) return 0;
+      if (pred.predicted_label === 'normal') return 0;
+      if (pred.predicted_label === 'leak') {
+        if (pred.confidence === 'NNthap') return 1;
+        if (pred.confidence === 'NNTB') return 2;
+        if (pred.confidence === 'NNcao') return 3;
+        return 1;
       }
-      return { confidence: isLeak ? 'Rò rỉ' : 'Bình thường', rank: 999 };
+      return 0;
     };
 
-    if (lstmIsLeak || autoencoderIsLeak) {
-      if (lstmIsLeak && autoencoderIsLeak) {
-        const lstmConf = getConfidenceWithLabel(lstmPred, true);
-        const autoencoderConf = getConfidenceWithLabel(autoencoderPred, true);
-        return lstmConf.rank <= autoencoderConf.rank ? lstmConf.confidence : autoencoderConf.confidence;
-      }
-      return lstmIsLeak ? getConfidenceWithLabel(lstmPred, true).confidence : getConfidenceWithLabel(autoencoderPred, true).confidence;
+    const predictions = [lstmPred, autoencoderPred].filter(p => p !== null);
+    if (predictions.length === 0) return 'Chưa có dữ liệu';
+
+    const scores = predictions.map(pred => getScore(pred));
+    const averageScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+    const finalScore = Math.floor(averageScore);
+
+    switch (finalScore) {
+      case 0: return 'Bình thường';
+      case 1: return 'Rò rỉ nghi ngờ thấp';
+      case 2: return 'Rò rỉ nghi ngờ trung bình';
+      case 3: return 'Rò rỉ nghi ngờ cao';
+      default: return 'Bình thường';
     }
-    return (lstmIsNormal || autoencoderIsNormal) ? 'Bình thường' : 'Chưa có dữ liệu';
   }
 
   getColor(text: string): string {

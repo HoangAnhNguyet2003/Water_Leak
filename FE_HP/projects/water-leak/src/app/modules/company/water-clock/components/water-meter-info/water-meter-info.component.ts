@@ -48,7 +48,6 @@ export class WaterMeterInfoComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     // Lấy dữ liệu từ API
     this.dataSubscription = this.clockService.getMeterData().subscribe(meters => {
-      console.log('Meters loaded:', meters);
       this.waterMeters.set(meters);
       this.filteredMeters.set(meters);
       this.updateCountsForDashboard();
@@ -148,7 +147,6 @@ export class WaterMeterInfoComponent implements OnInit, OnDestroy {
 
   confirmExport(): void {
     const selectedMeters = this.filteredMeters().filter(meter => meter.selected);
-    console.log('Xuất dữ liệu:', selectedMeters);
     this.showExportPopup.set(false);
     this.showSuccessNotification.set(true);
   }
@@ -209,48 +207,29 @@ export class WaterMeterInfoComponent implements OnInit, OnDestroy {
   }
 
   viewChart(meterId: string): void {
-    console.log('ViewChart called with meterId:', meterId);
     const meter = this.filteredMeters().find(m => m.id === meterId);
-    console.log('Found meter:', meter);
 
     if (!meter) {
-      console.error('Meter not found with id:', meterId);
       return;
     }
 
     if (!this.isValidWaterMeter(meter)) {
-      console.error('Invalid meter:', meter);
       return;
     }
 
     try {
       const encodedName = encodeURIComponent(meter.name || 'Unknown');
       const navigationPath = ['/company', 'water-clock', 'chart', meterId, encodedName];
-      console.log('Navigating to:', navigationPath);
 
-      this.router.navigate(navigationPath).then(
-        success => {
-          console.log('Navigation success:', success);
-          if (!success) {
-            console.error('Navigation failed but no error thrown');
-          }
-        },
-        error => {
-          console.error('Navigation error:', error);
-        }
-      );
+      this.router.navigate(navigationPath);
     } catch (error) {
-      console.error('Error in viewChart:', error);
+      // Error in viewChart
     }
   }
 
   // Method test navigation đơn giản
   testNavigation(): void {
-    console.log('Testing navigation...');
-    this.router.navigate(['/company', 'dashboard']).then(
-      success => console.log('Test navigation success:', success),
-      error => console.error('Test navigation error:', error)
-    );
+    this.router.navigate(['/company', 'dashboard']);
   }
 
   ngOnDestroy(): void {

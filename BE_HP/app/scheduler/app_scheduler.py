@@ -131,7 +131,7 @@ class AppScheduler:
         try:
             self.scheduler.add_job(
                 self.crawl_all_data_with_lock,
-                trigger=CronTrigger(hour=4, minute=0),
+                trigger=CronTrigger(hour=6, minute=30),
                 id='daily_crawl_job',
                 name='Crawl dữ liệu hàng ngày',
                 replace_existing=True
@@ -147,7 +147,7 @@ class AppScheduler:
             
             self.scheduler.start()
             self.is_running = True
-            insert_log("Đã khởi động scheduler với crawl job (4:00 AM) và threshold job (23:50)", LogType.INFO)
+            insert_log("Đã khởi động scheduler với crawl job (6:30 AM) và threshold job (23:50)", LogType.INFO)
             
         except Exception as e:
             insert_log(f"Lỗi khi khởi động scheduler: {str(e)}", LogType.ERROR)

@@ -26,7 +26,8 @@ export interface DashBoardData {
 export enum DashBoardDataStatus {
   NORMAL = 'normal',
   ANOMALY = 'anomaly',
-  LOST_CONNECTION = 'lost_connection'
+  LOST_CONNECTION = 'lost_connection',
+  NO_DATA = 'no_data'
 }
 
 export type ChartOptions = {
