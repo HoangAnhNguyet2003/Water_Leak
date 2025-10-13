@@ -62,7 +62,6 @@ export class ChartViewComponent implements OnInit {
     const leakSeries = chartData.map(d => d.predictedLabel === 'leak' ? d.value : null);
   const series: any[] = [ { name: 'Lưu lượng', type: 'line', data: lineSeries } ];
 
-  console.debug('[ChartView] activeType=', this.chartState().activeChartType, 'pointsSample=', chartData.slice(0,5));
     const activeType = this.chartState().activeChartType;
     const showAnomaly = activeType === 'anomaly' || activeType === 'anomaly-ai';
     if (showAnomaly && leakSeries.some(v => v !== null)) {
@@ -143,7 +142,6 @@ export class ChartViewComponent implements OnInit {
     try {
       await this.chartDataService.selectMeter(id as any, (name ?? '') as any);
     } catch (e) {
-      console.error('[ChartView] failed to select meter', e);
       return;
     }
 
@@ -202,9 +200,6 @@ export class ChartViewComponent implements OnInit {
     const len = cd.data?.length ?? 0;
     // set loaded when we have any points
     this.chartLoaded.set(len > 0);
-    // console debug to help diagnose missing data at runtime
-    // eslint-disable-next-line no-console
-    console.debug('[ChartView] chartData arrived:', { meterId: cd.meterId, points: len });
   }, { allowSignalWrites: true });
 
 
@@ -323,7 +318,6 @@ export class ChartViewComponent implements OnInit {
       ]);
 
     }).catch(error => {
-      console.error('Error loading predictions:', error);
       this.predictionData.set([
         { id: 'error', thoi_gian: 'Lỗi tải dữ liệu', luu_luong: 'N/A', trang_thai: 'Không thể tải dự đoán' }
       ]);
@@ -362,10 +356,10 @@ export class ChartViewComponent implements OnInit {
 
   private formatFlowValue(flow: any): string {
     if (flow === null || flow === undefined || flow === '') return 'N/A';
-    
+
     const numValue = parseFloat(flow);
     if (isNaN(numValue)) return 'N/A';
-    
+
     return numValue.toFixed(2);
   }
 
