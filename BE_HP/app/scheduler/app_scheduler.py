@@ -168,7 +168,7 @@ class AppScheduler:
         try:
             self.scheduler.add_job(
                 self.crawl_all_data_with_lock,
-                trigger=CronTrigger(hour=14, minute=28),
+                trigger=CronTrigger(hour=6, minute=30),
                 id='daily_crawl_job',
                 name=f'Crawl dữ liệu hàng ngày',
                 replace_existing=True
