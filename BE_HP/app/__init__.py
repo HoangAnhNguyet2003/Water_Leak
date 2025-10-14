@@ -33,8 +33,8 @@ def create_app():
         except Exception as e:
             print(f"Không thể khởi động app scheduler: {e}")
 
-    for rule in app.url_map.iter_rules():
-        print("ROUTE:", rule.endpoint, rule.rule, rule.methods)
+    # for rule in app.url_map.iter_rules():
+    #     print("ROUTE:", rule.endpoint, rule.rule, rule.methods)
     Swagger(app, config=SWAGGER_CONFIG, template=SWAGGER_TEMPLATE)
     
     def shutdown_scheduler():

@@ -6,6 +6,52 @@ from sklearn.preprocessing import MinMaxScaler
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
+def preprocess_data_lstm(data, scaler: MinMaxScaler = None, fit_scaler: bool = True): 
+    cleaned = []
+    
+    # Khởi tạo scaler nếu chưa có
+    if scaler is None:
+        scaler = MinMaxScaler()
+    
+    for item in data:
+        try:
+            if isinstance(item['measurement_time'], str):
+                t = datetime.strptime(item['measurement_time'], '%Y-%m-%dT%H:%M:%S')
+            else:
+                t = item['measurement_time'] 
+
+            flow = float(item['instant_flow'])
+            cleaned.append({'Ngày tháng': t, 'instant_flow': flow})
+        except (KeyError, ValueError, TypeError):
+            continue
+
+    cleaned.sort(key=lambda x: x['Ngày tháng'])
+
+    daily_data = {}
+    for item in cleaned:
+        date = item['Ngày tháng'].date()
+        if date not in daily_data:
+            daily_data[date] = []
+        daily_data[date].append(item['instant_flow'])
+    
+    dates = []
+    daily_averages = []
+    
+    for date in sorted(daily_data.keys()):
+        dates.append(date.strftime('%Y-%m-%d'))
+        daily_averages.append(np.mean(daily_data[date]))
+    
+    daily_averages_array = np.array(daily_averages).reshape(-1, 1)
+    
+    if fit_scaler:
+        daily_averages_scaled = scaler.fit_transform(daily_averages_array)
+    else:
+        daily_averages_scaled = scaler.transform(daily_averages_array)
+    
+    daily_averages_scaled = daily_averages_scaled.flatten()
+    
+    return daily_averages_scaled, np.array(dates), scaler
+
 def preprocess_data_with_dates_json(data, scaler: MinMaxScaler = None, seq_len=6, fit_scaler=True):
     cleaned = [] 
     
