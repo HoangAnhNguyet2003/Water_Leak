@@ -21,8 +21,13 @@ class Config:
 
 class MLConfig: 
     BASE_DIR = os.path.dirname(__file__)
-    default_model_path = os.path.abspath(os.path.join(BASE_DIR, 'ml', 'lstm_autoencoder', 'pretrained_weights', 'lstm_ae.pth'))
-    LSTM_AE_MODEL_PATH = os.getenv('LSTM_AE_MODEL_PATH', default_model_path)
+    default_lstmae_model_path = os.path.abspath(os.path.join(BASE_DIR, 'ml', 'lstm_autoencoder', 'pretrained_weights', 'lstm_ae.pth'))
+    LSTM_AE_MODEL_PATH = os.getenv('LSTM_AE_MODEL_PATH', default_lstmae_model_path)
+    default_lstm_model_path = os.path.abspath(os.path.join(BASE_DIR, 'ml', 'lstm', 'pretrained_weights', 'base_lstm_model.h5'))
+    LSTM_MODEL_PATH = os.getenv('LSTM_MODEL_PATH', default_lstm_model_path)
+    SCALER_LSTM_MODEL_PATH = os.getenv('SCALER_LSTM_MODEL_PATH', os.path.join(os.path.dirname(default_lstm_model_path)))
+    
+    LSTM_WINDOW_CONTEXT = 4
     HISTORICAL_DATA_DAYS = 40
     LSTM_AE_CONFIG = {
         'input_size': int(os.getenv("LSTMAE_INPUT_SIZE", "1")),  

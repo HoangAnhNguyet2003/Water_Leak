@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import time
 from .crawler import api_client
 from ..extensions import get_db
 from ..models.log_schemas import LogType
@@ -6,27 +7,69 @@ from ..routes.logs.log_utils import insert_log
 from ..utils.common import find_meterid_by_metername
 
 def crawl_repair_data(): 
-    try: 
-        start_date = datetime.now().strftime('%Y-%m-%d')
-        
-        data = api_client.request(
-            method="GET",
-            endpoint="/api/git/get_all_repair",
-            params={"start_date": start_date},
-            timeout=60
-        )
-        
-        if data:
-            insert_log(f"Đã crawl được {len(data)} bản ghi dữ liệu sửa chữa", LogType.INFO)
-            save_repair_data(data)
-            return data
-        else:
-            insert_log("Không có dữ liệu sửa chữa mới", LogType.INFO)
-            return []
-        
-    except Exception as e:
-        insert_log(f"Lỗi khi crawl dữ liệu sửa chữa: {str(e)}", LogType.ERROR)
+    max_retries = 3
+    retry_delays = [60, 120, 300]  # 1 phút, 2 phút, 5 phút
+    
+    # Đảm bảo token fresh trước khi bắt đầu crawl
+    insert_log("Kiểm tra và refresh token trước khi crawl repair data", LogType.INFO)
+    if not api_client.ensure_token():
+        insert_log("Không thể lấy token để crawl repair data", LogType.ERROR)
         return None
+    
+    for attempt in range(max_retries):
+        try: 
+            insert_log(f"Thử crawl repair data lần {attempt + 1}/{max_retries}", LogType.INFO)
+            
+            start_date = datetime.now().strftime('%Y-%m-%d')
+            
+            data = api_client.request(
+                method="GET",
+                endpoint="/api/git/get_all_repair",
+                params={"start_date": start_date},
+                timeout=90  # Tăng timeout lên 90s
+            )
+            
+            if data:
+                insert_log(f"Đã crawl được {len(data)} bản ghi dữ liệu sửa chữa", LogType.INFO)
+                save_repair_data(data)
+                return data
+            else:
+                insert_log("Không có dữ liệu sửa chữa mới", LogType.INFO)
+                return []
+                
+        except Exception as e:
+            error_msg = str(e)
+            insert_log(f"Lần thử {attempt + 1} thất bại: {error_msg}", LogType.WARNING)
+            
+            if attempt < max_retries - 1:
+                delay = retry_delays[attempt]
+                insert_log(f"Đợi {delay}s trước khi thử lại...", LogType.INFO)
+                time.sleep(delay)
+            else:
+                insert_log(f"Đã thử {max_retries} lần và thất bại. Lỗi cuối: {error_msg}", LogType.ERROR)
+                if "400" in error_msg and "Bad Request" in error_msg:
+                    try:
+                        yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+                        insert_log(f"Thử test crawl repair với ngày hôm qua: {yesterday} (không lưu DB)", LogType.INFO)
+                        
+                        test_data = api_client.request(
+                            method="GET",
+                            endpoint="/api/git/get_all_repair",
+                            params={"start_date": yesterday},
+                            timeout=90
+                        )
+                        
+                        if test_data:
+                            insert_log(f"Test crawl repair với ngày hôm qua thành công: {len(test_data)} bản ghi (chỉ log, không lưu DB)", LogType.INFO)
+                        else:
+                            insert_log("Test crawl repair với ngày hôm qua không có dữ liệu", LogType.WARNING)
+                            
+                    except Exception as e2:
+                        insert_log(f"Test crawl repair với ngày hôm qua thất bại: {str(e2)}", LogType.ERROR)
+                
+                return None
+    
+    return None
 
 def save_repair_data(data):
     """Lưu dữ liệu repair vào database dựa trên logic seed_meter_repairs"""
