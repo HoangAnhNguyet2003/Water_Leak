@@ -4,7 +4,7 @@ operationId: testAllCrawling
 summary: Test crawl tất cả dữ liệu
 description: >
   Test việc crawling toàn bộ dữ liệu (measurements và repairs) từ API bên ngoài.
-  Chỉ admin mới có quyền thực hiện. Job sẽ chạy trong background thread.
+  Job sẽ chạy trong background thread.
 consumes:
   - application/json
 produces:
@@ -19,8 +19,7 @@ responses:
         message:
           type: string
           description: Thông báo kết quả
-  401:
-    description: Chưa xác thực hoặc không có quyền admin
+
   500:
     description: Lỗi server khi kích hoạt test crawl
     schema:

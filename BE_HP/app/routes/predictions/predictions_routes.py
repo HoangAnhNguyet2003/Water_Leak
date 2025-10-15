@@ -233,8 +233,6 @@ def get_lstm_predictions(meter_id):
 
 @pred_bp.post("/generate_predictions_date_range")
 @swag_from(get_swagger_path("predictions/generate_predictions_date_range.yml"))
-@jwt_required()
-@require_role("admin")
 def generate_predictions_date_range_route():
     try:
         data = request.get_json()

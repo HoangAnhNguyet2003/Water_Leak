@@ -13,9 +13,7 @@ from flask import current_app
 crawler_bp = Blueprint("crawler", __name__)
 
 @crawler_bp.post("/test/all")
-@jwt_required(optional=False, verify_type=False)
 @swag_from(get_swagger_path('crawler/test_all.yml'))
-@require_role("admin")
 def test_all_crawling():
     """Test crawl tất cả dữ liệu"""
     try:
