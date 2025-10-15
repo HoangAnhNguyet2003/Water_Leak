@@ -29,7 +29,7 @@ ok_meters = [
 class LSTMAEPredictor:
     def __init__(self, historical_context=None, model_path=None, config=None, debug=False):
         default_path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'pretrained_weights', 'lstm_ae.pth'))
-        self.historical_context = historical_context
+        self.historical_context = historical_context or 14
         self.model_path = model_path or default_path
         self.config = config or {
             'input_size': 1,
@@ -118,10 +118,15 @@ class LSTMAEPredictor:
         start_time = end_time - timedelta(days=self.historical_context)
         return start_time, end_time
     
-    def get_today_time_range(self):
-        now = datetime.now(timezone.utc)
-        start_time = datetime.combine(now.date(), datetime.min.time()).replace(tzinfo=timezone.utc)
-        end_time = now
+    def get_today_time_range(self, target_date=None):
+        if target_date is None:
+            now = datetime.now(timezone.utc)
+            target_date = now.date()
+        elif isinstance(target_date, str):
+            target_date = datetime.strptime(target_date, '%Y-%m-%d').date()
+        
+        start_time = datetime.combine(target_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+        end_time = datetime.combine(target_date, datetime.max.time()).replace(tzinfo=timezone.utc)
         return start_time, end_time
 
     def fetch_meter_data(self, start_time, end_time):
@@ -259,7 +264,7 @@ class LSTMAEPredictor:
         
         return 0
 
-    def predict(self):
+    def predict(self, target_date=None):
         try:
             if self.model is None:
                 if not self.load_model():
@@ -275,7 +280,7 @@ class LSTMAEPredictor:
             
             thresholds = self.calculate_threshold(all_meter_data, single_meter=False)
             
-            today_start, today_end = self.get_today_time_range()
+            today_start, today_end = self.get_today_time_range(target_date)
             today_meter_data = self.fetch_meter_data(today_start, today_end)
             
             if not today_meter_data:

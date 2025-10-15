@@ -140,7 +140,6 @@ export class PredictiveModelComponent implements OnInit {
       this.buildCombinedTable(meter, lstmAutoencoder || [], lstmPredictions || []);
     }).catch(error => {
       console.error('Error loading predictions:', error);
-      // Fallback: hiển thị bảng trống với cả 3 dòng
       this.tableData = {
         models: [
           { name: 'LSTM', results: this.dates.map(() => 'Chưa có dữ liệu') },

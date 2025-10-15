@@ -21,11 +21,12 @@ def crawl_repair_data():
             insert_log(f"Thử crawl repair data lần {attempt + 1}/{max_retries}", LogType.INFO)
             
             start_date = datetime.now().strftime('%Y-%m-%d')
-            
+            end_date = datetime.now().strftime('%Y-%m-%d')
+
             data = api_client.request(
                 method="GET",
                 endpoint="/api/git/get_all_repair",
-                params={"start_date": start_date},
+                params={"start_date": start_date, "end_date": end_date},
                 timeout=90  # Tăng timeout lên 90s
             )
             

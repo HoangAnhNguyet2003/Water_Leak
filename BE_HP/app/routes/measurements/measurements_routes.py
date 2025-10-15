@@ -98,7 +98,6 @@ def measurements_range_with_predictions(mid):
     try:
         meter_oid = to_object_id(mid)
         
-        # Lấy thông tin meter để có meter_name
         meter_doc = db.meters.find_one({"_id": meter_oid})
         meter_name = meter_doc.get("meter_name", f"Meter {mid}") if meter_doc else f"Meter {mid}"
         
@@ -133,7 +132,6 @@ def measurements_range_with_predictions(mid):
             continue
         key = fmt(pt)
         existing = pred_map.get(key)
-        # Không so sánh confidence nữa vì là string, chỉ lấy prediction mới nhất
         if not existing:
             pred_map[key] = p
 
@@ -146,11 +144,9 @@ def measurements_range_with_predictions(mid):
         }
         p = pred_map.get(ts)
         if p:
-            # predictions seeded may store the measured flow under different keys
             predicted_flow = p.get('predicted_flow') if 'predicted_flow' in p else p.get('flow')
             if predicted_flow is None:
                 predicted_flow = p.get('recorded_instant_flow')
-            # Xử lý confidence dưới dạng string từ database
             conf_raw = p.get('confidence')
             if conf_raw is not None:
                 conf = str(conf_raw)
@@ -158,7 +154,6 @@ def measurements_range_with_predictions(mid):
                 conf = "unknown"
             
             status = p.get('predicted_label')
-            # treat any non-'normal' label as anomaly for display
             is_anom = (status is not None) and (status != 'normal')
         else:
             predicted_flow = None

@@ -24,10 +24,9 @@ export class ChartApiService {
             if (!isNaN(d.getTime())) {
               const day = String(d.getUTCDate()).padStart(2, '0');
               const month = String(d.getUTCMonth() + 1).padStart(2, '0');
-              const year = d.getUTCFullYear();
               const hh = String(d.getUTCHours()).padStart(2, '0');
               const mm = String(d.getUTCMinutes()).padStart(2, '0');
-              label = `${day}/${month}/${year} - ${hh}:${mm}`;
+              label = `${day}/${month} ${hh}:${mm}`;
             }
           } catch (e) {}
           return { timestamp: label, value: Number(i.flow), predictedValue: null };

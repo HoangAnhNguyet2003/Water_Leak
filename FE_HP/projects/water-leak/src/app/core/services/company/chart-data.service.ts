@@ -48,7 +48,7 @@ export class ChartDataService {
   }
 
   public async selectMeter(meterId: number, meterName: string): Promise<void> {
-    const chartData = await firstValueFrom(this.chartApi.getInstantFlowRange(meterId, 8));
+    const chartData = await firstValueFrom(this.chartApi.getInstantFlowRange(meterId, 4));
     this.state.update(state => ({
       ...state,
       selectedMeterId: meterId,
@@ -65,8 +65,8 @@ export class ChartDataService {
     }
     // For anomaly tabs, call the predictions-aware endpoint so we get isAnomaly/confidence
     const chartData: ChartData = (type === 'anomaly' || type === 'anomaly-ai')
-      ? await firstValueFrom(this.chartApi.getInstantFlowRangeWithPredictions(currentState.selectedMeterId!, 8))
-      : await firstValueFrom(this.chartApi.getInstantFlowRange(currentState.selectedMeterId!, 8));
+      ? await firstValueFrom(this.chartApi.getInstantFlowRangeWithPredictions(currentState.selectedMeterId!, 4))
+      : await firstValueFrom(this.chartApi.getInstantFlowRange(currentState.selectedMeterId!, 4));
 
     this.state.update(state => ({
       ...state,

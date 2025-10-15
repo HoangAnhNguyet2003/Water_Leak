@@ -7,7 +7,7 @@ from ..models.log_schemas import LogType
 from ..routes.logs.log_utils import insert_log
 from ..utils.common import find_meterid_by_metername
 
-def run_lstmae_prediction_after_crawl():
+def run_lstmae_prediction_after_crawl(target_date=None):
     try:
         from ..ml.lstm_autoencoder.predict import LSTMAEPredictor
         from ..config import MLConfig
@@ -20,7 +20,7 @@ def run_lstmae_prediction_after_crawl():
             debug=False  
         )
         
-        result = predictor.predict()
+        result = predictor.predict(target_date)
         
         if result:
             total_data = result['total_data_points']
@@ -48,7 +48,7 @@ def run_lstmae_prediction_after_crawl():
         insert_log(f"Lỗi khi chạy LSTM-AE prediction: {str(e)}", LogType.ERROR)
         return False
 
-def run_lstm_prediction_after_crawl():
+def run_lstm_prediction_after_crawl(target_date=None):
     try:
         from ..ml.lstm.predict import LSTM_Predictor
         from ..config import MLConfig
@@ -60,7 +60,7 @@ def run_lstm_prediction_after_crawl():
             debug=False  # Tắt debug để tránh lỗi encoding
         )
         
-        result = predictor.predict()
+        result = predictor.predict(target_date)
         
         if result:
             total_data = result['total_data_points']
@@ -88,10 +88,10 @@ def run_lstm_prediction_after_crawl():
         insert_log(f"Lỗi khi chạy LSTM prediction: {str(e)}", LogType.ERROR)
         return False
 
-def run_prediction_after_crawl():
+def run_prediction_after_crawl(target_date=None):
     """Chạy cả LSTM và LSTM AutoEncoder predictions sau khi crawl"""
-    lstmae_success = run_lstmae_prediction_after_crawl()
-    lstm_success = run_lstm_prediction_after_crawl()
+    lstmae_success = run_lstmae_prediction_after_crawl(target_date)
+    lstm_success = run_lstm_prediction_after_crawl(target_date)
     
     if lstmae_success and lstm_success:
         insert_log("Cả hai predictions (LSTM và LSTM-AE) đã hoàn thành thành công", LogType.INFO)
@@ -118,11 +118,12 @@ def crawl_measurements_data():
             insert_log(f"Thử crawl measurements data lần {attempt + 1}/{max_retries}", LogType.INFO)
             
             start_date = datetime.now().strftime('%Y-%m-%d')
+            end_date = datetime.now().strftime('%Y-%m-%d')
             time_range = "01:00-04:00"
             data = api_client.request(
                 method="GET",
                 endpoint="/api/scada/get_measurement_data_by_time",
-                params={"start_date": start_date, "time_range": time_range},
+                params={"start_date": start_date, "end_date": end_date, "time_range": time_range},
                 timeout=90 
             )
             

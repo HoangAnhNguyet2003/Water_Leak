@@ -30,10 +30,21 @@ export class MainComponentComponent implements OnInit {
         rotate: -45,
         trim: false,
         hideOverlappingLabels: false,
+        showDuplicates: true,
         style: {
           colors: [],
           fontSize: '11px'
+        },
+        formatter: function(val: string) {
+          return val;
         }
+      },
+      tickAmount: 6,
+      axisBorder: {
+        show: true
+      },
+      axisTicks: {
+        show: true
       }
     },
     dataLabels: { enabled: false },
@@ -82,10 +93,21 @@ export class MainComponentComponent implements OnInit {
           rotate: -45,
           trim: false,
           hideOverlappingLabels: false,
+          showDuplicates: true,
           style: {
             colors: [],
             fontSize: '11px'
+          },
+          formatter: function(val: string) {
+            return val;
           }
+        },
+        tickAmount: Math.floor(categories.length / 3),
+        axisBorder: {
+          show: true
+        },
+        axisTicks: {
+          show: true
         }
       },
       yaxis: { title: { text: 'Lưu lượng' } },
@@ -194,10 +216,21 @@ export class MainComponentComponent implements OnInit {
           rotate: -45,
           trim: false,
           hideOverlappingLabels: false,
+          showDuplicates: true,
           style: {
             colors: [],
             fontSize: '11px'
+          },
+          formatter: function(val: string) {
+            return val;
           }
+        },
+        tickAmount: 6,
+        axisBorder: {
+          show: true
+        },
+        axisTicks: {
+          show: true
         }
       },
       yaxis: { title: { text: "Lưu lượng" } },

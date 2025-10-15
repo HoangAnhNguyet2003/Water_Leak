@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, make_response, current_app
 from flasgger import swag_from
 from bson import ObjectId
-from flask_jwt_extended import get_csrf_token,create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt, set_access_cookies, set_refresh_cookies, unset_jwt_cookies
+from flask_jwt_extended import get_csrf_token, create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt, set_access_cookies, set_refresh_cookies, unset_jwt_cookies
 from datetime import datetime
 
 from ...extensions import get_db
@@ -118,14 +118,7 @@ def refresh():
         "csrf_access_token": csrf_token
     }))
     insert_log(message="Token đã được làm mới thành công", log_type=LogType.INFO, user_id=uid)
-    set_access_cookies(
-        response,
-        new_access_token,
-        domain=current_app.config.get("JWT_COOKIE_DOMAIN", None),
-        secure=current_app.config["JWT_COOKIE_SECURE"],
-        samesite=current_app.config["JWT_COOKIE_SAMESITE"],
-        httponly=True
-    )
+    set_access_cookies(response, new_access_token)
 
     return response
 

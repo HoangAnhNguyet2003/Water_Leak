@@ -103,10 +103,15 @@ class LSTM_Predictor:
         start_time = end_time - timedelta(days=self.historical_context)
         return start_time, end_time
     
-    def get_today_time_range(self):
-        now = datetime.now(timezone.utc)
-        start_time = datetime.combine(now.date(), datetime.min.time()).replace(tzinfo=timezone.utc)
-        end_time = now
+    def get_today_time_range(self, target_date=None):
+        if target_date is None:
+            now = datetime.now(timezone.utc)
+            target_date = now.date()
+        elif isinstance(target_date, str):
+            target_date = datetime.strptime(target_date, '%Y-%m-%d').date()
+        
+        start_time = datetime.combine(target_date, datetime.min.time()).replace(tzinfo=timezone.utc)
+        end_time = datetime.combine(target_date, datetime.max.time()).replace(tzinfo=timezone.utc)
         return start_time, end_time
     
     def fetch_meter_data(self, start_time, end_time):
@@ -161,7 +166,7 @@ class LSTM_Predictor:
         
         return model, daily_averages, dates
 
-    def predict_meter(self, meter_name, model, scaler, daily_averages, dates, today_data=None):
+    def predict_meter(self, meter_name, model, scaler, daily_averages, dates, today_data=None, target_date=None):
         try:
             if len(daily_averages) >= self.historical_context:
                 last_sequence = daily_averages[-self.historical_context:]
@@ -188,10 +193,14 @@ class LSTM_Predictor:
                         level = "NNcao"
                     levels = [level]
                 
-                today = datetime.now(timezone.utc).date()
+                if target_date is None:
+                    target_date = datetime.now(timezone.utc).date()
+                elif isinstance(target_date, str):
+                    target_date = datetime.strptime(target_date, '%Y-%m-%d').date()
+                
                 results = [{
                     'meter_name': meter_name,
-                    'date': today,
+                    'date': target_date,
                     'avg_instant_flow': float(today_actual_flow),
                     'pred_flow': float(pred_real[0]),
                     'NN_level': levels[0]
@@ -255,11 +264,11 @@ class LSTM_Predictor:
             
         return 0
 
-    def predict(self):
+    def predict(self, target_date=None):
         start_time, end_time = self.get_time_range()
         all_meter_data = self.fetch_meter_data(start_time, end_time)
         
-        today_start, today_end = self.get_today_time_range()
+        today_start, today_end = self.get_today_time_range(target_date)
         today_meter_data = self.fetch_meter_data(today_start, today_end)
         
         all_predictions = []
@@ -273,7 +282,7 @@ class LSTM_Predictor:
             _scaler = MinMaxScaler()
             model, daily_averages, dates = self.fine_tune_model(meter_historical, _scaler)
             
-            predictions = self.predict_meter(meter_name, model, _scaler, daily_averages, dates, today_meter_data)
+            predictions = self.predict_meter(meter_name, model, _scaler, daily_averages, dates, today_meter_data, target_date)
             all_predictions.extend(predictions)
         
         saved_count = self.save_predictions_to_db(all_predictions)

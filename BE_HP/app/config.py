@@ -17,7 +17,7 @@ class Config:
     JWT_REFRESH_COOKIE_NAME = "refresh_token"
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
-    JWT_COOKIE_CSRF_PROTECT = False  # Tắt CSRF protection cho cookies
+    JWT_COOKIE_CSRF_PROTECT = True  # Bật CSRF protection cho cookies
 
 class MLConfig: 
     BASE_DIR = os.path.dirname(__file__)

@@ -1,0 +1,132 @@
+tags:
+  - predictions
+summary: Generate predictions for date range
+description: Tạo predictions cho khoảng ngày từ start_date đến end_date bằng cả LSTM và LSTM-AE
+consumes:
+  - application/json
+produces:
+  - application/json
+security:
+  - bearerAuth: []
+parameters:
+  - in: body
+    name: body
+    description: Date range for predictions
+    required: true
+    schema:
+      type: object
+      properties:
+        start_date:
+          type: string
+          format: date
+          example: "2025-10-10"
+          description: Start date in YYYY-MM-DD format
+        end_date:
+          type: string
+          format: date
+          example: "2025-10-15"
+          description: End date in YYYY-MM-DD format
+      required:
+        - start_date
+        - end_date
+responses:
+  200:
+    description: Prediction generation completed successfully
+    schema:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Prediction generation completed"
+        date_range:
+          type: object
+          properties:
+            start_date:
+              type: string
+              format: date
+              example: "2025-10-10"
+            end_date:
+              type: string
+              format: date
+              example: "2025-10-15"
+            total_days:
+              type: integer
+              example: 6
+        summary:
+          type: object
+          properties:
+            successful_days:
+              type: integer
+              example: 5
+            failed_days:
+              type: integer
+              example: 1
+            total_lstm_predictions:
+              type: integer
+              example: 150
+            total_lstmae_predictions:
+              type: integer
+              example: 145
+        failed_dates:
+          type: array
+          items:
+            type: string
+            format: date
+          example: ["2025-10-12"]
+        detailed_results:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+                example: "2025-10-10"
+              lstm_success:
+                type: boolean
+                example: true
+              lstmae_success:
+                type: boolean
+                example: true
+              lstm_predictions:
+                type: integer
+                example: 30
+              lstmae_predictions:
+                type: integer
+                example: 29
+              errors:
+                type: array
+                items:
+                  type: string
+  400:
+    description: Bad request
+    schema:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "start_date and end_date are required"
+  401:
+    description: Unauthorized - Invalid or missing JWT token
+    schema:
+      type: object
+      properties:
+        msg:
+          type: string
+          example: "Missing Authorization Header"
+  403:
+    description: Forbidden - Insufficient permissions
+    schema:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Access denied"
+  500:
+    description: Internal server error
+    schema:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Internal server error message"
