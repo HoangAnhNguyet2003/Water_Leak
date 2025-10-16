@@ -9,6 +9,7 @@ from ...ml.lstm_autoencoder.predict import LSTMAEPredictor
 from ...config import MLConfig
 
 from datetime import datetime, timedelta
+from ...utils import get_vietnam_now
 
 def get_model_id_by_name(model_name: str):
     
@@ -35,7 +36,7 @@ def make_prediction_and_save(meter_id, flow, model_name):
         "meter_id": to_object_id(meter_id),
         "model_id": model_id,
         "is_anomaly": is_anomaly,
-        "prediction_time": datetime.now(),
+        "prediction_time": get_vietnam_now(),
         "predicted_label": predicted_label,
         "confidence": confidence,
         "predicted_threshold": threshold,

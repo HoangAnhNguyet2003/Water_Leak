@@ -4,7 +4,7 @@ from flask_jwt_extended import get_jwt, jwt_required,get_jwt_identity
 from ...extensions import get_db
 from ...require import require_role
 from ...models.meter_schema import MeterCreate, MeterOut
-from .meter_utils import create_meter_admin_only, get_meters_list, list_meters, remove_meter, calculate_meter_status_and_confidence, get_detailed_prediction_with_status, get_detailed_predictions_with_status, add_threshold_to_meter
+from .meter_utils import create_meter_admin_only, get_meters_list, list_meters, remove_meter, calculate_meter_status_and_confidence, calculate_bulk_meter_status_and_confidence, get_detailed_prediction_with_status, get_detailed_predictions_with_status, add_threshold_to_meter
 from ...error import BadRequest
 from ...utils import json_ok, created, parse_pagination, get_swagger_path
 import traceback
@@ -95,6 +95,11 @@ def list_():
     items, has_next = list_meters(page, page_size, q, sort)
 
     db = get_db()
+    
+    # Tối ưu hóa: Tính toán bulk status cho tất cả meters
+    meter_ids = [ObjectId(x.get("_id") or x.get("id")) for x in items if x.get("_id") or x.get("id")]
+    status_results = calculate_bulk_meter_status_and_confidence(db, meter_ids) if meter_ids else {}
+    
     out = []
     for x in items:
         branch_name = None
@@ -105,10 +110,10 @@ def list_():
             except:
                 branch_name = None
 
-        # Sử dụng utils để tính toán status và confidence
+        # Lấy status và confidence từ kết quả bulk calculation
         meter_id = x.get("_id") or x.get("id")
-        if meter_id:
-            status, confidence = calculate_meter_status_and_confidence(db, ObjectId(meter_id))
+        if meter_id and ObjectId(meter_id) in status_results:
+            status, confidence = status_results[ObjectId(meter_id)]
         else:
             status, confidence = "unknown", "unknown"
         
@@ -154,6 +159,10 @@ def get_my_meters():
     meter_ids = [doc["meter_id"] for doc in user_meter_docs]
     meters = list(db.meters.find({"_id": {"$in": meter_ids}}))
 
+    # Tối ưu hóa: Tính toán bulk status cho tất cả meters
+    meter_object_ids = [x["_id"] for x in meters]
+    status_results = calculate_bulk_meter_status_and_confidence(db, meter_object_ids) if meter_object_ids else {}
+    
     out = []
     for x in meters:
         branch_name = None
@@ -201,7 +210,13 @@ def get_my_meters():
                 "leak_reason": repair_doc.get("leak_reason"),
             }
 
-        predictions, meter_status = get_detailed_predictions_with_status(db, x["_id"])
+        # Lấy status từ bulk calculation thay vì tính toán riêng lẻ
+        if x["_id"] in status_results:
+            meter_status, meter_confidence = status_results[x["_id"]]
+        else:
+            meter_status, meter_confidence = "unknown", "unknown"
+            
+        predictions, _ = get_detailed_predictions_with_status(db, x["_id"])
         prediction, _ = get_detailed_prediction_with_status(db, x["_id"])
 
         meter_out = {
@@ -210,7 +225,8 @@ def get_my_meters():
             "meter_name": x["meter_name"],
             "installation_time": x.get("installation_time"),
             "branchName": branch_name,
-            "status": meter_status,  # Thêm status được tính toán
+            "status": meter_status,  # Sử dụng status từ bulk calculation
+            "confidence": meter_confidence,  # Thêm confidence
             "threshold": threshold,
             "measurement": measurement,
             "repair": repair,

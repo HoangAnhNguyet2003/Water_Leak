@@ -8,6 +8,7 @@ try:
 except ImportError:
     SCHEDULER_AVAILABLE = False
 from ..extensions import get_db
+from ..utils import get_vietnam_now, VIETNAM_TZ
 from ..models.log_schemas import LogType
 from ..routes.logs.log_utils import insert_log
 from ..crawler.meter_measurements_crawler import crawl_measurements_data
@@ -37,7 +38,7 @@ class AppScheduler:
         db = get_db()
         lock_collection = db["scheduler_locks"]
         
-        now = datetime.now(timezone.utc)
+        now = get_vietnam_now()
         expires = now + timedelta(hours=2)
         
         try:
@@ -122,7 +123,7 @@ class AppScheduler:
         db = get_db()
         lock_collection = db["scheduler_locks"]
         
-        now = datetime.now(timezone.utc)
+        now = get_vietnam_now()
         expires = now + timedelta(hours=1)
         
         try:
@@ -168,7 +169,7 @@ class AppScheduler:
         try:
             self.scheduler.add_job(
                 self.crawl_all_data_with_lock,
-                trigger=CronTrigger(hour=6, minute=30),
+                trigger=CronTrigger(hour=5, minute=30),
                 id='daily_crawl_job',
                 name=f'Crawl dữ liệu hàng ngày',
                 replace_existing=True

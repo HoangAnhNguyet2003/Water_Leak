@@ -75,6 +75,13 @@ export class ChartDataService {
     }));
   }
 
+  public resetChartType(): void {
+    this.state.update(state => ({
+      ...state,
+      activeChartType: 'general'
+    }));
+  }
+
   // Getters
   public getState(): ReturnType<typeof signal<ChartState>> {
     return this.state;

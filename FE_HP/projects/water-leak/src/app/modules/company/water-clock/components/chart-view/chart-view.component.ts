@@ -16,11 +16,8 @@ import { PredictiveModelService } from '../../../../branches/predictive-model/se
   styleUrls: ['./chart-view.component.scss']
 })
 export class ChartViewComponent implements OnInit {
-  // Thông tin meter được truyền qua route params
   meterId = signal<string>('');
   meterName = signal<string>('Name');
-
-  // Chart state management
   activeChartTab = signal<'general' | 'anomaly' | 'anomaly-ai'>('general');
   private chartDataService = inject(ChartDataService);
   private chartState = this.chartDataService.getState();
@@ -29,6 +26,20 @@ export class ChartViewComponent implements OnInit {
   public chartLoaded = signal<boolean>(false);
   predictionData = signal<PredictionData[]>([]);
   isLoadingPredictions = signal<boolean>(false);
+
+  sortedPredictionData = computed(() => {
+    const data = this.predictionData();
+    if (data.length === 0) return data;
+
+    return [...data].sort((a, b) => {
+      if (a.id === 'no_data' || a.id === 'error') return 1;
+      if (b.id === 'no_data' || b.id === 'error') return -1;
+
+      const timeA = this.parseFormattedTime(a.thoi_gian);
+      const timeB = this.parseFormattedTime(b.thoi_gian);
+      return timeB - timeA;
+    });
+  });
 
   constructor(
     private router: Router,
@@ -39,7 +50,6 @@ export class ChartViewComponent implements OnInit {
 
   @ViewChild('chart') chart!: ChartComponent;
 
-  // Apex chart options (similar to main component)
     public chartOptions = signal<any>({
     series: [{ name: 'Lưu lượng', data: [] }],
     chart: { type: 'line', height: 350 },
@@ -57,18 +67,36 @@ export class ChartViewComponent implements OnInit {
     const cd = this.chartState().chartData;
     if (!cd) return;
     const chartData = cd.data ?? [];
+    this.markExtendedLeakPoints(chartData);
+
     const categories = chartData.map(d => d.timestamp);
     const lineSeries = chartData.map(d => d.value);
-    const leakSeries = chartData.map(d => d.predictedLabel === 'leak' ? d.value : null);
-  const series: any[] = [ { name: 'Lưu lượng', type: 'line', data: lineSeries } ];
-
+    const series: any[] = [{ name: 'Lưu lượng', type: 'line', data: lineSeries }];
     const activeType = this.chartState().activeChartType;
-    const showAnomaly = activeType === 'anomaly' || activeType === 'anomaly-ai';
-    if (showAnomaly && leakSeries.some(v => v !== null)) {
-      series.push({ name: 'Leak', type: 'scatter', data: leakSeries, marker: { size: 8, fillColor: '#ff1744', strokeWidth: 1 } });
-    }
 
-    this.chartOptions.set({
+    if (activeType === 'anomaly-ai') {
+      const leakSeries = chartData.map(d => d.predictedLabel === 'leak' ? d.value : null);
+      if (leakSeries.some((v: number | null) => v !== null)) {
+        series.push({
+          name: 'Rò rỉ (AI)',
+          type: 'scatter',
+          data: leakSeries,
+          marker: { size: 8, fillColor: '#ff1744', strokeWidth: 1, strokeColor: '#ffffff' }
+        });
+      }
+    } else if (activeType === 'anomaly') {
+      const thresholdAnomalySeries = chartData.map(d =>
+        (d.isAnomaly && d.predictedLabel !== 'leak') ? d.value : null
+      );
+      if (thresholdAnomalySeries.some((v: number | null) => v !== null)) {
+        series.push({
+          name: 'Bất thường (Ngưỡng)',
+          type: 'scatter',
+          data: thresholdAnomalySeries,
+          marker: { size: 8, fillColor: '#ff9800', strokeWidth: 1, strokeColor: '#ffffff' }
+        });
+      }
+    }    this.chartOptions.set({
       series,
       chart: { type: 'line', height: 350 },
       dataLabels: { enabled: false },
@@ -76,20 +104,22 @@ export class ChartViewComponent implements OnInit {
       xaxis: {
         categories,
         labels: {
-          maxHeight: undefined,
-          rotate: -45,  // Xoay labels để hiển thị tốt hơn với format dài
-          trim: false,  // Không cắt bớt text
-          hideOverlappingLabels: false,  // Hiển thị tất cả labels
+          rotate: -45,
+          rotateAlways: true,
+          hideOverlappingLabels: false,
+          trim: false,
+          maxHeight: 120,
           style: {
-            colors: [],
-            fontSize: '11px'
+            fontSize: '11px',
+            fontFamily: 'Arial, sans-serif'
           }
-        }
+        },
+        tickAmount: Math.min(10, Math.floor(categories.length / 2))
       },
       yaxis: { title: { text: cd.config?.yAxisLabel ?? 'Lưu lượng' } },
       tooltip: {
-        shared: false,   // ⬅ tắt tooltip chung
-        intersect: true, // ⬅ chỉ hiển thị đúng điểm được hover
+        shared: false,
+        intersect: true,
         x: { show: true },
         y: {
           formatter: (val: any, opts: any) => {
@@ -98,9 +128,12 @@ export class ChartViewComponent implements OnInit {
               const seriesName = opts.w.config.series[opts.seriesIndex].name;
               const point = chartData[idx];
               if (point) {
-                if (seriesName === 'Leak') {
-                  const conf = point.confidence !== undefined ? ` (conf: ${point.confidence})` : '';
-                  return `Lưu lượng: ${point.value} — Leak${conf}`;
+                if (seriesName === 'Rò rỉ (AI)') {
+                  const conf = point.confidence !== undefined ? ` (tin cậy: ${point.confidence})` : '';
+                  return `Lưu lượng: ${point.value} — Rò rỉ LSTM-AE${conf}`;
+                }
+                if (seriesName === 'Bất thường (Ngưỡng)') {
+                  return `Lưu lượng: ${point.value} — Bất thường theo ngưỡng`;
                 }
                 return `Lưu lượng: ${point.value}`;
               }
@@ -111,7 +144,7 @@ export class ChartViewComponent implements OnInit {
       },
       title: { text: `Lưu lượng - ${cd.meterName ?? this.meterName() ?? ''}`, align: 'left' },
       markers: { size: 6 },
-      colors: ['#4285f4', '#ff1744']
+      colors: ['#4285f4', '#ff1744', '#ff9800']
     });
 
     try {
@@ -139,49 +172,12 @@ export class ChartViewComponent implements OnInit {
   }
 
   public async loadMeterById(id: number | string, name?: string | null): Promise<void> {
-    try {
-      await this.chartDataService.selectMeter(id as any, (name ?? '') as any);
-    } catch (e) {
-      return;
-    }
-
+    await this.chartDataService.selectMeter(id as any, (name ?? '') as any);
     const cd = this.chartState().chartData;
     const chartData = cd?.data ?? [];
     const meterNameFromState = cd?.meterName ?? name ?? this.meterName();
     this.meterName.set(meterNameFromState);
-
-    this.chartOptions.set({
-      series: [{ name: 'Lưu lượng', data: chartData.map(d => d.value) }],
-      chart: { type: 'line', height: 350 },
-      dataLabels: { enabled: false },
-      stroke: { curve: 'smooth' },
-      xaxis: {
-        categories: chartData.map(d => d.timestamp),
-        labels: {
-          maxHeight: undefined,
-          rotate: -45,  // Xoay labels để hiển thị tốt hơn với format dài
-          trim: false,  // Không cắt bớt text
-          hideOverlappingLabels: false,  // Hiển thị tất cả labels
-          style: {
-            colors: [],
-            fontSize: '11px'
-          }
-        }
-      },
-      yaxis: { title: { text: 'Lưu lượng' } },
-      tooltip: { x: { show: true } },
-      title: { text: `Lưu lượng - ${meterNameFromState ?? ''}`, align: 'left' },
-      markers: { size: 6 },
-      colors: ['#4285f4', '#e53935']
-    });
-
-    this.chartLoaded.set((chartData?.length ?? 0) > 0);
-
-    try {
-      this.chart?.updateOptions?.({ series: this.chartOptions().series, xaxis: this.chartOptions().xaxis }, false, true);
-    } catch (e) {
-      // ignore
-    }
+    this.chartLoaded.set(chartData.length > 0);
   }
 
   public dataPoints = computed<ChartDataPoint[]>(() => this.chartState().chartData?.data ?? []);
@@ -190,35 +186,20 @@ export class ChartViewComponent implements OnInit {
     return this.dataPoints().filter(p => !!p.isAnomaly).map(p => ({ timestamp: p.timestamp, value: p.value }));
   });
 
-  // log and set a debug flag when chart data arrives
   private readonly _debugEffect = effect(() => {
     const cd = this.chartState().chartData;
     if (!cd) {
       this.chartLoaded.set(false);
       return;
     }
-    const len = cd.data?.length ?? 0;
-    // set loaded when we have any points
-    this.chartLoaded.set(len > 0);
+    this.chartLoaded.set((cd.data?.length ?? 0) > 0);
   }, { allowSignalWrites: true });
 
 
 
-  // Chart data cho từng tab (sử dụng dữ liệu từ dashboard)
-  generalChartData = computed(() => ({
-    title: 'Tổng quát',
-    subtitle: 'General Flow Analysis',
-  }));
-
-  anomalyChartData = computed(() => ({
-    title: 'Hiển thị bất thường',
-    subtitle: 'Anomaly Detection',
-  }));
-
-  anomalyAiChartData = computed(() => ({
-    title: 'Hiển thị bất thường - AI',
-    subtitle: 'AI-Enhanced Anomaly Detection',
-  }));
+  generalChartData = computed(() => ({ title: 'Tổng quát', subtitle: 'General Flow Analysis' }));
+  anomalyChartData = computed(() => ({ title: 'Hiển thị bất thường', subtitle: 'Anomaly Detection' }));
+  anomalyAiChartData = computed(() => ({ title: 'Hiển thị bất thường - AI', subtitle: 'AI-Enhanced Anomaly Detection' }));
 
   currentChartData = computed(() => {
     switch (this.activeChartTab()) {
@@ -238,7 +219,6 @@ export class ChartViewComponent implements OnInit {
     return this.currentChartData().title;
   });
 
-  // Navigation methods
   goBack(): void {
     this.location.back();
   }
@@ -248,13 +228,9 @@ export class ChartViewComponent implements OnInit {
     void this.chartDataService.changeChartType(tab);
   }
 
-
-
   shouldShowPredictionButton(): boolean {
     return this.activeChartTab() === 'anomaly' || this.activeChartTab() === 'anomaly-ai';
   }
-
-  // Toggle prediction popup
   togglePredictionPopup(): void {
     const isOpening = !this.showPredictionPopup();
     this.showPredictionPopup.set(isOpening);
@@ -264,7 +240,7 @@ export class ChartViewComponent implements OnInit {
     }
   }
 
-  // Load prediction data from API
+
   private loadPredictionData(): void {
     const meterId = this.meterId();
     if (!meterId) return;
@@ -277,40 +253,55 @@ export class ChartViewComponent implements OnInit {
     ]).then(([lstmAutoencoder, lstmPredictions]) => {
       const allPredictions: PredictionData[] = [];
 
+      const tempPredictions: any[] = [];
+
       if (lstmAutoencoder?.length) {
         lstmAutoencoder.forEach((pred, index) => {
-          const predTime = this.formatPredictionTime(pred.prediction_time);
+          const rawTime = pred.prediction_time;
+          const predTime = this.formatPredictionTime(rawTime);
           const flow = this.formatFlowValue(pred.recorded_instant_flow);
           const status = this.formatPredictionStatus(pred.predicted_label, pred.confidence);
 
-          allPredictions.push({
+          tempPredictions.push({
             id: `ae_${index}`,
             thoi_gian: predTime,
             luu_luong: flow,
-            trang_thai: `[LSTM-AE] ${status}`
+            trang_thai: `[LSTM-AE] ${status}`,
+            raw_time: rawTime
           });
         });
       }
 
       if (lstmPredictions?.length) {
         lstmPredictions.forEach((pred, index) => {
-          const predTime = this.formatPredictionTime(pred.prediction_time);
+          const rawTime = pred.prediction_time;
+          const predTime = this.formatPredictionTime(rawTime);
           const flow = this.formatFlowValue(pred.recorded_instant_flow);
           const status = this.formatPredictionStatus(pred.predicted_label, pred.confidence);
 
-          allPredictions.push({
+          tempPredictions.push({
             id: `lstm_${index}`,
             thoi_gian: predTime,
             luu_luong: flow,
-            trang_thai: `[LSTM] ${status}`
+            trang_thai: `[LSTM] ${status}`,
+            raw_time: rawTime
           });
         });
       }
 
-      allPredictions.sort((a, b) => {
-        const timeA = new Date(a.thoi_gian).getTime();
-        const timeB = new Date(b.thoi_gian).getTime();
+      tempPredictions.sort((a, b) => {
+        const timeA = this.parseRawTime(a.raw_time);
+        const timeB = this.parseRawTime(b.raw_time);
         return timeB - timeA;
+      });
+
+      tempPredictions.forEach(temp => {
+        allPredictions.push({
+          id: temp.id,
+          thoi_gian: temp.thoi_gian,
+          luu_luong: temp.luu_luong,
+          trang_thai: temp.trang_thai
+        });
       });
 
       this.predictionData.set(allPredictions.length > 0 ? allPredictions : [
@@ -324,6 +315,57 @@ export class ChartViewComponent implements OnInit {
     }).finally(() => {
       this.isLoadingPredictions.set(false);
     });
+  }
+
+  private parseRawTime(predTime: any): number {
+    try {
+      let date: Date;
+      if (typeof predTime === 'string') {
+        date = new Date(predTime);
+      } else if (predTime && predTime.$date) {
+        date = new Date(predTime.$date);
+      } else if (predTime instanceof Date) {
+        date = predTime;
+      } else {
+        return 0; // Invalid date gets lowest priority
+      }
+
+      if (isNaN(date.getTime())) return 0;
+      return date.getTime();
+    } catch (error) {
+      return 0;
+    }
+  }
+
+  private parseFormattedTime(timeStr: string): number {
+    try {
+      // Parse format: "dd/mm/yyyy hh:mm"
+      if (timeStr === 'Invalid date' || timeStr === 'Không có dữ liệu' || timeStr === 'Lỗi tải dữ liệu') {
+        return 0;
+      }
+
+      const parts = timeStr.split(' ');
+      if (parts.length !== 2) return 0;
+
+      const datePart = parts[0]; // dd/mm/yyyy
+      const timePart = parts[1]; // hh:mm
+
+      const dateComponents = datePart.split('/');
+      const timeComponents = timePart.split(':');
+
+      if (dateComponents.length !== 3 || timeComponents.length !== 2) return 0;
+
+      const day = parseInt(dateComponents[0], 10);
+      const month = parseInt(dateComponents[1], 10) - 1; // Month is 0-indexed
+      const year = parseInt(dateComponents[2], 10);
+      const hours = parseInt(timeComponents[0], 10);
+      const minutes = parseInt(timeComponents[1], 10);
+
+      const date = new Date(year, month, day, hours, minutes);
+      return date.getTime();
+    } catch (error) {
+      return 0;
+    }
   }
 
   private formatPredictionTime(predTime: any): string {
@@ -341,7 +383,6 @@ export class ChartViewComponent implements OnInit {
 
       if (isNaN(date.getTime())) return 'Invalid date';
 
-      // Use UTC methods to match predictive-model component format
       const day = date.getUTCDate().toString().padStart(2, '0');
       const month = (date.getUTCMonth() + 1).toString().padStart(2, '0');
       const year = date.getUTCFullYear();
@@ -374,12 +415,58 @@ export class ChartViewComponent implements OnInit {
     return 'Không xác định';
   }
 
-  // Close prediction popup
+  private markExtendedLeakPoints(chartData: any[]): void {
+    if (chartData.length === 0) return;
+
+    const originalLabels = chartData.map(point => ({
+      originalLabel: point.predictedLabel,
+      originalAnomaly: point.isAnomaly
+    }));
+
+    const leakIndices: number[] = [];
+    chartData.forEach((point, index) => {
+      if (originalLabels[index].originalLabel === 'leak' && originalLabels[index].originalAnomaly) {
+        leakIndices.push(index);
+      }
+    });
+
+    if (leakIndices.length === 0) return;
+
+    let pointsPerHour = 12; // Default fallback
+    if (chartData.length >= 2) {
+      try {
+        const firstTime = new Date(chartData[0].timestamp);
+        const secondTime = new Date(chartData[1].timestamp);
+        const timeDiffMinutes = (secondTime.getTime() - firstTime.getTime()) / (1000 * 60);
+
+        if (timeDiffMinutes > 0) {
+          pointsPerHour = Math.ceil(60 / timeDiffMinutes);
+        }
+      } catch (e) {
+        pointsPerHour = 12;
+      }
+    }
+
+    const processedIndices = new Set<number>();
+
+    leakIndices.forEach(leakIndex => {
+      if (processedIndices.has(leakIndex)) return;
+
+      const extendPoints = Math.min(Math.floor(pointsPerHour / 2), chartData.length - leakIndex);
+
+      for (let i = leakIndex; i < leakIndex + extendPoints && i < chartData.length; i++) {
+        if (!processedIndices.has(i)) {
+          chartData[i].predictedLabel = 'leak';
+          processedIndices.add(i);
+        }
+      }
+    });
+  }
+
   closePredictionPopup(): void {
     this.showPredictionPopup.set(false);
   }
 
-  // TrackBy function for prediction data
   trackByPredictionId(index: number, item: PredictionData): string {
     return item.id;
   }

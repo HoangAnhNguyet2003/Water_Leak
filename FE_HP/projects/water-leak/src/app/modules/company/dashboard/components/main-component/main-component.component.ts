@@ -6,10 +6,8 @@ import { catchError } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ChartDataService } from '../../../../../core/services/company/chart-data.service';
-import { ClockServiceService } from '../../../water-clock/services/clock-service.service';
 import { of } from 'rxjs';
 import { NgApexchartsModule, ChartComponent } from "ng-apexcharts";
-
 
 @Component({
   selector: 'app-main-component',
@@ -23,30 +21,7 @@ export class MainComponentComponent implements OnInit {
   public chartOptions = signal<ChartOptions>({
     series: [{ name: 'Lưu lượng', data: [] }],
     chart: { type: 'line', height: 350 },
-    xaxis: {
-      categories: [],
-      labels: {
-        maxHeight: undefined,
-        rotate: -45,
-        trim: false,
-        hideOverlappingLabels: false,
-        showDuplicates: true,
-        style: {
-          colors: [],
-          fontSize: '11px'
-        },
-        formatter: function(val: string) {
-          return val;
-        }
-      },
-      tickAmount: 6,
-      axisBorder: {
-        show: true
-      },
-      axisTicks: {
-        show: true
-      }
-    },
+    xaxis: { categories: [] },
     dataLabels: { enabled: false },
     stroke: { curve: 'smooth' },
     yaxis: { title: { text: 'Lưu lượng' } },
@@ -57,7 +32,6 @@ export class MainComponentComponent implements OnInit {
   dashBoardService = inject(DashboardMainServiceService);
   router = inject(Router);
   private chartDataService = inject(ChartDataService);
-  private clockService = inject(ClockServiceService);
   allData = signal<DashBoardData[]>([]);
   searchTerm = signal<string>('');
 
@@ -67,18 +41,56 @@ export class MainComponentComponent implements OnInit {
 
   private readonly chartSyncEffect = effect(() => {
     const cd = this.chartState().chartData;
+    const activeType = this.chartState().activeChartType; // Đảm bảo effect trigger khi tab thay đổi
     if (!cd) return;
 
     const chartData = cd.data ?? [];
+
+    this.markExtendedLeakPoints(chartData);
+
     const categories = chartData.map(d => d.timestamp);
     const lineSeries = chartData.map(d => d.value);
-    const leakSeries = chartData.map(d => d.predictedLabel === 'leak' ? d.value : null);
 
-  const series: any[] = [ { name: 'Lưu lượng', type: 'line', data: lineSeries } ];
-  const activeType = this.chartState().activeChartType;
-    const showAnomaly = activeType === 'anomaly' || activeType === 'anomaly-ai';
-    if (showAnomaly && leakSeries.some(v => v !== null)) {
-      series.push({ name: 'Leak', type: 'scatter', data: leakSeries, marker: { size: 8, fillColor: '#ff1744', strokeWidth: 1 } });
+    if (cd.meterName) {
+      this.selectedMeterName.set(cd.meterName);
+    }
+
+    const series: any[] = [ { name: 'Lưu lượng', type: 'line', data: lineSeries } ];
+
+    if (activeType === 'anomaly-ai') {
+      const leakSeries = chartData.map(d =>
+        d.predictedLabel === 'leak' ? d.value : null
+      );
+      if (leakSeries.some((v: number | null) => v !== null)) {
+        series.push({
+          name: 'Rò rỉ (AI)',
+          type: 'scatter',
+          data: leakSeries,
+          marker: {
+            size: 6,
+            fillColor: '#ff1744',
+            strokeWidth: 1,
+            strokeColor: '#ffffff'
+          }
+        });
+      }
+    } else if (activeType === 'anomaly') {
+      const thresholdAnomalySeries = chartData.map(d =>
+        (d.isAnomaly && d.predictedLabel !== 'leak') ? d.value : null
+      );
+      if (thresholdAnomalySeries.some((v: number | null) => v !== null)) {
+        series.push({
+          name: 'Bất thường (Ngưỡng)',
+          type: 'scatter',
+          data: thresholdAnomalySeries,
+          marker: {
+            size: 8,
+            fillColor: '#ff9800',
+            strokeWidth: 1,
+            strokeColor: '#ffffff'
+          }
+        });
+      }
     }
 
     this.chartOptions.set({
@@ -89,26 +101,17 @@ export class MainComponentComponent implements OnInit {
       xaxis: {
         categories,
         labels: {
-          maxHeight: undefined,
           rotate: -45,
-          trim: false,
+          rotateAlways: true,
           hideOverlappingLabels: false,
-          showDuplicates: true,
-          style: {
-            colors: [],
-            fontSize: '11px'
-          },
-          formatter: function(val: string) {
-            return val;
+          trim: false,
+          maxHeight: 120,
+          style: { 
+            fontSize: '11px',
+            fontFamily: 'Arial, sans-serif'
           }
         },
-        tickAmount: Math.floor(categories.length / 3),
-        axisBorder: {
-          show: true
-        },
-        axisTicks: {
-          show: true
-        }
+        tickAmount: Math.min(10, Math.floor(categories.length / 2))
       },
       yaxis: { title: { text: 'Lưu lượng' } },
       tooltip: {
@@ -117,36 +120,29 @@ export class MainComponentComponent implements OnInit {
         x: { show: true },
         y: {
           formatter: (val: any, opts: any) => {
-            try {
-              const idx = opts.dataPointIndex;
-              const seriesName = opts?.w?.config?.series?.[opts.seriesIndex]?.name ?? '';
-              const point = chartData[idx];
-              if (point) {
-                // single-line tooltip: show flow and indicate Leak when appropriate
-                if (seriesName === 'Leak' || point.predictedLabel === 'leak') {
-                  const conf = point.confidence !== undefined && point.confidence !== null ? ` (conf: ${point.confidence})` : '';
-                  return `Lưu lượng: ${point.value} — Leak${conf}`;
-                }
-                return `Lưu lượng: ${point.value}`;
+            const idx = opts.dataPointIndex;
+            const seriesName = opts?.w?.config?.series?.[opts.seriesIndex]?.name ?? '';
+            const point = chartData[idx];
+            if (point) {
+              if (seriesName === 'Rò rỉ (AI)') {
+                const conf = point.confidence ? ` (tin cậy: ${point.confidence})` : '';
+                return `Lưu lượng: ${point.value} — Rò rỉ LSTM-AE${conf}`;
               }
-            } catch (e) {}
+              if (seriesName === 'Bất thường (Ngưỡng)') {
+                return `Lưu lượng: ${point.value} — Bất thường theo ngưỡng`;
+              }
+              return `Lưu lượng: ${point.value}`;
+            }
             return val;
           }
         }
       },
       title: { text: `Lưu lượng tức thời - ${this.selectedMeterName() ?? ''}`, align: 'left' },
       markers: { size: 6 },
-      colors: ['#4285f4', '#ff1744']
+      colors: ['#4285f4', '#ff1744', '#ff9800']
     });
 
-    try {
-      if (this.chart && this.chart.updateOptions) {
-        // Use smooth animation and avoid redrawing paths unnecessarily
-        this.chart.updateOptions(this.chartOptions(), false, true, true);
-      }
-    } catch (_e) {
-      // ignore
-    }
+    this.chart?.updateOptions?.(this.chartOptions(), false, true, true);
   }, { allowSignalWrites: true });
 
   totalNormalMeters = computed(() => {
@@ -155,8 +151,6 @@ export class MainComponentComponent implements OnInit {
   });
 
   totalAnomalies = computed(() => {
-    const real = this.clockService.getAnomalyDetectedCount();
-    if (real > 0) return real;
     const arr = this.allData() ?? [];
     return arr.filter(item => item.status === DashBoardDataStatus.ANOMALY).length;
   });
@@ -192,52 +186,19 @@ export class MainComponentComponent implements OnInit {
   });
 
   ngOnInit() {
+    // Reset chart type về 'general' và clear selection để đảm bảo fresh state
+    this.chartDataService.resetChartType();
+    this.selectedMeterId.set(null);
+    this.selectedMeterName.set(null);
+    
     this.dashBoardService.getMeterData().pipe(
-      catchError((err) => {
-        console.error('Error fetching data', err);
-        return of([]);
-      })
+      catchError(() => of([]))
     ).subscribe((data) => {
       this.allData.set(data);
-      if (data && data.length > 0 && this.selectedMeterId() === null) {
+      if (data?.length > 0 && !this.selectedMeterId()) {
         this.selectMeter(data[0]);
       }
     });
-
-    this.chartOptions.set({
-      series: [{ name: "Lưu lượng", data: [] }],
-      chart: { type: "line", height: 350 },
-      dataLabels: { enabled: false },
-      stroke: { curve: "smooth" },
-      xaxis: {
-        categories: [],
-        labels: {
-          maxHeight: undefined,
-          rotate: -45,
-          trim: false,
-          hideOverlappingLabels: false,
-          showDuplicates: true,
-          style: {
-            colors: [],
-            fontSize: '11px'
-          },
-          formatter: function(val: string) {
-            return val;
-          }
-        },
-        tickAmount: 6,
-        axisBorder: {
-          show: true
-        },
-        axisTicks: {
-          show: true
-        }
-      },
-      yaxis: { title: { text: "Lưu lượng" } },
-      tooltip: { x: { show: true } },
-      title: { text: "Lưu lượng theo thời gian", align: "left" }
-    });
-
   }
 
   onSearchChange(event: any) {
@@ -296,21 +257,51 @@ export class MainComponentComponent implements OnInit {
   }
 
   navigateToWaterClock(filterStatus: string): void {
-    // Map status to appropriate filter value
-    let statusFilter: string;
-    switch (filterStatus) {
-      case 'normal':
-        statusFilter = 'normal';
-        break;
-      case 'anomaly':
-        statusFilter = 'anomaly';
-        break;
-      default:
-        statusFilter = 'all';
+    const statusMap: { [key: string]: string } = { 'normal': 'normal', 'anomaly': 'anomaly' };
+    this.router.navigate(['/company/water-clock'], {
+      queryParams: { statusFilter: statusMap[filterStatus] || 'all' }
+    });
+  }
+
+  private markExtendedLeakPoints(chartData: any[]): void {
+    if (chartData.length === 0) return;
+
+    const originalLabels = chartData.map(point => ({
+      originalLabel: point.predictedLabel,
+      originalAnomaly: point.isAnomaly
+    }));
+
+    const leakIndices: number[] = [];
+    chartData.forEach((point, index) => {
+      if (originalLabels[index].originalLabel === 'leak' && originalLabels[index].originalAnomaly) {
+        leakIndices.push(index);
+      }
+    });
+
+    if (leakIndices.length === 0) return;
+
+    let pointsPerHour = 12;
+    if (chartData.length >= 2) {
+      const firstTime = new Date(chartData[0].timestamp);
+      const secondTime = new Date(chartData[1].timestamp);
+      const timeDiffMinutes = (secondTime.getTime() - firstTime.getTime()) / (1000 * 60);
+      if (timeDiffMinutes > 0) {
+        pointsPerHour = Math.ceil(60 / timeDiffMinutes);
+      }
     }
 
-    this.router.navigate(['/company/water-clock'], {
-      queryParams: { statusFilter: statusFilter }
+    const processedIndices = new Set<number>();
+    
+    leakIndices.forEach(leakIndex => {
+      if (processedIndices.has(leakIndex)) return;
+      
+      const extendPoints = Math.min(Math.floor(pointsPerHour / 2), chartData.length - leakIndex);
+      for (let i = leakIndex; i < leakIndex + extendPoints && i < chartData.length; i++) {
+        if (!processedIndices.has(i)) {
+          chartData[i].predictedLabel = 'leak';
+          processedIndices.add(i);
+        }
+      }
     });
   }
 }

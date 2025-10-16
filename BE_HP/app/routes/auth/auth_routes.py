@@ -3,6 +3,7 @@ from flasgger import swag_from
 from bson import ObjectId
 from flask_jwt_extended import get_csrf_token, create_access_token, create_refresh_token, jwt_required, get_jwt_identity, get_jwt, set_access_cookies, set_refresh_cookies, unset_jwt_cookies
 from datetime import datetime
+from ...utils import get_vietnam_now
 
 from ...extensions import get_db
 from ...extensions import limiter
@@ -56,7 +57,7 @@ def role_based_login():
         }
         try:
             db = get_db()
-            db.users.update_one({"_id": ObjectId(user_info["id"])}, {"$set": {"last_login": datetime.now()}})
+            db.users.update_one({"_id": ObjectId(user_info["id"])}, {"$set": {"last_login": get_vietnam_now()}})
         except Exception:
             pass
 
@@ -103,7 +104,7 @@ def refresh():
     )
 
     csrf_token = get_csrf_token(new_access_token)
-    db.users.update_one({"_id": ObjectId(uid)}, {"$set": {"last_login": datetime.now()}})
+    db.users.update_one({"_id": ObjectId(uid)}, {"$set": {"last_login": get_vietnam_now()}})
     
     response = make_response(json_ok({
         "message": "Token đã được làm mới thành công",
@@ -138,7 +139,7 @@ def logout():
         response = make_response(jsonify({
             "msg": "Logout thành công",
             "message": "Đăng xuất thành công",
-            "timestamp": str(datetime.now())
+            "timestamp": str(get_vietnam_now())
         }))
 
         insert_log(message="User đăng xuất thành công", log_type=LogType.INFO, user_id=uid)

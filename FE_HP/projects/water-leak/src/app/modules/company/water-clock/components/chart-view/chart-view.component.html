@@ -115,7 +115,7 @@
           <div class="popup-table-body">
             <div
               class="popup-table-row"
-              *ngFor="let item of predictionData(); trackBy: trackByPredictionId"
+              *ngFor="let item of sortedPredictionData(); trackBy: trackByPredictionId"
             >
               <div class="popup-data-cell time-cell">{{ item.thoi_gian }}</div>
               <div class="popup-data-cell flow-cell">{{ item.luu_luong }}</div>
