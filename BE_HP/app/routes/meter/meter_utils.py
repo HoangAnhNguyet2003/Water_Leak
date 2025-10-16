@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from bson import ObjectId
 
 from ...models.meter_schema import MeterCreate, MeterOut
+from ...utils import get_vietnam_now, VIETNAM_TZ
 from werkzeug.exceptions import BadRequest, Conflict, Forbidden
 from ...utils import role_name as _role_name, find_branch_by_name, oid_str, get_user_scope, to_object_id
 from ...extensions import get_db
@@ -79,7 +80,7 @@ def insert_meter(branch_id: ObjectId, meter_name: str, installation_time: Option
         "branch_id": branch_id,
         "meter_id": meter_id,
         "meter_name": meter_name.strip(),
-        "installation_time": installation_time or datetime.now(timezone.utc),
+        "installation_time": installation_time or get_vietnam_now(),
     }
     try:
         res = db[COL].insert_one(doc)
@@ -110,23 +111,14 @@ def create_meter_admin_only(data: MeterCreate) -> MeterOut:
 
 
 def get_meters_list(date_str: str | None = None):
-    """
-    Lấy danh sách đồng hồ và trạng thái dự đoán trong ngày.
-    - Nếu truyền date_str (YYYY-MM-DD) thì lấy đúng ngày đó
-    - Nếu không truyền thì mặc định hôm nay (theo giờ VN)
-    """ 
     db = get_db()
 
-    # Nếu không truyền thì mặc định hôm nay theo giờ VN
-    vn = ZoneInfo("Asia/Ho_Chi_Minh")
     if not date_str:
-        date_str = datetime.now(vn).strftime("%Y-%m-%d")
+        date_str = get_vietnam_now().strftime("%Y-%m-%d")
 
-    # Tính khoảng thời gian UTC cho ngày đó
     d = datetime.strptime(date_str, "%Y-%m-%d").date()
-    start_local = datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=vn)
-    end_local   = start_local + timedelta(days=1)
-    start_utc, end_utc = start_local.astimezone(timezone.utc), end_local.astimezone(timezone.utc)
+    start_vn = datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=VIETNAM_TZ)
+    end_vn   = start_vn + timedelta(days=1)
 
     pipeline = [
         {
@@ -146,7 +138,7 @@ def get_meters_list(date_str: str | None = None):
                     { 
                         "$match": { 
                             "$expr": { "$eq": ["$meter_id", "$$mid"] },
-                            "prediction_time": {"$gte": start_utc, "$lt": end_utc}
+                            "prediction_time": {"$gte": start_vn, "$lt": end_vn}
                         } 
                     },
                     { "$sort": { "prediction_time": -1 } },
@@ -223,86 +215,196 @@ def remove_meter(mid: str):
 # PREDICTION STATUS CALCULATION UTILS
 # =====================================
 
+def _convert_confidence_to_score(confidence, predicted_label):
+    if predicted_label == "normal":
+        return 0
+    elif predicted_label == "leak":
+        if confidence == "NNthap":
+            return 1
+        elif confidence == "NNTB":
+            return 2
+        elif confidence == "NNcao":
+            return 3    
+    return 0
+
+def _convert_score_to_status_confidence(score):
+    if score == 0:
+        return "normal", "normal"
+    elif score == 1:
+        return "anomaly", "NNthap"
+    elif score == 2:
+        return "anomaly", "NNTB"
+    elif score >= 3:
+        return "anomaly", "NNcao"
+    else:
+        return "unknown", "unknown"
+
 def calculate_meter_status_and_confidence(db, meter_id):
-    """
-    Tính toán status và confidence của meter dựa trên multiple model predictions
-    
-    Args:
-        db: Database connection
-        meter_id: ObjectId của meter
-        
-    Returns:
-        tuple: (status, confidence)
-        
-    Logic:
-        - Nếu có xung đột (1 normal + 1 anomaly) → status="anomaly", confidence="NNTB"
-        - Nếu tất cả anomaly → status="anomaly", confidence=cao nhất
-        - Nếu tất cả normal → status="normal", confidence=prediction đầu tiên
-        - Các trường hợp khác → giữ nguyên label và confidence
-    """
     try:
-        latest_predictions = list(db.predictions.find(
-            {"meter_id": meter_id}, 
-            sort=[("prediction_time", -1)]
-        ).limit(10))  
-        if not latest_predictions:
+        lstm_model = db.ai_models.find_one({"name": "lstm"})
+        lstm_ae_model = db.ai_models.find_one({"name": "lstm_autoencoder"})
+        
+        if not lstm_model and not lstm_ae_model:
+            return "unknown", "unknown"
+            
+        current_time = get_vietnam_now()
+        start_of_day = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        predictions_query = {
+            "meter_id": meter_id,
+            "prediction_time": {"$gte": start_of_day, "$lte": current_time}
+        }
+        
+        all_predictions = list(db.predictions.find(predictions_query).sort("prediction_time", -1))
+        
+        if not all_predictions:
             return "unknown", "unknown"
         
-        latest_time = latest_predictions[0]["prediction_time"]
-        same_time_predictions = [
-            p for p in latest_predictions 
-            if p["prediction_time"] == latest_time
-        ]
+        lstm_predictions = []
+        lstm_ae_predictions = []
         
-        normal_predictions = []
-        anomaly_predictions = []
+        for pred in all_predictions:
+            model_id = pred.get("model_id")
+            if model_id:
+                if lstm_model and model_id == lstm_model["_id"]:
+                    lstm_predictions.append(pred)
+                elif lstm_ae_model and model_id == lstm_ae_model["_id"]:
+                    lstm_ae_predictions.append(pred)
         
-        for pred in same_time_predictions:
-            label = pred.get("predicted_label", "unknown")
-            if label == "normal":
-                normal_predictions.append(pred)
-            elif label in ["leak", "anomaly"]:
-                anomaly_predictions.append(pred)
+        lstm_ae_score = 0
+        if lstm_ae_predictions:
+            scores = []
+            for pred in lstm_ae_predictions:
+                label = pred.get("predicted_label", "normal")
+                confidence = pred.get("confidence", "normal")
+                score = _convert_confidence_to_score(confidence, label)
+                scores.append(score)
+            
+            if scores:
+                lstm_ae_score = sum(scores) / len(scores)
+                lstm_ae_score = int(lstm_ae_score) 
         
-        if len(normal_predictions) > 0 and len(anomaly_predictions) > 0:
-            # Trường hợp xung đột: có cả normal và anomaly
-            return "anomaly", "NNTB"
-            
-        elif len(anomaly_predictions) > 0:
-            best_pred = _find_highest_confidence_prediction(anomaly_predictions)
-            confidence = str(best_pred.get("confidence", "unknown")) if best_pred else "unknown"
-            return "anomaly", confidence
-            
-        elif len(normal_predictions) > 0:
-            confidence = str(normal_predictions[0].get("confidence", "unknown"))
-            return "normal", confidence
-            
+        lstm_score = 0
+        if lstm_predictions:
+            latest_lstm = lstm_predictions[0]
+            label = latest_lstm.get("predicted_label", "normal")
+            confidence = latest_lstm.get("confidence", "normal")
+            lstm_score = _convert_confidence_to_score(confidence, label)
+        
+        if lstm_predictions and lstm_ae_predictions:
+            final_score = (lstm_score + lstm_ae_score) / 2
+            final_score = int(final_score) 
+        elif lstm_ae_predictions:
+            final_score = lstm_ae_score
+        elif lstm_predictions:
+            final_score = lstm_score
         else:
-            first_pred = same_time_predictions[0]
-            label = first_pred.get("predicted_label", "unknown")
-            confidence = str(first_pred.get("confidence", "unknown"))
-            
-            if label == "lost":
-                return "lost", confidence
-            else:
-                return "unknown", confidence
+            return "unknown", "unknown"
+        
+        return _convert_score_to_status_confidence(final_score)
                 
     except Exception as e:
         print(f"Error calculating meter status: {e}")
         return "unknown", "unknown"
 
 
-def get_detailed_prediction_with_status(db, meter_id):
-    """
-    Lấy thông tin prediction chi tiết với status được tính toán
+def calculate_bulk_meter_status_and_confidence(db, meter_ids):
+    if not meter_ids:
+        return {}
     
-    Args:
-        db: Database connection
-        meter_id: ObjectId của meter
+    try:
+        lstm_model = db.ai_models.find_one({"name": "lstm"})
+        lstm_ae_model = db.ai_models.find_one({"name": "lstm_autoencoder"})
         
-    Returns:
-        tuple: (prediction_dict, calculated_status)
-    """
+        if not lstm_model and not lstm_ae_model:
+            return {meter_id: ("unknown", "unknown") for meter_id in meter_ids}
+        
+        current_time = get_vietnam_now()
+        start_of_day = current_time.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        all_predictions = list(db.predictions.aggregate([
+            {
+                "$match": {
+                    "meter_id": {"$in": meter_ids},
+                    "prediction_time": {"$gte": start_of_day, "$lte": current_time}
+                }
+            },
+            {"$sort": {"meter_id": 1, "prediction_time": -1}},
+            {
+                "$group": {
+                    "_id": "$meter_id",
+                    "predictions": {"$push": "$$ROOT"}
+                }
+            }
+        ]))
+        
+        results = {}
+        
+        for group in all_predictions:
+            meter_id = group["_id"]
+            predictions = group["predictions"]
+            
+            if not predictions:
+                results[meter_id] = ("unknown", "unknown")
+                continue
+            
+            lstm_predictions = []
+            lstm_ae_predictions = []
+            
+            for pred in predictions:
+                model_id = pred.get("model_id")
+                if model_id:
+                    if lstm_model and model_id == lstm_model["_id"]:
+                        lstm_predictions.append(pred)
+                    elif lstm_ae_model and model_id == lstm_ae_model["_id"]:
+                        lstm_ae_predictions.append(pred)
+            
+            lstm_ae_score = 0
+            if lstm_ae_predictions:
+                scores = []
+                for pred in lstm_ae_predictions:
+                    label = pred.get("predicted_label", "normal")
+                    confidence = pred.get("confidence", "normal")
+                    score = _convert_confidence_to_score(confidence, label)
+                    scores.append(score)
+                
+                if scores:
+                    lstm_ae_score = sum(scores) / len(scores)
+                    lstm_ae_score = int(lstm_ae_score)  # Làm tròn xuống
+            
+            lstm_score = 0
+            if lstm_predictions:
+                latest_lstm = lstm_predictions[0]
+                label = latest_lstm.get("predicted_label", "normal")
+                confidence = latest_lstm.get("confidence", "normal")
+                lstm_score = _convert_confidence_to_score(confidence, label)
+            
+            if lstm_predictions and lstm_ae_predictions:
+                final_score = (lstm_score + lstm_ae_score) / 2
+                final_score = int(final_score)
+            elif lstm_ae_predictions:
+                final_score = lstm_ae_score
+            elif lstm_predictions:
+                final_score = lstm_score
+            else:
+                results[meter_id] = ("unknown", "unknown")
+                continue
+            
+            status, confidence = _convert_score_to_status_confidence(final_score)
+            results[meter_id] = (status, confidence)
+        
+        for meter_id in meter_ids:
+            if meter_id not in results:
+                results[meter_id] = ("unknown", "unknown")
+                
+        return results
+        
+    except Exception as e:
+        print(f"Error calculating bulk meter status: {e}")
+        return {meter_id: ("unknown", "unknown") for meter_id in meter_ids}
+
+
+def get_detailed_prediction_with_status(db, meter_id):
     try:
         latest_predictions = list(db.predictions.find(
             {"meter_id": meter_id}, 
@@ -352,16 +454,6 @@ def get_detailed_prediction_with_status(db, meter_id):
 
 
 def get_detailed_predictions_with_status(db, meter_id):
-    """
-    Lấy thông tin tất cả predictions chi tiết với status được tính toán
-    
-    Args:
-        db: Database connection
-        meter_id: ObjectId của meter
-        
-    Returns:
-        tuple: (predictions_array, calculated_status)
-    """
     try:
         latest_predictions = list(db.predictions.find(
             {"meter_id": meter_id}, 
@@ -498,8 +590,7 @@ def add_threshold_to_meter(meter_id: str, threshold_value: Optional[float] = Non
         raise BadRequest("Meter not found")
     
     if threshold_value is None:
-        vn = ZoneInfo("Asia/Ho_Chi_Minh")
-        yesterday = datetime.now(vn) - timedelta(days=1)
+        yesterday = get_vietnam_now() - timedelta(days=1)
         yesterday_str = yesterday.strftime('%Y-%m-%d')
         
         yesterday_threshold = get_threshold_by_date(meter_id, yesterday_str)
@@ -516,8 +607,7 @@ def add_threshold_to_meter(meter_id: str, threshold_value: Optional[float] = Non
             else:
                 threshold_value = 0.0
     
-    vn = ZoneInfo("Asia/Ho_Chi_Minh")
-    today_str = datetime.now(vn).strftime('%Y-%m-%d')
+    today_str = get_vietnam_now().strftime('%Y-%m-%d')
     threshold_doc = {
         "meter_id": meter_oid,
         "threshold_value": float(threshold_value),
@@ -552,8 +642,7 @@ def create_daily_thresholds_for_all_meters():
         success_count = 0
         error_count = 0
         
-        vn = ZoneInfo("Asia/Ho_Chi_Minh")
-        today = datetime.now(vn)
+        today = get_vietnam_now()
         today_str = today.strftime('%Y-%m-%d')
         yesterday = today - timedelta(days=1)
         yesterday_str = yesterday.strftime('%Y-%m-%d')

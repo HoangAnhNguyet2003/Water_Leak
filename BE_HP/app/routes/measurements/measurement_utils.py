@@ -2,7 +2,7 @@ from werkzeug.exceptions import NotFound, BadRequest
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
-from ...utils import find_by_id, oid as _oid
+from ...utils import find_by_id, oid as _oid, VIETNAM_TZ
 from ...extensions import get_db
 
 COL = "meter_measurements"
@@ -29,12 +29,12 @@ def get_daily_flow(mid: str, date_str: str) -> dict:
     if not find_by_id(mid, 'meters'):
         raise NotFound("Meter not found")
     try:
-        day = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        day = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=VIETNAM_TZ)
     except ValueError:
         raise BadRequest("Invalid date format, expected YYYY-MM-DD")
     
     db = get_db()
-    start = day.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=timezone.utc)
+    start = day.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=VIETNAM_TZ)
     end   = start + timedelta(days=1)
 
     cur = db[COL].find(

@@ -7,6 +7,11 @@ import bcrypt as bc
 from pymongo import MongoClient, ASCENDING, DESCENDING, ReturnDocument
 from typing import Optional, Dict, Any, List
 
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from app.utils import get_vietnam_now, VIETNAM_TZ
+
 # ======================
 # Cấu hình kết nối MongoDB
 # ======================
@@ -459,7 +464,7 @@ def seed_meter_manual_thresholds():
     print("Seeding meter_manual_thresholds ...")
     meters = list(db.meters.find({}, {"_id": 1}))
     docs = []
-    now = datetime.now(timezone.utc)
+    now = get_vietnam_now()
 
     for m in meters:
         num_thresholds = random.randint(1, 3)

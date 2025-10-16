@@ -10,7 +10,6 @@ def crawl_repair_data():
     max_retries = 3
     retry_delays = [60, 120, 300]  # 1 phút, 2 phút, 5 phút
     
-    # Đảm bảo token fresh trước khi bắt đầu crawl
     insert_log("Kiểm tra và refresh token trước khi crawl repair data", LogType.INFO)
     if not api_client.ensure_token():
         insert_log("Không thể lấy token để crawl repair data", LogType.ERROR)

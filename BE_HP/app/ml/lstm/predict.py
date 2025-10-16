@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone, date
 import pickle
 
 from ...extensions import get_db
-from ...utils import to_object_id
+from ...utils import to_object_id, get_vietnam_now, VIETNAM_TZ
 from ...utils.ml_utils import preprocess_data_lstm
 from ...config import MLConfig
 
@@ -97,21 +97,21 @@ class LSTM_Predictor:
         return adjusted_levels
     
     def get_time_range(self):
-        now = datetime.now(timezone.utc)
+        now = get_vietnam_now()
         yesterday = now.date() - timedelta(days=1)
-        end_time = datetime.combine(yesterday, datetime.max.time()).replace(tzinfo=timezone.utc)
+        end_time = datetime.combine(yesterday, datetime.max.time()).replace(tzinfo=VIETNAM_TZ)
         start_time = end_time - timedelta(days=self.historical_context)
         return start_time, end_time
     
     def get_today_time_range(self, target_date=None):
         if target_date is None:
-            now = datetime.now(timezone.utc)
+            now = get_vietnam_now()
             target_date = now.date()
         elif isinstance(target_date, str):
             target_date = datetime.strptime(target_date, '%Y-%m-%d').date()
         
-        start_time = datetime.combine(target_date, datetime.min.time()).replace(tzinfo=timezone.utc)
-        end_time = datetime.combine(target_date, datetime.max.time()).replace(tzinfo=timezone.utc)
+        start_time = datetime.combine(target_date, datetime.min.time()).replace(tzinfo=VIETNAM_TZ)
+        end_time = datetime.combine(target_date, datetime.max.time()).replace(tzinfo=VIETNAM_TZ)
         return start_time, end_time
     
     def fetch_meter_data(self, start_time, end_time):
@@ -194,7 +194,7 @@ class LSTM_Predictor:
                     levels = [level]
                 
                 if target_date is None:
-                    target_date = datetime.now(timezone.utc).date()
+                    target_date = get_vietnam_now().date()
                 elif isinstance(target_date, str):
                     target_date = datetime.strptime(target_date, '%Y-%m-%d').date()
                 
