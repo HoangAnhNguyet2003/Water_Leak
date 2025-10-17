@@ -27,7 +27,6 @@ def get_all_predictions_by_meter_id(mid):
         result = [p for p in predictions]
         return jsonify(result), 200
     except Exception as e:
-        print(f"DB error in get_all_predictions_by_meter_id: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
 @pred_bp.get("/get_all_predictions_by_meter_id/deep_learning/<string:mid>")
@@ -46,7 +45,6 @@ def get_all_predictions_by_meter_id_deep_learning(mid):
         result = [p for p in predictions]
         return jsonify(result), 200
     except Exception as e:
-        print(f"DB error in get_all_predictions_by_meter_id_deep_learning: {e}")
         return jsonify({"error": "Internal server error"}), 500
     
 
@@ -78,17 +76,82 @@ def make_prediction():
             'flow': float(flow_rate),
             'reconstructed_flow': float(reconstructed_flow),
             'is_anomaly': bool(is_anomaly),
-            'confidence': float(confidence),
+            'confidence': confidence,
             'reconstruction_error': float(reconstruction_error),
             'threshold': float(threshold),
             'message': 'Dự đoán thành công'
         }
         
-        print(f"Response data: {response_data}")  
-        
         return jsonify(response_data), 200
         
     except Exception as e:
-        print(f"Error in manual_prediction: {e}")
         insert_log(message=f"Error in make_prediction: {e}", log_type=LogType.ERROR, user_id=None)  
+        return jsonify({"error": str(e)}), 500
+
+
+@pred_bp.get("/get_lstm_autoencoder_predictions/<string:meter_id>")
+@jwt_required()
+@require_role("branch_manager", "company_manager", "admin")
+def get_lstm_autoencoder_predictions(meter_id):
+    try:
+        oid = ObjectId(meter_id)
+        db = get_db()
+        
+        lstm_models = list(db.ai_models.find({
+            "name": "lstm_autoencoder"
+        }))
+        
+        if not lstm_models:
+            return jsonify({"predictions": [], "message": "No LSTM models found"}), 200
+            
+        model_ids = [model["_id"] for model in lstm_models]
+        
+        predictions = list(db.predictions.find({
+            "meter_id": oid,
+            "model_id": {"$in": model_ids}
+        }).sort("prediction_time", -1))
+        
+        for pred in predictions:
+            pred["_id"] = str(pred["_id"])
+            pred["meter_id"] = str(pred["meter_id"])
+            pred["model_id"] = str(pred["model_id"])
+        
+        return jsonify({"predictions": predictions}), 200
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@pred_bp.get("/get_lstm_predictions/<string:meter_id>")
+@jwt_required()
+@require_role("branch_manager", "company_manager", "admin")
+def get_lstm_predictions(meter_id):
+    try:
+        oid = ObjectId(meter_id)
+        db = get_db()
+        
+        lstm_models = list(db.ai_models.find({
+            "name": "lstm"
+        }))
+        
+        if not lstm_models:
+            return jsonify({"predictions": [], "message": "No LSTM model found"}), 200
+            
+        model_ids = [model["_id"] for model in lstm_models]
+        
+        # Lấy toàn bộ LSTM predictions cho meter này
+        predictions = list(db.predictions.find({
+            "meter_id": oid,
+            "model_id": {"$in": model_ids}
+        }).sort("prediction_time", -1))
+        
+        for pred in predictions:
+            pred["_id"] = str(pred["_id"])
+            pred["meter_id"] = str(pred["meter_id"])
+            if pred.get("model_id"):
+                pred["model_id"] = str(pred["model_id"])
+        
+        return jsonify({"predictions": predictions}), 200
+        
+    except Exception as e:
         return jsonify({"error": str(e)}), 500

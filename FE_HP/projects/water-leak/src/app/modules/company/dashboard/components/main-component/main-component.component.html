@@ -1,0 +1,160 @@
+<div class="dashboard-container">
+  <!-- Statistics Cards -->
+  <div class="stats-row">
+    <div class="stat-card normal-card clickable-card" (click)="navigateToWaterClock('normal')">
+      <div class="stat-icon">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-title">Bình thường</div>
+        <div class="stat-number">{{ totalNormalMeters() }}</div>
+        <div class="stat-label">đồng hồ</div>
+      </div>
+      <div class="card-hover-indicator">
+        <i class="fas fa-arrow-right"></i>
+      </div>
+    </div>
+
+    <div class="stat-card anomaly-card clickable-card" (click)="navigateToWaterClock('anomaly')">
+      <div class="stat-icon">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-title">Bất thường</div>
+        <div class="stat-number">{{ totalAnomalies() }}</div>
+        <div class="stat-label">đồng hồ</div>
+      </div>
+      <div class="card-hover-indicator">
+        <i class="fas fa-arrow-right"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content Section -->
+  <div class="main-content-section">
+    <!-- Data Table Section (40%) -->
+    <div class="table-section">
+      <div class="table-header">
+        <div class="header-title-row">
+          <h3 class="table-title">Dữ liệu đồng hồ trạm cấp nước</h3>
+        </div>
+
+        <div class="search-container">
+          <div class="search-box">
+            <i class="fas fa-search search-icon"></i>
+            <input
+              type="text"
+              placeholder="Search"
+              (input)="onSearchChange($event)"
+              class="search-input"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <div class="table-header-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Tên đồng hồ</th>
+                <th>Chi nhánh</th>
+                <th>Trạng thái</th>
+              </tr>
+            </thead>
+          </table>
+        </div>
+        <div class="table-body-container">
+          <table class="data-table">
+            <tbody>
+              <tr *ngFor="let item of filteredData(); trackBy: trackByFn">
+                <td class="station-name" (click)="selectMeter(item)">
+                  <span class="station-text" [class.active]="isMeterSelected(item)">
+                    {{ item.meter_data.name }}
+                  </span>
+                </td>
+                <td class="branch">{{ item.branchName }}</td>
+                <td>
+                  <span [class]="'status-badge ' + getStatusClass(item.meter_data.status)">
+                    {{ getStatusText(item.meter_data.status) }}
+                  </span>
+                </td>
+              </tr>
+              <tr *ngIf="(filteredData() || []).length === 0">
+                <td colspan="3" class="no-data">Không có dữ liệu</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail Section (60%) -->
+    <div class="detail-section">
+      <div class="detail-header">
+        <!-- Title Row -->
+        <div class="header-title-row">
+          <h3 class="detail-title">Biểu đồ lưu lượng tức thời</h3>
+        </div>
+
+        <!-- Tabs Row -->
+        <div class="header-tabs-row">
+          <div class="header-tabs">
+            <button
+              class="header-tab-button"
+              [class.active]="isActiveTab('general')"
+              (click)="switchChartTab('general')">
+              Tổng quát
+            </button>
+            <button
+              class="header-tab-button"
+              [class.active]="isActiveTab('anomaly')"
+              (click)="switchChartTab('anomaly')">
+              Hiển thị bất thường
+            </button>
+            <button
+              class="header-tab-button"
+              [class.active]="isActiveTab('anomaly-ai')"
+              (click)="switchChartTab('anomaly-ai')">
+              Hiển thị bất thường - AI
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-content">
+        <!-- Chart Section -->
+        <div class="chart-section">
+          <div class="chart-content">
+            <!-- Chart Header Info -->
+            <div class="chart-header-info">
+              <ng-container *ngIf="chartState().chartData as cd; else noData">
+                <h4 class="chart-main-title">{{ selectedMeterName() || cd.meterName || cd.config.title }}</h4>
+                <p class="chart-subtitle">{{ cd.config.subtitle }}</p>
+              </ng-container>
+              <ng-template #noData>
+                <h4 class="chart-main-title">Chưa có dữ liệu</h4>
+                <p class="chart-subtitle"></p>
+              </ng-template>
+            </div>
+
+            <div class="chart-wrapper">
+              <apx-chart
+                #chart
+                [series]="chartOptions().series"
+                [chart]="chartOptions().chart"
+                [xaxis]="chartOptions().xaxis"
+                [yaxis]="chartOptions().yaxis"
+                [stroke]="chartOptions().stroke"
+                [dataLabels]="chartOptions().dataLabels"
+                [tooltip]="chartOptions().tooltip"
+                [title]="chartOptions().title">
+              </apx-chart>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

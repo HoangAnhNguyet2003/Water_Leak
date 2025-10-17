@@ -1,0 +1,57 @@
+import { NgModule } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { AppRoutingModule } from './app-routing.module';
+import { AppComponent } from './app.component';
+import { LoginComponent } from './modules/auth/login/login.component';
+import { PredictiveModelComponent } from './modules/branches/predictive-model/components/predictive-model.component';
+import { ManualModelComponent } from './modules/branches/manual-model/components/manual-model.component';
+import { MeterManagementComponent } from './modules/branches/meter-management/components/meter-management.component';
+import { DashboardComponentComponent } from './modules/admin/dashboard/components/dashboard-component/dashboard-component.component';
+import { UmComponentsComponent } from './modules/admin/user-manager/components/um-components/um-components.component';
+import { DropdownDetailsComponent } from './modules/admin/user-manager/components/dropdown-details/dropdown-details.component';
+import { AddUserFormComponent } from './modules/admin/user-manager/components/add-user-form/add-user-form.component';
+import { AddMeterFormComponent } from './modules/admin/meter-manager/components/add-meter-form/add-meter-form.component';
+import { MeterDropdownDetailsComponent } from './modules/admin/meter-manager/components/meter-dropdown-details/meter-dropdown-details.component';
+import { MeterMainComponentComponent } from './modules/admin/meter-manager/components/meter-main-component/meter-main-component.component';
+import { LogMainComponent } from './modules/admin/log/components/log-main/log-main.component';
+import { ReactiveFormsModule, FormsModule } from '@angular/forms';
+import { HttpClientModule } from '@angular/common/http';
+import { AuthModule } from 'my-lib';
+import { MainComponent } from "./core/layout/main/main.component";
+import { SearchComponent } from './core/component/search/search.component';
+import { RouterModule } from '@angular/router';
+
+@NgModule({
+  declarations: [
+    AppComponent,
+    LoginComponent,
+    PredictiveModelComponent,
+  ],
+  imports: [
+    RouterModule.forRoot([]),
+    BrowserAnimationsModule,
+    BrowserModule,
+    AppRoutingModule,
+    HttpClientModule,
+    AuthModule,
+    UmComponentsComponent,
+    DashboardComponentComponent,
+    AddMeterFormComponent,
+    MeterDropdownDetailsComponent,
+    MeterMainComponentComponent,
+    DropdownDetailsComponent,
+    AddUserFormComponent,
+    LogMainComponent,
+    ReactiveFormsModule,
+    FormsModule,
+    MainComponent,
+    SearchComponent,
+    MeterManagementComponent,
+    ManualModelComponent
+],
+  providers: [],
+  bootstrap: [AppComponent]
+})
+export class AppModule { }
+

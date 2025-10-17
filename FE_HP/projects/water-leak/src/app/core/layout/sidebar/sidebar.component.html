@@ -1,0 +1,23 @@
+<div class="sidebar">
+  <div class="user-profile">
+    <div class="avatar"><i class="fas fa-user"></i></div>
+    <h3 class="user-name">{{ userName() }}</h3>
+  </div>
+
+  <nav class="sidebar-nav">
+    <ul class="nav-list">
+      <ng-container *ngIf="menu$ | async as menu">
+        <li class="nav-item" *ngFor="let item of menu; trackBy: trackByRoute">
+          <a [routerLink]="item.route" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }" class="nav-link">
+            <i [class]="item.icon"></i>
+            <span>{{ item.label }}</span>
+          </a>
+        </li>
+
+        <li class="nav-item no-data" *ngIf="menu.length === 0">
+          <span class="nav-link">Không có mục nào</span>
+        </li>
+      </ng-container>
+    </ul>
+  </nav>
+</div>

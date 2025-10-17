@@ -56,9 +56,10 @@ def list_repairs():
             if raw_meter_id:
                 try:
                     meter = db["meters"].find_one({"_id": ObjectId(raw_meter_id)})
-                    meter_name = meter.get("meter_name") if meter else None
+                    meter_name = meter.get("meter_name") if meter else "Unknown Meter"
                 except Exception as e:
                     print("DEBUG convert meter_id failed:", raw_meter_id, e)
+                    meter_name = "Invalid Meter ID"
 
 
 

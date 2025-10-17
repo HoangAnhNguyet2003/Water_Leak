@@ -1,0 +1,105 @@
+<div class="dashboard-container">
+  <div class="stats-row">
+    <div class="stat-card low-card clickable-card" (click)="navigateToMeters('NNthap')">
+      <div class="stat-icon">
+        <i class="fas fa-check-circle"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-title">Nghi ngờ thấp</div>
+        <div class="stat-number">{{ totalLow() }}</div>
+        <div class="stat-label">mức độ</div>
+      </div>
+      <div class="card-hover-indicator">
+        <i class="fas fa-arrow-right"></i>
+      </div>
+    </div>
+
+    <div class="stat-card medium-card clickable-card" (click)="navigateToMeters('NNTB')">
+      <div class="stat-icon">
+        <i class="fas fa-exclamation-circle"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-title">Nghi ngờ trung bình</div>
+        <div class="stat-number">{{ totalMedium() }}</div>
+        <div class="stat-label">mức độ</div>
+      </div>
+      <div class="card-hover-indicator">
+        <i class="fas fa-arrow-right"></i>
+      </div>
+    </div>
+
+    <div class="stat-card high-card clickable-card" (click)="navigateToMeters('NNcao')">
+      <div class="stat-icon">
+        <i class="fas fa-exclamation-triangle"></i>
+      </div>
+      <div class="stat-content">
+        <div class="stat-title">Nghi ngờ cao</div>
+        <div class="stat-number">{{ totalHigh() }}</div>
+        <div class="stat-label">mức độ</div>
+      </div>
+      <div class="card-hover-indicator">
+        <i class="fas fa-arrow-right"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="search-section">
+    <div class="search-container">
+      <input 
+        type="text" 
+        class="search-input" 
+        placeholder="Tìm kiếm theo tên đồng hồ"
+        [value]="searchTerm()"
+        (input)="onSearchChange($event)"
+      >
+      <i class="fas fa-search search-icon"></i>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <div class="table-header-fixed">
+      <table class="dashboard-table header-table">
+        <thead>
+          <tr>
+            <th>STT</th>
+            <th>Tên đồng hồ</th>
+            <th class="text-right">Số ngày rò rỉ liên tiếp</th>
+            <th>Vị trí</th>
+          </tr>
+        </thead>
+      </table>
+    </div>
+
+    <div class="table-body-scrollable">
+      <table class="dashboard-table body-table">
+        <tbody>
+          <tr *ngFor="let item of filteredData(); let i = index; trackBy: trackByFn">
+            <td>{{ i + 1 }}</td>
+            <td>{{ item.meter_name }}</td>
+            <td class="text-right">
+              <span class="leak-days-badge" [ngClass]="getLeakDaysClass(item.leakDays || 0)">
+                {{ item.leakDays || 0 }} ngày
+              </span>
+            </td>
+            <td>
+            <button class="btn-location-header" (click)="showMapForItem(item)">
+              Toạ độ bản đồ
+            </button>
+          </td>
+          </tr>
+          <tr *ngIf="filteredData().length === 0">
+            <td colspan="4" class="text-center text-gray-500 py-4">
+              Không tìm thấy dữ liệu phù hợp
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div *ngIf="showMap" class="map-overlay">
+    <div class="map-content">
+      <div id="map" class="map-element"></div>
+      <button class="close-map-btn" (click)="closeMap()">✖</button>
+    </div>
+  </div>
+</div>

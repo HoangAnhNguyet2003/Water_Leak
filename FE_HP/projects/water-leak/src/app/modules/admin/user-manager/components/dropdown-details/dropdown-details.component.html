@@ -1,0 +1,173 @@
+<div class="dropdown-details-inline" *ngIf="isVisible">
+  <div class="details-card">
+    <!-- View Mode -->
+    <div *ngIf="!isEditMode">
+      <!-- Details Grid -->
+      <div class="details-grid">
+        <div class="detail-group">
+          <h5>Thông tin chi tiết</h5>
+          <div class="detail-columns">
+            <div class="detail-column">
+              <div class="detail-row">
+                <span class="label">Username:</span>
+                <span class="value">{{ user["username"] }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Số đồng hồ nước quản lý:</span>
+                <span class="value">{{ user["managedWaterMeter"]?.length || 0 }}</span>
+              </div>
+            </div>
+            <div class="detail-column">
+              <div class="detail-row">
+                <span class="label">Chi nhánh:</span>
+                <span class="value">{{ user["branchName"] || 'Chưa xác định' }}</span>
+              </div>
+              <div class="detail-row">
+                <span class="label">Ngày tạo:</span>
+                <span class="value">{{ user["lastLogin"] || 'Chưa đăng nhập' }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <button class="btn btn-info" (click)="onChangeInformation(); $event.stopPropagation()">
+          Thay đổi thông tin
+        </button>
+        <button class="btn btn-danger" (click)="onRemoveUser(); $event.stopPropagation()">
+          Xóa người dùng
+        </button>
+      </div>
+    </div>
+
+    <!-- Edit Mode -->
+    <div *ngIf="isEditMode">
+      <div class="edit-form">
+        <h5>Chỉnh sửa thông tin người dùng</h5>
+
+        <div class="form-grid">
+          <!-- Left Column -->
+          <div class="form-column">
+            <div class="form-group horizontal">
+              <label class="form-label">Username:</label>
+              <input type="text" class="form-input" [(ngModel)]="editedUser.username" />
+            </div>
+
+            <div class="form-group horizontal">
+              <label class="form-label">Role:</label>
+              <div class="radio-group-horizontal">
+                <label class="radio-item">
+                  <input type="radio" name="role" [value]="UserRole.Admin" [(ngModel)]="editedUser.roleName" (change)="onRoleChange(UserRole.Admin)" />
+                  <span class="radio-custom"></span>
+                  <span class="radio-label">Admin</span>
+                </label>
+                <label class="radio-item">
+                  <input type="radio" name="role" [value]="UserRole.Company" [(ngModel)]="editedUser.roleName" (change)="onRoleChange(UserRole.Company)" />
+                  <span class="radio-custom"></span>
+                  <span class="radio-label">Công ty</span>
+                </label>
+                <label class="radio-item">
+                  <input type="radio" name="role" [value]="UserRole.Branch" [(ngModel)]="editedUser.roleName" (change)="onRoleChange(UserRole.Branch)" />
+                  <span class="radio-custom"></span>
+                  <span class="radio-label">Chi nhánh</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group horizontal">
+              <label class="form-label">Chi nhánh:</label>
+              <select class="form-input" [(ngModel)]="editedUser.branchId"
+                      [disabled]="editedUser.roleName === UserRole.Admin || editedUser.roleName === UserRole.Company">
+                <option value="">-- Chọn chi nhánh --</option>
+                <option *ngFor="let b of (branches$ | async)" [value]="b.id">{{ b.name }}</option>
+              </select>
+            </div>
+
+            <div class="form-group horizontal">
+              <label class="form-label">Password:</label>
+              <div class="password-input-container">
+                <input [type]="showPassword ? 'text' : 'password'" class="form-input" [(ngModel)]="editedUser.password" placeholder="Password" />
+                <button type="button" class="password-toggle-btn" (click)="togglePasswordVisibility($event)">
+                  <span *ngIf="!showPassword">👁️</span>
+                  <span *ngIf="showPassword">🙈</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="form-group horizontal">
+              <label class="form-label">Confirm Password:</label>
+              <div class="password-input-container">
+                <input [type]="showConfirmPassword ? 'text' : 'password'" class="form-input" [(ngModel)]="confirmPassword" placeholder="Confirm Password"
+                       [class.error]="!isPasswordValid() && confirmPassword.length > 0" />
+                <button type="button" class="password-toggle-btn" (click)="toggleConfirmPasswordVisibility($event)">
+                  <span *ngIf="!showConfirmPassword">👁️</span>
+                  <span *ngIf="showConfirmPassword">🙈</span>
+                </button>
+              </div>
+            </div>
+            <div *ngIf="!isPasswordValid() && confirmPassword.length > 0" class="password-error">
+              Mật khẩu không khớp!
+            </div>
+          </div>
+
+          <!-- Right Column -->
+          <div class="form-column">
+            <div class="form-group">
+              <label class="form-label">Các đồng hồ nước được quản lý:</label>
+              <div class="water-meters-selection">
+                <div class="meters-list">
+                  <div *ngFor="let meter of availableWaterMeters$ | async" class="meter-item"
+                       [class.selected]="isWaterMeterSelected(meter.id)"
+                       (click)="onMeterClick(meter, $event)">
+                    <div class="meter-checkbox">
+                      <input
+                        type="checkbox"
+                        [checked]="isWaterMeterSelected(meter.id)"
+                        [disabled]="editedUser.roleName === UserRole.Admin"
+                        (change)="onMeterClick(meter, $event); $event.stopPropagation()"
+                      />
+                      <span class="checkmark-custom"></span>
+                    </div>
+                    <div class="meter-info">
+                      <div class="meter-name">{{ meter.name }}</div>
+                      <div class="meter-details">
+                        <span class="meter-branch">Chi nhánh: {{ meter.branchName }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="selected-count">
+                  Đã chọn: {{ editedUser.managedWaterMeter?.length || 0 }}/{{ (availableWaterMeters$ | async)?.length || 0 }} đồng hồ
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Edit Action Buttons -->
+        <div class="action-buttons">
+          <button class="btn btn-success" (click)="onSaveChanges()">
+            Lưu thay đổi
+          </button>
+          <button class="btn btn-secondary" (click)="onCancelEdit()">
+            Hủy
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Popup đa chức năng -->
+<lib-popup-confirm
+  [isVisible]="showPopup"
+  [mode]="popupMode"
+  [title]="popupTitle"
+  [message]="popupMessage"
+  confirmText="Xác nhận"
+  cancelText="Hủy"
+  (confirm)="onPopupConfirm($event)"
+  (cancel)="onPopupCancel()">
+</lib-popup-confirm>

@@ -1,11 +1,14 @@
 flask
+apscheduler==3.11.0
 flasgger==0.9.7.1
 flask_socketio==5.5.1
 pydantic>=2
+tensorflow==2.20.0
 pymongo[srv]
 python-dotenv
 flask-cors
 gunicorn
+apscheduler
 absl-py==2.1.0
 beautifulsoup4==4.13.4
 blinker==1.9.0
@@ -26,7 +29,7 @@ itsdangerous==2.2.0
 jellyfish==1.2.0
 Jinja2==3.1.4
 joblib==1.4.2
-keras==3.8.0
+keras==3.11.3
 markdown-it-py==3.0.0
 MarkupSafe==3.0.2
 maturin==1.7.5

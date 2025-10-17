@@ -1,0 +1,22 @@
+<div class="meter-dropdown-inline" *ngIf="isVisible">
+  <div class="details-card">
+    <!-- Action Button -->
+    <div class="action-section">
+      <button class="btn btn-danger" (click)="onRemoveMeter()">
+        <i class="fas fa-trash"></i>
+        Xóa đồng hồ này
+      </button>
+    </div>
+  </div>
+</div>
+
+<lib-popup-confirm
+  [isVisible]="showPopup"
+  [mode]="popupMode"
+  [title]="popupTitle"
+  [message]="popupMessage"
+  confirmText="Xác nhận"
+  cancelText="Hủy"
+  (confirm)="onPopupConfirm($event)"
+  (cancel)="onPopupCancel()">
+</lib-popup-confirm>

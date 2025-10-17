@@ -1,0 +1,199 @@
+<div class="water-meter-page">
+  <!-- Search and Filter Section -->
+  <div class="filter-section">
+    <div class="search-container">
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Tìm theo tên đồng hồ"
+        [ngModel]="filter().searchTerm"
+        (input)="onSearchTermChange($event)"
+      >
+      <i class="fas fa-search search-icon"></i>
+    </div>
+
+    <!-- Filter trạng thái -->
+    <div class="filter-dropdown">
+      <select
+        class="status-filter"
+        [(ngModel)]="filter().statusFilter"
+        (change)="onFilterChange()"
+      >
+        <option value="">Lọc theo trạng thái</option>
+        <option value="NNthap">Nghi ngờ thấp</option>
+        <option value="NNTB">Nghi ngờ TB</option>
+        <option value="NNcao">Nghi ngờ cao</option>
+      </select>
+    </div>
+
+    <!-- Sort -->
+    <div class="filter-dropdown">
+      <select
+        class="sort-filter"
+        [(ngModel)]="filter().sortOrder"
+        (change)="onFilterChange()"
+      >
+        <option value="asc">Tăng dần</option>
+        <option value="desc" selected>Giảm dần</option>
+      </select>
+    </div>
+
+    <!-- Lọc vượt ngưỡng -->
+    <div class="filter-dropdown threshold-filter-group">
+      <select [(ngModel)]="filter().thresholdOperator" (change)="onFilterChange()">
+        <option value=">">&gt;</option>
+        <option value="<">&lt;</option>
+        <option value="=">=</option>
+      </select>
+      <input
+        type="number"
+        class="threshold-input"
+        [(ngModel)]="filter().thresholdValue"
+        (input)="onFilterChange()"
+        placeholder="% vượt"
+        min="0"
+      />
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-container">
+    <div class="table-header-fixed">
+      <table class="water-meter-table header-table">
+        <thead>
+          <tr>
+            <th>STT</th>
+            <th>Tên đồng hồ</th>
+            <th>Ngày lắp đặt</th>
+            <th>Vượt ngưỡng</th>
+            <th>Dự đoán AI</th>
+            <th>Hành động</th>
+          </tr>
+        </thead>
+      </table>
+    </div>
+
+    <!-- Scrollable Body -->
+    <div class="table-body-scrollable">
+      <table class="water-meter-table body-table">
+        <tbody>
+          <ng-container *ngFor="let meter of filteredMeters(); let i = index; trackBy: trackByMeterId">
+            <!-- Main Row -->
+            <tr
+              class="table-row"
+              [class.selected]="meter.selected"
+              [class.expanded]="meter.expanded"
+            >
+              <td>{{ i + 1 }}</td>
+              <td>{{ meter.meter_name }}</td>
+              <td>{{ formatDate(meter.installation_time) }}</td>
+              <td>
+                <span class="threshold-badge" [ngClass]="getThresholdInfo(meter).className">
+                  {{ getThresholdInfo(meter).percent | number:'1.0-2' }}%
+                </span>
+              </td>
+              <td>
+                <span class="prediction-badge" [ngClass]="getMeterConclusionToday(meter).color">
+                  {{ getMeterConclusionToday(meter).text }}
+                </span>
+              </td>
+              <td class="actions-column">
+                <button
+                  class="action-btn"
+                  (click)="viewDetails(meter._id)"
+                  [class.rotated]="meter.expanded"
+                >
+                  <i class="fas fa-chevron-down"></i>
+                </button>
+              </td>
+            </tr>
+
+            <!-- Detail Row -->
+            <tr
+              class="detail-row"
+              *ngIf="meter.expanded"
+              [@slideInOut]
+            >
+              <td colspan="7" class="detail-content">
+                <div class="detail-container">
+                  <div class="detail-header">
+                    <h4 class="detail-title">Thông tin chi tiết</h4>
+                  </div>
+                  <div class="detail-body">
+                    <div class="detail-info-grid">
+                      <div class="detail-item">
+                        <span class="detail-label">Ngày lắp đặt:</span>
+                        <span class="detail-value">{{ meter.installation_time | date:'dd/MM/yyyy' }}</span>
+                      </div>
+
+                      <div class="detail-item">
+                        <span class="detail-label">Ngưỡng thủ công:</span>
+                        <span class="detail-value">
+                          <ng-container *ngIf="meter.threshold">
+                            {{ meter.threshold.threshold_value }} ({{ formatDate(meter.threshold.set_time) }})
+                          </ng-container>
+                          <ng-container *ngIf="!meter.threshold">-</ng-container>
+                        </span>
+                      </div>
+
+                      <div class="detail-item">
+                        <span class="detail-label">Đo gần nhất:</span>
+                        <span class="detail-value">
+                          <ng-container *ngIf="meter.measurement">
+                            {{ meter.measurement.instant_flow }} m³/h, {{ meter.measurement.instant_pressure }} bar
+                            <br>
+                            <small>{{ formatDate(meter.measurement.measurement_time) }}</small>
+                          </ng-container>
+                          <ng-container *ngIf="!meter.measurement">-</ng-container>
+                        </span>
+                      </div>
+
+                      <div class="detail-item">
+                        <span class="detail-label">Dự đoán:</span>
+                        <span class="detail-value">
+                          <span class="prediction-badge" [ngClass]="getMeterConclusionToday(meter).color">
+                            {{ getMeterConclusionToday(meter).text }}
+                          </span>
+                        </span>
+                      </div>
+
+                      <div class="detail-item">
+                        <span class="detail-label">Vượt ngưỡng:</span>
+                        <span class="detail-value">
+                          <span class="threshold-badge" [ngClass]="getThresholdInfo(meter).className">
+                            {{ getThresholdInfo(meter).percent | number:'1.0-2' }}%
+                          </span>
+                        </span>
+                      </div>
+
+                      <div class="detail-item">
+                        <span class="detail-label">Sửa chữa gần nhất:</span>
+                        <span class="detail-value">
+                          {{ meter.repair ? formatDate(meter.repair.repair_time) : 'Không có thông tin' }}
+                        </span>
+                      </div>
+
+                      <div class="detail-item">
+                        <span class="detail-label">Lí do sửa chữa:</span>
+                        <span class="detail-value">
+                          {{ meter.repair?.leak_reason || 'Không có thông tin' }}
+                        </span>
+                      </div>
+
+                      <div class="detail-item actions-item">
+                        <button class="detail-btn primary" (click)="viewChart(meter._id)">
+                          <i class="fas fa-chart-line"></i>
+                          Xem biểu đồ
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

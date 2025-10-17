@@ -1,0 +1,103 @@
+<div class="log-manager-container">
+  <!-- Header Section -->
+  <div class="header-section">
+    <div class="header-left">
+      <div class="icon-container">
+        <i class="fas fa-file-alt"></i>
+      </div>
+      <h1 class="page-title">Quản lý log hệ thống</h1>
+    </div>
+
+    <div class="header-actions">
+      <!-- Export Action -->
+      <button class="btn-export" (click)="exportToPDF()">
+        <i class="fas fa-file-pdf"></i>
+        Export PDF
+      </button>
+    </div>
+  </div>
+
+  <div class="filter-section">
+    <div class="filter-row">
+      <!-- Log Type Filter -->
+      <div class="filter-container">
+        <select
+          class="filter-select"
+          [value]="selectedLogType() || ''"
+          (change)="onLogTypeChange($event)">
+          <option value="">All Types</option>
+          <option [value]="LogType.INFO">Info</option>
+          <option [value]="LogType.WARNING">Warning</option>
+          <option [value]="LogType.ERROR">Error</option>
+        </select>
+      </div>
+
+      <!-- Date Range Filters -->
+      <div class="date-filter-container">
+        <input
+          type="datetime-local"
+          class="date-input"
+          placeholder="Start Date"
+          [value]="startDate()"
+          (change)="onStartDateChange($event)">
+        <span class="date-separator">to</span>
+        <input
+          type="datetime-local"
+          class="date-input"
+          placeholder="End Date"
+          [value]="endDate()"
+          (change)="onEndDateChange($event)">
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <button class="btn-clear" (click)="clearFilters()">
+          <i class="fas fa-eraser"></i>
+          Clear Filters
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Info -->
+  <div class="results-info">
+    <span class="results-count">
+      Hiển thị {{ filteredLogData().length }}/{{ LogData().length }} logs
+    </span>
+  </div>
+
+  <!-- Table Section -->
+  <div class="table-container">
+    <div class="table-wrapper">
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th class="col-stt">STT</th>
+            <th class="col-type">Loại log</th>
+            <th class="col-datetime">Thời gian tạo</th>
+            <th class="col-source">Nguồn phát sinh</th>
+            <th class="col-message">Ghi chú</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let log of filteredLogData(); let i = index" class="table-row">
+            <td class="col-stt">{{ i + 1 }}</td>
+            <td class="col-type">
+              <span class="log-type-badge" [class]="getLogTypeClass(log.log_type)">
+                {{ getLogTypeDisplay(log.log_type) }}
+              </span>
+            </td>
+            <td class="col-datetime">{{ formatDateTime(log.created_time) }}</td>
+            <td class="col-source">{{ log.source || '-' }}</td>
+            <td class="col-message">{{ displayMessage(log.message) }}</td>
+          </tr>
+          <tr *ngIf="filteredLogData().length === 0" class="no-data-row">
+            <td colspan="6" class="no-data-message">
+              Không tìm thấy log nào phù hợp với tiêu chí lọc.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

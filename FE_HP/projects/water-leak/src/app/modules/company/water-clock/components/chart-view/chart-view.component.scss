@@ -1,0 +1,663 @@
+.chart-view-page {
+  min-height: calc(100vh - 140px);
+  background: #f8f9fa;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  position: relative;
+}
+
+.exit-btn-fixed {
+  position: fixed;
+  top: 65px; // Dưới topbar
+  left: 255px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  z-index: 1000;
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.3);
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  }
+
+  i {
+    font-size: 18px;
+  }
+}
+
+.chart-content-wrapper {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  overflow: hidden;
+}
+
+.chart-tabs {
+  display: flex;
+  background: rgba(255, 255, 255, 0.8);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+
+  .tab-btn {
+    flex: 1;
+    padding: 16px 20px;
+    border: none;
+    background: transparent;
+    color: #666;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-bottom: 2px solid transparent;
+
+    &:hover {
+      background: rgba(102, 126, 234, 0.1);
+      color: #667eea;
+    }
+
+    &.active {
+      background: rgba(102, 126, 234, 0.1);
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+
+    i {
+      font-size: 14px;
+    }
+  }
+}
+
+.main-chart-section {
+  padding: 32px;
+  position: relative; // For positioning the prediction button
+
+  // Prediction Toggle Button
+  .prediction-toggle-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    padding: 8px 12px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+    z-index: 10;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    i {
+      font-size: 12px;
+    }
+
+    span {
+      font-size: 11px;
+      white-space: nowrap;
+    }
+  }
+
+  .chart-header-info {
+    margin-bottom: 24px;
+    text-align: center;
+
+    .chart-title {
+      font-size: 22px;
+      font-weight: 600;
+      color: #2c3e50;
+      margin: 0 0 8px 0;
+    }
+
+    .chart-desc {
+      color: #666;
+      font-size: 14px;
+      margin: 0;
+    }
+  }
+
+  .chart-wrapper-large {
+    background: white;
+    border-radius: 12px;
+    padding: 32px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+
+    .chart-container-with-grid {
+      width: 100%;
+      height: 500px; // Tăng từ 350px lên 500px
+      margin-bottom: 20px;
+
+      .flow-chart-large {
+        width: 100%;
+        height: 100%;
+
+        .chart-legend-group {
+          rect {
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+          }
+
+          text {
+            font-size: 13px;
+            font-weight: 500;
+          }
+        }
+
+        .main-line {
+          stroke-width: 3; // Tăng từ 2 lên 3
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+        }
+
+        .secondary-line {
+          stroke-width: 2.5; // Tăng từ 2 lên 2.5
+          stroke-linecap: round;
+          stroke-linejoin: round;
+        }
+
+        .data-point {
+          transition: all 0.3s ease;
+
+          &:hover {
+            r: 5; // Tăng từ 4 lên 5
+          }
+
+          &.secondary {
+            &:hover {
+              r: 4; // Tăng từ 3 lên 4
+            }
+          }
+        }
+
+        // Tăng kích thước Y-axis labels
+        g[fill="#666"] text {
+          font-size: 12px;
+          font-weight: 500;
+        }
+      }
+    }
+
+    .chart-x-axis-large {
+      display: flex;
+      justify-content: space-between;
+      padding: 0 70px 0 70px;
+      margin-top: 16px;
+
+      .x-axis-label {
+        font-size: 12px; // Tăng từ 11px lên 12px
+        color: #666;
+        font-family: Arial, sans-serif;
+        font-weight: 500;
+      }
+    }
+  }
+}
+
+// Prediction Popup Modal Styles
+.prediction-popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+.prediction-popup-modal {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 800px;
+  max-height: 80vh;
+  overflow: hidden;
+  animation: slideInUp 0.3s ease-out;
+
+  .prediction-popup-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+    .popup-title {
+      color: white;
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .close-btn {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.3);
+        transform: scale(1.1);
+      }
+
+      i {
+        font-size: 14px;
+      }
+    }
+  }
+
+  .prediction-popup-tabs {
+    display: flex;
+    background: rgba(248, 249, 250, 0.8);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+
+    .popup-tab-btn {
+      flex: 1;
+      padding: 16px 20px;
+      border: none;
+      background: transparent;
+      color: #666;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border-bottom: 2px solid transparent;
+
+      &:hover {
+        background: rgba(102, 126, 234, 0.1);
+        color: #667eea;
+      }
+
+      &.active {
+        color: #667eea;
+        background: rgba(102, 126, 234, 0.1);
+        border-bottom-color: #667eea;
+      }
+    }
+  }
+
+  .prediction-popup-content {
+    padding: 24px;
+    max-height: 500px;
+    overflow-y: auto;
+
+    // Custom scrollbar
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+      border-radius: 3px;
+
+      &:hover {
+        background: linear-gradient(180deg, #5a67d8 0%, #6b46c1 100%);
+      }
+    }
+
+    .prediction-table-container {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      overflow: hidden;
+
+      .popup-table-header {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+        .popup-header-cell {
+          padding: 16px 20px;
+          font-size: 14px;
+          font-weight: 600;
+          color: white;
+          text-align: center;
+          border-right: 1px solid rgba(255, 255, 255, 0.2);
+
+          &:last-child {
+            border-right: none;
+          }
+        }
+      }
+
+      .popup-table-body {
+        .popup-table-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          border-bottom: 1px solid #e2e8f0;
+          transition: background-color 0.2s ease;
+          min-height: 60px;
+          align-items: center;
+
+          &:hover {
+            background: rgba(102, 126, 234, 0.05);
+          }
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          .popup-data-cell {
+            padding: 12px 16px;
+            font-size: 13px;
+            text-align: center;
+            border-right: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 60px;
+
+            &:last-child {
+              border-right: none;
+            }
+
+            &.time-cell {
+              color: #4a5568;
+              font-family: 'Courier New', monospace;
+              letter-spacing: 0.5px;
+            }
+
+            &.flow-cell {
+              color: #2d3748;
+              font-weight: 500;
+              letter-spacing: 0.5px;
+            }
+
+            &.status-cell {
+              padding: 10px 8px;
+
+              .popup-status-indicator {
+                display: inline-block;
+                padding: 4px 8px;
+                background: linear-gradient(135deg, #c6f6d5 0%, #9ae6b4 100%);
+                color: #22543d;
+                border-radius: 6px;
+                font-size: 10px;
+                font-weight: 600;
+                letter-spacing: 0.1px;
+                line-height: 1.3;
+                text-align: center;
+                white-space: nowrap;
+                max-width: max-content;
+
+                // Chỉ mở rộng khi cần thiết trên màn hình nhỏ
+                @media (max-width: 900px) {
+                  white-space: normal;
+                  word-wrap: break-word;
+                  padding: 6px 10px;
+                  border-radius: 8px;
+                  max-width: 100%;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .chart-view-page {
+    padding: 16px;
+  }
+
+  .exit-btn-fixed {
+    top: 70px;
+    left: 16px;
+    width: 44px;
+    height: 44px;
+
+    i {
+      font-size: 16px;
+    }
+  }
+
+  .chart-tabs {
+    .tab-btn {
+      padding: 12px 8px;
+      font-size: 12px;
+      flex-direction: column;
+      gap: 4px;
+    }
+  }
+
+  .main-chart-section {
+    padding: 20px;
+
+    .prediction-toggle-btn {
+      top: 16px;
+      right: 16px;
+      padding: 6px 10px;
+      font-size: 11px;
+
+      span {
+        font-size: 10px;
+      }
+    }
+
+    .chart-header-info {
+      margin-bottom: 20px;
+
+      .chart-title {
+        font-size: 20px;
+      }
+
+      .chart-desc {
+        font-size: 13px;
+      }
+    }
+
+    .chart-wrapper-large {
+      padding: 20px;
+
+      .chart-container-with-grid {
+        height: 380px; // Tăng từ 280px lên 380px cho mobile
+      }
+
+      .chart-x-axis-large {
+        padding: 0 20px;
+
+        .x-axis-label {
+          font-size: 10px;
+          writing-mode: vertical-rl;
+          text-orientation: mixed;
+        }
+      }
+    }
+  }
+}
+
+// Print Styles
+@media print {
+  .chart-view-page {
+    background: white;
+    padding: 0;
+  }
+
+  .exit-btn-fixed {
+    display: none;
+  }
+
+  .chart-tabs {
+    display: none;
+  }
+
+  .prediction-popup-modal {
+    width: 95%;
+    max-width: 600px;
+    max-height: 90vh;
+
+    .prediction-popup-header {
+      padding: 16px 20px;
+
+      .popup-title {
+        font-size: 16px;
+      }
+
+      .close-btn {
+        width: 28px;
+        height: 28px;
+
+        i {
+          font-size: 12px;
+        }
+      }
+    }
+
+    .prediction-popup-tabs {
+      .popup-tab-btn {
+        padding: 12px 16px;
+        font-size: 12px;
+      }
+    }
+
+    .prediction-popup-content {
+      padding: 16px;
+      max-height: 400px;
+
+      .prediction-table-container {
+        .popup-table-header {
+          .popup-header-cell {
+            padding: 12px 16px;
+            font-size: 12px;
+          }
+        }
+
+        .popup-table-body {
+          .popup-table-row {
+            .popup-data-cell {
+              padding: 12px 16px;
+              font-size: 11px;
+
+              &.status-cell {
+                .popup-status-indicator {
+                  font-size: 10px;
+                  padding: 4px 8px;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+// Animation for smooth transitions
+.main-chart-section {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Override ApexCharts label truncation
+:host ::ng-deep {
+  .apexcharts-xaxis-texts-g text {
+    text-overflow: unset !important;
+    overflow: visible !important;
+    white-space: nowrap !important;
+    max-width: none !important;
+    width: auto !important;
+  }
+
+  .apexcharts-xaxis-label {
+    text-overflow: unset !important;
+    overflow: visible !important;
+    white-space: nowrap !important;
+    max-width: none !important;
+    width: auto !important;
+  }
+}
+
+// Loading indicator styles
+.loading-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #667eea;
+
+  i {
+    font-size: 32px;
+    margin-bottom: 16px;
+    color: #667eea;
+  }
+
+  span {
+    font-size: 14px;
+    font-weight: 500;
+    color: #718096;
+  }
+}
