@@ -181,9 +181,11 @@ def seed_org():
             "branch_id": branch_id,
             "meter_name": m["meter_name"],
             "installation_time": m["installation_time"] if m["installation_time"] else None,
+            "longitude": float(m["longitude"]) if m["longitude"] else None,
+            "latitude": float(m["latitude"]) if m["latitude"] else None
         }
 
-        doc = upsert("meters", {"branch_id": meter["branch_id"], "meter_name": meter["meter_name"]}, meter)
+        doc = upsert("meters", {"branch_id": meter["branch_id"], "meter_name": meter["meter_name"], "longitude": meter["longitude"], "latitude": meter["latitude"]}, meter)
         meter_ids[m["meter_name"]] = doc["_id"]
 
     return branch_ids, meter_ids

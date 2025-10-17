@@ -208,14 +208,16 @@ def get_my_meters():
             "_id": meter_id_str,
             "branch_id": str(x["branch_id"]),
             "meter_name": x["meter_name"],
+            "longitude": x.get("longitude"),
+            "latitude": x.get("latitude"),
             "installation_time": x.get("installation_time"),
             "branchName": branch_name,
-            "status": meter_status,  # Thêm status được tính toán
+            "status": meter_status,  
             "threshold": threshold,
             "measurement": measurement,
             "repair": repair,
-            "prediction": prediction,  # Giữ lại prediction cũ
-            "predictions": predictions,  # Trả về mảng predictions mới
+            "prediction": prediction,  
+            "predictions": predictions, 
         }
 
         out.append(meter_out)

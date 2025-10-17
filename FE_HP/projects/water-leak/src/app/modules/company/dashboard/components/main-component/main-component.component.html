@@ -1,28 +1,28 @@
 <div class="dashboard-container">
   <!-- Statistics Cards -->
   <div class="stats-row">
-    <div class="stat-card anomaly-card clickable-card" (click)="navigateToWaterClock('Anomaly detected')">
+    <div class="stat-card normal-card clickable-card" (click)="navigateToWaterClock('normal')">
       <div class="stat-icon">
-        <i class="fas fa-exclamation-triangle"></i>
+        <i class="fas fa-check-circle"></i>
       </div>
       <div class="stat-content">
-        <div class="stat-title">Bất thường được phát hiện</div>
-        <div class="stat-number">{{ totalAnomalies() }}</div>
-        <div class="stat-label">bất thường</div>
+        <div class="stat-title">Bình thường</div>
+        <div class="stat-number">{{ totalNormalMeters() }}</div>
+        <div class="stat-label">đồng hồ</div>
       </div>
       <div class="card-hover-indicator">
         <i class="fas fa-arrow-right"></i>
       </div>
     </div>
 
-    <div class="stat-card verified-card clickable-card" (click)="navigateToWaterClock('On fixing')">
+    <div class="stat-card anomaly-card clickable-card" (click)="navigateToWaterClock('anomaly')">
       <div class="stat-icon">
-        <i class="fas fa-check-circle"></i>
+        <i class="fas fa-exclamation-triangle"></i>
       </div>
       <div class="stat-content">
-        <div class="stat-title">Bất thường được xác nhận</div>
-        <div class="stat-number">{{ totalVerifiedAnomalies() }}</div>
-        <div class="stat-label">xác nhận</div>
+        <div class="stat-title">Bất thường</div>
+        <div class="stat-number">{{ totalAnomalies() }}</div>
+        <div class="stat-label">đồng hồ</div>
       </div>
       <div class="card-hover-indicator">
         <i class="fas fa-arrow-right"></i>
@@ -57,7 +57,7 @@
           <table class="data-table">
             <thead>
               <tr>
-                <th>Tên trạm</th>
+                <th>Tên đồng hồ</th>
                 <th>Chi nhánh</th>
                 <th>Trạng thái</th>
               </tr>
@@ -94,7 +94,7 @@
       <div class="detail-header">
         <!-- Title Row -->
         <div class="header-title-row">
-          <h3 class="detail-title">{{ (selectedMeterName() || 'Chọn trạm để xem chi tiết') }}</h3>
+          <h3 class="detail-title">Biểu đồ lưu lượng tức thời</h3>
         </div>
 
         <!-- Tabs Row -->

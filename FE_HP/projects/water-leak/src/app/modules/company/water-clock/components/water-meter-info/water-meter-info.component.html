@@ -26,7 +26,7 @@
         [ngModel]="filter().statusFilter"
         (ngModelChange)="onStatusFilterChange($event)"
       >
-        <option value="">Lọc theo trạng thái</option>
+        <option value="">Tất cả</option>
         <option value="normal">Bình thường</option>
         <option value="anomaly">Bất thường</option>
         <option value="lost">Mất kết nối</option>
@@ -42,10 +42,10 @@
       <table class="water-meter-table header-table">
         <thead>
           <tr>
-            <th>Tên trạm</th>
+            <th>Tên đồng hồ</th>
             <th>Chi nhánh</th>
             <th>Trạng thái</th>
-            <th>Ngày tham gia</th>
+            <th>Ngày lắp đặt</th>
             <th>Hành động</th>
           </tr>
         </thead>

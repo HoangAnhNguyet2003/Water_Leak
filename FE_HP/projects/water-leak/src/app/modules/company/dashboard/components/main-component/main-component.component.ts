@@ -61,16 +61,11 @@ export class MainComponentComponent implements OnInit {
     const chartData = cd.data ?? [];
     const categories = chartData.map(d => d.timestamp);
     const lineSeries = chartData.map(d => d.value);
-    // leakSeries: mark points where predictedLabel === 'leak'
     const leakSeries = chartData.map(d => d.predictedLabel === 'leak' ? d.value : null);
 
   const series: any[] = [ { name: 'Lưu lượng', type: 'line', data: lineSeries } ];
   const activeType = this.chartState().activeChartType;
-  // debug
-  // eslint-disable-next-line no-console
-  console.debug('[MainComponent] activeType=', activeType, 'chartData sample=', chartData.slice(0,5));
     const showAnomaly = activeType === 'anomaly' || activeType === 'anomaly-ai';
-    // Only show Leak markers (red) when anomaly view is active
     if (showAnomaly && leakSeries.some(v => v !== null)) {
       series.push({ name: 'Leak', type: 'scatter', data: leakSeries, marker: { size: 8, fillColor: '#ff1744', strokeWidth: 1 } });
     }
@@ -84,9 +79,9 @@ export class MainComponentComponent implements OnInit {
         categories,
         labels: {
           maxHeight: undefined,
-          rotate: -45,  // Xoay labels để hiển thị tốt hơn với format dài
-          trim: false,  // Không cắt bớt text
-          hideOverlappingLabels: false,  // Hiển thị tất cả labels
+          rotate: -45,
+          trim: false,
+          hideOverlappingLabels: false,
           style: {
             colors: [],
             fontSize: '11px'
@@ -132,6 +127,11 @@ export class MainComponentComponent implements OnInit {
     }
   }, { allowSignalWrites: true });
 
+  totalNormalMeters = computed(() => {
+    const arr = this.allData() ?? [];
+    return arr.filter(item => item.status === DashBoardDataStatus.NORMAL).length;
+  });
+
   totalAnomalies = computed(() => {
     const real = this.clockService.getAnomalyDetectedCount();
     if (real > 0) return real;
@@ -139,20 +139,34 @@ export class MainComponentComponent implements OnInit {
     return arr.filter(item => item.status === DashBoardDataStatus.ANOMALY).length;
   });
 
-  totalVerifiedAnomalies = computed(() => {
-    const real = this.clockService.getOnFixingCount();
-    if (real > 0) return real;
-    const arr = this.allData() ?? [];
-    return arr.filter(item => item.status === DashBoardDataStatus.ANOMALY).length;
-  });
-
   filteredData = computed(() => {
     const searchLower = this.searchTerm().toLowerCase();
-    if (!searchLower) return this.allData();
-    return this.allData().filter(item =>
-      String(item.name).toLowerCase().includes(searchLower) ||
-      String(item.branchName).toLowerCase().includes(searchLower)
-    );
+    let data = this.allData() ?? [];
+
+    if (searchLower) {
+      data = data.filter(item =>
+        String(item.name).toLowerCase().includes(searchLower) ||
+        String(item.branchName).toLowerCase().includes(searchLower)
+      );
+    }
+
+    return data.sort((a, b) => {
+      const statusPriority = {
+        [DashBoardDataStatus.ANOMALY]: 0,
+        [DashBoardDataStatus.NORMAL]: 1,
+        [DashBoardDataStatus.LOST_CONNECTION]: 2,
+        [DashBoardDataStatus.NO_DATA]: 3
+      };
+
+      const priorityA = statusPriority[a.status] ?? 999;
+      const priorityB = statusPriority[b.status] ?? 999;
+
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+
+      return String(a.name).localeCompare(String(b.name));
+    });
   });
 
   ngOnInit() {
@@ -191,7 +205,6 @@ export class MainComponentComponent implements OnInit {
       title: { text: "Lưu lượng theo thời gian", align: "left" }
     });
 
-    // chartSyncEffect (field-level effect) handles syncing chart state -> options with allowSignalWrites
   }
 
   onSearchChange(event: any) {
@@ -215,6 +228,7 @@ export class MainComponentComponent implements OnInit {
       case DashBoardDataStatus.NORMAL: return 'status-normal';
       case DashBoardDataStatus.ANOMALY: return 'status-anomaly';
       case DashBoardDataStatus.LOST_CONNECTION: return 'status-lost-connection';
+      case DashBoardDataStatus.NO_DATA: return 'status-no-data';
       default: return 'status-unknown';
     }
   }
@@ -224,6 +238,7 @@ export class MainComponentComponent implements OnInit {
       case DashBoardDataStatus.NORMAL: return 'Bình thường';
       case DashBoardDataStatus.ANOMALY: return 'Bất thường';
       case DashBoardDataStatus.LOST_CONNECTION: return 'Mất kết nối';
+      case DashBoardDataStatus.NO_DATA: return 'Không có dữ liệu';
       default: return 'Không xác định';
     }
   }
@@ -248,8 +263,21 @@ export class MainComponentComponent implements OnInit {
   }
 
   navigateToWaterClock(filterStatus: string): void {
+    // Map status to appropriate filter value
+    let statusFilter: string;
+    switch (filterStatus) {
+      case 'normal':
+        statusFilter = 'normal';
+        break;
+      case 'anomaly':
+        statusFilter = 'anomaly';
+        break;
+      default:
+        statusFilter = 'all';
+    }
+
     this.router.navigate(['/company/water-clock'], {
-      queryParams: { statusFilter: filterStatus }
+      queryParams: { statusFilter: statusFilter }
     });
   }
 }

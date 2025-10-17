@@ -1,4 +1,5 @@
 import time
+import threading
 from datetime import datetime, timedelta, timezone
 try:
     from apscheduler.schedulers.background import BackgroundScheduler
@@ -58,21 +59,57 @@ class AppScheduler:
                     insert_log("Một process khác đang chạy crawl job", LogType.INFO)
                     return
             
-            self.perform_all_crawling()
+            self._execute_crawling_sequence()
+            insert_log("Scheduled crawl hoàn thành", LogType.INFO)
+            
             lock_collection.delete_one({"job_name": "daily_crawl_job"})
             
         except Exception as e:
             insert_log(f"Lỗi khi thực hiện crawl job: {str(e)}", LogType.ERROR)
             lock_collection.delete_one({"job_name": "daily_crawl_job"})
     
-    def perform_all_crawling(self):
-        start_time = time.time()
-        
-        try:
-            crawl_measurements_data()
-            crawl_repair_data()
+    def _execute_crawling_sequence(self):
+        try:            
+            if not self._check_api_health():
+                insert_log("API health check failed, skip crawling", LogType.WARNING)
+                return
+            
+            measurements_result = crawl_measurements_data()
+            insert_log(f"Scheduled crawl measurements hoàn thành", LogType.INFO)
+            
+            repairs_result = crawl_repair_data() 
+            insert_log(f"Scheduled crawl repairs hoàn thành", LogType.INFO)
+                        
         except Exception as e:
-            insert_log(f"Lỗi khi thực hiện crawl tự động: {str(e)}", LogType.ERROR)
+            insert_log(f"Lỗi trong scheduled crawling sequence: {str(e)}", LogType.ERROR)
+            raise
+    
+    def _check_api_health(self):
+        try:
+            import requests
+            import os
+            
+            base_url = os.getenv('DATA_API_URL', 'https://dhxdapi.capnuochaiphong.com.vn')
+            
+            login_url = f"{base_url}/api/user/login"
+            response = requests.head(login_url, timeout=10)
+            
+            if response.status_code in [200, 400, 401, 405]:
+                insert_log(f"API health check passed: {response.status_code} in {response.elapsed.total_seconds()*1000:.0f}ms", LogType.INFO)
+                return True
+            else:
+                insert_log(f"API health check failed: status {response.status_code}", LogType.WARNING)
+                return False
+                
+        except requests.exceptions.Timeout:
+            insert_log("API health check timeout - API may be slow", LogType.WARNING)
+            return False
+        except requests.exceptions.ConnectionError:
+            insert_log("API health check connection error - API may be down", LogType.ERROR)  
+            return False
+        except Exception as e:
+            insert_log(f"API health check error: {str(e)}", LogType.WARNING)
+            return False
     
     def create_daily_thresholds_with_lock(self):
         if self.app:
@@ -131,9 +168,9 @@ class AppScheduler:
         try:
             self.scheduler.add_job(
                 self.crawl_all_data_with_lock,
-                trigger=CronTrigger(hour=4, minute=0),
+                trigger=CronTrigger(hour=6, minute=30),
                 id='daily_crawl_job',
-                name='Crawl dữ liệu hàng ngày',
+                name=f'Crawl dữ liệu hàng ngày',
                 replace_existing=True
             )
             
@@ -147,7 +184,7 @@ class AppScheduler:
             
             self.scheduler.start()
             self.is_running = True
-            insert_log("Đã khởi động scheduler với crawl job (4:00 AM) và threshold job (23:50)", LogType.INFO)
+            insert_log("Đã khởi động scheduler với crawl job (6:30 AM) và threshold job (23:50)", LogType.INFO)
             
         except Exception as e:
             insert_log(f"Lỗi khi khởi động scheduler: {str(e)}", LogType.ERROR)

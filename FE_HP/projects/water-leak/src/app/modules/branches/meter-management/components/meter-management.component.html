@@ -11,7 +11,8 @@
       >
       <i class="fas fa-search search-icon"></i>
     </div>
-    <!--  thêm filter lọc % vượt ngưỡng -->
+
+    <!-- Filter trạng thái -->
     <div class="filter-dropdown">
       <select
         class="status-filter"
@@ -24,7 +25,8 @@
         <option value="NNcao">Nghi ngờ cao</option>
       </select>
     </div>
-    <!-- Sắp xếp theo mức độ vượt ngưỡng -->
+
+    <!-- Sort -->
     <div class="filter-dropdown">
       <select
         class="sort-filter"
@@ -35,7 +37,8 @@
         <option value="desc" selected>Giảm dần</option>
       </select>
     </div>
-    <!-- Chỉ giữ filter nhập số và chọn dấu so sánh -->
+
+    <!-- Lọc vượt ngưỡng -->
     <div class="filter-dropdown threshold-filter-group">
       <select [(ngModel)]="filter().thresholdOperator" (change)="onFilterChange()">
         <option value=">">&gt;</option>
@@ -53,7 +56,7 @@
     </div>
   </div>
 
-
+  <!-- Table -->
   <div class="table-container">
     <div class="table-header-fixed">
       <table class="water-meter-table header-table">
@@ -75,6 +78,7 @@
       <table class="water-meter-table body-table">
         <tbody>
           <ng-container *ngFor="let meter of filteredMeters(); let i = index; trackBy: trackByMeterId">
+            <!-- Main Row -->
             <tr
               class="table-row"
               [class.selected]="meter.selected"
@@ -103,6 +107,7 @@
                 </button>
               </td>
             </tr>
+
             <!-- Detail Row -->
             <tr
               class="detail-row"
@@ -116,10 +121,11 @@
                   </div>
                   <div class="detail-body">
                     <div class="detail-info-grid">
-                        <div class="detail-item">
+                      <div class="detail-item">
                         <span class="detail-label">Ngày lắp đặt:</span>
                         <span class="detail-value">{{ meter.installation_time | date:'dd/MM/yyyy' }}</span>
                       </div>
+
                       <div class="detail-item">
                         <span class="detail-label">Ngưỡng thủ công:</span>
                         <span class="detail-value">
@@ -129,6 +135,7 @@
                           <ng-container *ngIf="!meter.threshold">-</ng-container>
                         </span>
                       </div>
+
                       <div class="detail-item">
                         <span class="detail-label">Đo gần nhất:</span>
                         <span class="detail-value">
@@ -140,14 +147,16 @@
                           <ng-container *ngIf="!meter.measurement">-</ng-container>
                         </span>
                       </div>
+
                       <div class="detail-item">
                         <span class="detail-label">Dự đoán:</span>
                         <span class="detail-value">
-                          <span class="prediction-badge" [style.background-color]="getMeterConclusionToday(meter)">
-                          {{ getMeterConclusionToday(meter).text }}
-                        </span>
+                          <span class="prediction-badge" [ngClass]="getMeterConclusionToday(meter).color">
+                            {{ getMeterConclusionToday(meter).text }}
+                          </span>
                         </span>
                       </div>
+
                       <div class="detail-item">
                         <span class="detail-label">Vượt ngưỡng:</span>
                         <span class="detail-value">
@@ -156,26 +165,27 @@
                           </span>
                         </span>
                       </div>
+
                       <div class="detail-item">
                         <span class="detail-label">Sửa chữa gần nhất:</span>
                         <span class="detail-value">
                           {{ meter.repair ? formatDate(meter.repair.repair_time) : 'Không có thông tin' }}
                         </span>
                       </div>
+
                       <div class="detail-item">
                         <span class="detail-label">Lí do sửa chữa:</span>
                         <span class="detail-value">
                           {{ meter.repair?.leak_reason || 'Không có thông tin' }}
                         </span>
                       </div>
-                      <td class="actions-column">
-                        <button
-                            class="detail-btn primary"
-                            (click)="viewChart(meter._id)">
-                            <i class="fas fa-chart-line"></i>
-                            Xem biểu đồ
-                          </button>
-                      </td>
+
+                      <div class="detail-item actions-item">
+                        <button class="detail-btn primary" (click)="viewChart(meter._id)">
+                          <i class="fas fa-chart-line"></i>
+                          Xem biểu đồ
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

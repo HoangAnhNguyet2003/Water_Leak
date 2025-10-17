@@ -28,20 +28,23 @@ export class DashboardMainServiceService {
 
 
  private mapFromApi(apiMeter: any): DashBoardData {
-      let status: DashBoardDataStatus = DashBoardDataStatus.NORMAL;
+      let status: DashBoardDataStatus = DashBoardDataStatus.NO_DATA;
       if (apiMeter.status) {
         switch (apiMeter.status) {
           case 'normal':
             status = DashBoardDataStatus.NORMAL;
             break;
           case 'anomaly':
+          case 'leak':
             status = DashBoardDataStatus.ANOMALY;
             break;
           case 'lost':
+          case 'lost_connection':
             status = DashBoardDataStatus.LOST_CONNECTION;
             break;
+          case 'unknown':
           default:
-            status = DashBoardDataStatus.NORMAL;
+            status = DashBoardDataStatus.NO_DATA;
         }
       }
 

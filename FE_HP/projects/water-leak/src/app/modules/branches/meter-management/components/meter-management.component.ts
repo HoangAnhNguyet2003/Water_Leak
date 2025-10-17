@@ -78,26 +78,42 @@ export class MeterManagementComponent implements OnInit {
     const meters = this.waterMeters();
     if (!meters || !Array.isArray(meters)) return;
     let filtered = meters.filter(meter => {
-      if (!this.isValidWaterMeter(meter)) return false;
-      const matchesSearch = !currentFilter.searchTerm ||
-        meter.meter_name.toLowerCase().includes(currentFilter.searchTerm.toLowerCase());
-      const matchesStatus = !currentFilter.statusFilter || meter.prediction?.predicted_label === currentFilter.statusFilter;
-      // Lọc vượt ngưỡng
-      let matchesThreshold = true;
-      if (
-        currentFilter.thresholdOperator &&
-        typeof currentFilter.thresholdValue === 'number' &&
-        !isNaN(currentFilter.thresholdValue)
-      ) {
-        const { percent } = this.getThresholdInfo(meter);
-        switch (currentFilter.thresholdOperator) {
-          case '>': matchesThreshold = percent > currentFilter.thresholdValue; break;
-          case '<': matchesThreshold = percent < currentFilter.thresholdValue; break;
-          case '=': matchesThreshold = Math.abs(percent - currentFilter.thresholdValue) < 0.01; break;
-        }
-      }
-      return matchesSearch && matchesStatus && matchesThreshold;
-    });
+  if (!this.isValidWaterMeter(meter)) return false;
+
+  const matchesSearch =
+    !currentFilter.searchTerm ||
+    meter.meter_name.toLowerCase().includes(currentFilter.searchTerm.toLowerCase());
+
+  const matchesStatus =
+    !currentFilter.statusFilter ||
+    meter.predictions?.some(pred =>
+      pred.predicted_label === currentFilter.statusFilter ||
+      pred.confidence === currentFilter.statusFilter
+    );
+
+  // Lọc vượt ngưỡng
+  let matchesThreshold = true;
+  if (
+    currentFilter.thresholdOperator &&
+    typeof currentFilter.thresholdValue === 'number' &&
+    !isNaN(currentFilter.thresholdValue)
+  ) {
+    const { percent } = this.getThresholdInfo(meter);
+    switch (currentFilter.thresholdOperator) {
+      case '>':
+        matchesThreshold = percent > currentFilter.thresholdValue;
+        break;
+      case '<':
+        matchesThreshold = percent < currentFilter.thresholdValue;
+        break;
+      case '=':
+        matchesThreshold = Math.abs(percent - currentFilter.thresholdValue) < 0.01;
+        break;
+    }
+  }
+
+  return matchesSearch && matchesStatus && matchesThreshold;
+});
 
     if (currentFilter.sortOrder) {
       filtered.sort((a, b) => {
@@ -159,29 +175,27 @@ export class MeterManagementComponent implements OnInit {
   this.router.navigate(['/branches', 'manual-model', meterId]);
 }
 
-
-  formatDate(val: string | Date | null): string {
+  formatDate(val: string | Date | { $date: string } | null): string {
   if (!val) return '';
 
   let d: Date;
 
   if (val instanceof Date) {
     d = val;
-  }
-  else if (typeof val === 'object' && (val as any).$date) {
+  } else if (typeof val === 'object' && '$date' in val) {
     d = new Date((val as any).$date);
-  }
-  else if (typeof val === 'string') {
+  } else if (typeof val === 'string') {
     d = new Date(val);
-  }
-  else {
+  } else {
     return '';
   }
 
-  if (isNaN(d.getTime())) return val as string;
-  const day = d.getUTCDate().toString().padStart(2, '0');
-  const month = (d.getUTCMonth() + 1).toString().padStart(2, '0');
-  const year = d.getUTCFullYear();
+  if (isNaN(d.getTime())) return '';
+
+  const day = d.getDate().toString().padStart(2, '0');
+  const month = (d.getMonth() + 1).toString().padStart(2, '0');
+  const year = d.getFullYear();
+
   return `${day}/${month}/${year}`;
 }
 
@@ -200,28 +214,80 @@ export class MeterManagementComponent implements OnInit {
       className: percent > 30 ? 'threshold-red' : 'threshold-green'
     };
   }
+  // c tính kết luận từ đây
+  public getMeterConclusionToday(meter: WaterMeter): { text: string; color: string } {
+  if (!meter) return { text: 'Chưa có dữ liệu', color: '' };
 
+  const today = new Date();
+  const todayStr = `${today.getDate().toString().padStart(2,'0')}/${(today.getMonth()+1).toString().padStart(2,'0')}/${today.getFullYear()}`;
 
-   getMeterConclusionToday(meter: WaterMeter): { text: string; color: string } {
-  if (!meter || !meter.prediction) {
-    return { text: 'Chưa có dữ liệu', color: '' };
+  const lstmPredictions = meter.predictions?.filter(p =>
+    p.model_name?.toUpperCase().includes('LSTM') && !p.model_name?.toUpperCase().includes('AUTO')
+  ) ?? [];
+
+  const lstmAutoencoder = meter.predictions?.filter(p =>
+    p.model_name?.toUpperCase().includes('AUTO')
+  ) ?? [];
+  const formatDate = (pred: any): string => {
+    const dateRaw = pred?.prediction_time?.$date ?? pred?.prediction_time;
+    const d = new Date(dateRaw);
+    if (isNaN(d.getTime())) return '';
+    return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
+  };
+
+  const lstmToday = lstmPredictions.find(p => formatDate(p) === todayStr) ?? null;
+  const autoencoderToday = lstmAutoencoder.filter(p => formatDate(p) === todayStr);
+
+  const selectBestPredictionForDay = (preds: any[]): any | null => {
+    if (!preds || preds.length === 0) return null;
+    if (preds.length === 1) return preds[0];
+    const leaks = preds.filter(p => ['LEAK','NNTHAP','NNTB','NNCAO'].includes((p.predicted_label ?? '').toString().trim().toUpperCase()));
+    const candidates = leaks.length > 0 ? leaks : preds.slice();
+    const rank: Record<string, number> = { NNCAO: 3, NNTB: 2, NNTHAP: 1 };
+    candidates.sort((a,b) => {
+      const aLabel = (a.predicted_label ?? '').toString().trim().toUpperCase();
+      const bLabel = (b.predicted_label ?? '').toString().trim().toUpperCase();
+      const aConf = (a.confidence ?? '').toString().trim().toUpperCase();
+      const bConf = (b.confidence ?? '').toString().trim().toUpperCase();
+      const scoreA = rank[aLabel] ?? rank[aConf] ?? 0;
+      const scoreB = rank[bLabel] ?? rank[bConf] ?? 0;
+      return scoreB - scoreA;
+    });
+    return candidates[0];
+  };
+
+  const autoencoderBest = selectBestPredictionForDay(autoencoderToday);
+
+  if (!lstmToday && !autoencoderBest) return { text: 'Chưa có dữ liệu', color: '' };
+
+  const getScore = (pred: any): number => {
+    if (!pred) return 0;
+    const label = (pred.predicted_label ?? '').toString().trim().toUpperCase();
+    const conf = (pred.confidence ?? '').toString().trim().toUpperCase();
+    if (label === 'NORMAL') return 0;
+    if (['NNTHAP','NNTB','NNCAO'].includes(label)) return label === 'NNCAO' ? 3 : label === 'NNTB' ? 2 : 1;
+    if (label === 'LEAK') {
+      if (['NNTHAP','NNTB','NNCAO'].includes(conf)) return conf === 'NNCAO' ? 3 : conf === 'NNTB' ? 2 : 1;
+      const num = Number(conf);
+      if (!isNaN(num)) return num >= 75 ? 3 : num >= 40 ? 2 : 1;
+      return 1;
+    }
+    return 0;
+  };
+
+  const predictions = [lstmToday, autoencoderBest].filter(Boolean);
+  const avgScore = predictions.map(getScore).reduce((s,v) => s+v,0)/predictions.length;
+  const finalScore = Math.floor(avgScore);
+
+  let text = 'Bình thường';
+  let color = 'prediction-green';
+  switch(finalScore){
+    case 1: text='Rò rỉ nghi ngờ thấp'; color='prediction-green'; break;
+    case 2: text='Rò rỉ nghi ngờ trung bình'; color='prediction-yellow'; break;
+    case 3: text='Rò rỉ nghi ngờ cao'; color='prediction-red'; break;
   }
 
-  const now = new Date();
-  const todayStr = `${now.getUTCDate().toString().padStart(2,'0')}/${(now.getUTCMonth()+1).toString().padStart(2,'0')}/${now.getFullYear()}`;
-
-  const pred = meter.prediction;
-  const predDate = new Date(pred.prediction_time);
-  const predStr = `${predDate.getUTCDate().toString().padStart(2,'0')}/${(predDate.getUTCMonth()+1).toString().padStart(2,'0')}/${predDate.getFullYear()}`;
-
-  if (predStr !== todayStr) {
-    return { text: 'Chưa có dữ liệu', color: '' };
-  }
-  const score = pred.predicted_label === 'leak' ? 33 : 0;
-  const text = score > 50 ? 'Nghi ngờ cao' : 'Nghi ngờ thấp';
-  const colorClass = text === 'Nghi ngờ cao' ? 'prediction-red' : 'prediction-green';
-
-  return { text, color: colorClass };
+  return { text, color };
 }
 
 }

@@ -33,6 +33,7 @@ export interface WaterMeter {
     model_name: string;
     predicted_label: string;
   } | null;
+  predictions?: PredictionDetail[];
 }
 
 export interface WaterMeterFilter {
@@ -40,4 +41,18 @@ export interface WaterMeterFilter {
   statusFilter: string;
   thresholdOperator?: '>' | '<' | '=';
   thresholdValue?: number;
+}
+export interface PredictionDetail {
+  _id: string;
+  meter_id: string;
+  model: {
+    _id: string;
+    name: string;
+  } | null;
+  model_name: string | null;
+  prediction_time: string | Date;
+  predicted_threshold?: number;
+  predicted_label: string;
+  confidence: string | number;
+  recorded_instant_flow?: number;
 }
