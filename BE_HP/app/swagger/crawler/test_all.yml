@@ -19,7 +19,6 @@ responses:
         message:
           type: string
           description: Thông báo kết quả
-
   500:
     description: Lỗi server khi kích hoạt test crawl
     schema:

@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { PredictiveModelService } from '../services/predictive-model.service';
+import { ConclusionService } from '../../../../core/services/branches/conclusion.service';
 import { PredictiveModel } from '../models';
 
 @Component({
@@ -13,7 +14,10 @@ export class PredictiveModelComponent implements OnInit {
   dates: string[] = [];
   tableData: { models: { name: string; results: string[] }[] } = { models: [] };
 
-  constructor(private predictiveService: PredictiveModelService) {}
+  constructor(
+    private predictiveService: PredictiveModelService,
+    private conclusionService: ConclusionService
+  ) {}
 
   ngOnInit(): void {
     this.loadData();
@@ -73,39 +77,19 @@ export class PredictiveModelComponent implements OnInit {
     const year = predDate.getUTCFullYear();
     return `${day}/${month}/${year}`;
   }
-  private getConclusionByDateDirect(dateStr: string, lstmAutoencoder: any[], lstmPredictions: any[]): string {
-    const lstmPred = lstmPredictions.find(pred => this.formatDateFromPrediction(pred) === dateStr);
-    const autoencoderPredictions = lstmAutoencoder.filter(pred => this.formatDateFromPrediction(pred) === dateStr);
-    const autoencoderPred = autoencoderPredictions.length > 0 ? this.selectBestPredictionForDay(autoencoderPredictions) : null;
 
-    if (!lstmPred && !autoencoderPred) return 'Chưa có dữ liệu';
-
-    const getScore = (pred: any): number => {
-      if (!pred) return 0;
-      if (pred.predicted_label === 'normal') return 0;
-      if (pred.predicted_label === 'leak') {
-        if (pred.confidence === 'NNthap') return 1;
-        if (pred.confidence === 'NNTB') return 2;
-        if (pred.confidence === 'NNcao') return 3;
-        return 1;
-      }
-      return 0;
-    };
-
-    const predictions = [lstmPred, autoencoderPred].filter(p => p !== null);
-    if (predictions.length === 0) return 'Chưa có dữ liệu';
-
-    const scores = predictions.map(pred => getScore(pred));
-    const averageScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
-    const finalScore = Math.floor(averageScore);
-
-    switch (finalScore) {
-      case 0: return 'Bình thường';
-      case 1: return 'Rò rỉ nghi ngờ thấp';
-      case 2: return 'Rò rỉ nghi ngờ trung bình';
-      case 3: return 'Rò rỉ nghi ngờ cao';
-      default: return 'Bình thường';
-    }
+  private getConclusionByDate(meterId: string, dateStr: string): Promise<string> {
+    return new Promise((resolve) => {
+      this.conclusionService.getConclusionForMeterAndDate(meterId, dateStr).subscribe({
+        next: (result) => {
+          resolve(result.text);
+        },
+        error: (error) => {
+          console.error('Error getting conclusion:', error);
+          resolve('Chưa có dữ liệu');
+        }
+      });
+    });
   }
 
   getColor(text: string): string {
@@ -130,8 +114,6 @@ export class PredictiveModelComponent implements OnInit {
     return classMap[label] || 'prediction-unknown';
   }
 
-  getTotalModelsCount(): number { return 2; }
-  reload(): void { this.loadData(true); }
   private buildTableWithSeparateAPIs(meter: PredictiveModel): void {
     Promise.all([
       this.predictiveService.getLSTMAutoencoderPredictions(meter._id).toPromise(),
@@ -200,11 +182,22 @@ export class PredictiveModelComponent implements OnInit {
       },
       {
         name: 'Kết luận',
-        results: this.dates.map(dateStr => this.getConclusionByDateDirect(dateStr, lstmAutoencoder, lstmPredictions))
+        results: []
       }
     ];
 
-    this.tableData = { models };
+    const conclusionPromises = this.dates.map(dateStr =>
+      this.getConclusionByDate(meter._id, dateStr)
+    );
+
+    Promise.all(conclusionPromises).then(conclusions => {
+      models[2].results = conclusions;
+      this.tableData = { models };
+    }).catch(error => {
+      console.error('Error getting conclusions:', error);
+      models[2].results = this.dates.map(() => 'Chưa có dữ liệu');
+      this.tableData = { models };
+    });
   }
 
 
