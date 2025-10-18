@@ -254,7 +254,7 @@
       border-top-right-radius: 8px;
     }
 
-    
+
   }
 
   td {
@@ -290,33 +290,22 @@
   font-style: italic;
   padding: 40px 24px;
 }
-
-
-// ...existing code...
-
-/* Ensure header and body tables share same layout/widths so columns align */
 .header-table,
 .body-table {
   width: 100%;
-  table-layout: fixed; /* important: force columns follow th widths */
+  table-layout: fixed;
 }
 
-/* Define column widths on header and mirror them on body */
 .header-table th:nth-child(1),
-.body-table td:nth-child(1) { width: 6%;  text-align: center; }  /* STT */
+.body-table td:nth-child(1) { width: 10%;  text-align: center; }
 .header-table th:nth-child(2),
-.body-table td:nth-child(2) { width: 36%; text-align: left;   padding-left: 16px; } /* Tên đồng hồ */
+.body-table td:nth-child(2) { width: 30%; text-align: left;   padding-left: 16px; }
 .header-table th:nth-child(3),
-.body-table td:nth-child(3) { width: 36%; text-align: left;   padding-left: 16px; } /* Vị trí */
+.body-table td:nth-child(3) { width: 30%; text-align: center;   padding-left: 16px; }
 .header-table th:nth-child(4),
-.body-table td:nth-child(4) { width: 22%; text-align: right;  padding-right: 89px; } /* Số ngày rò rỉ */
+.body-table td:nth-child(4) { width: 30%; text-align: center;  padding-left: 16px; }
 
-/* Fix .text-right alignment (was incorrect value) */
-.dashboard-table td.text-right {
-  text-align: right;
-}
 
-/* Optional: prevent header text from wrapping so alignment stays consistent */
 .header-table th {
   white-space: nowrap;
   overflow: hidden;
@@ -349,6 +338,66 @@
 .leak-days-high {
   background-color: #f8d7da;
   color: #721c24;
+}
+.map-overlay {
+  position: fixed; /* Đè toàn bộ trang */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4); /* Mờ nền bảng */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000; /* đảm bảo đè lên bảng */
+}
+
+.map-content {
+  position: relative;
+  width: 90%;
+  max-width: 900px;
+  height: 500px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.4);
+}
+
+.map-element {
+  width: 100%;
+  height: 100%;
+}
+
+.close-map-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #ff4d4f;
+  border: none;
+  color: white;
+  font-size: 20px;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  z-index: 1001;
+  transition: background 0.2s;
+}
+
+.close-map-btn:hover {
+  background: #d9363e;
+}
+
+.btn-location-header {
+  background:linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 3px;
+  transition: all 0.3s ease;
+
+  &:hover {
+    color: #0056b3;
+  }
 }
 
 // ========================================

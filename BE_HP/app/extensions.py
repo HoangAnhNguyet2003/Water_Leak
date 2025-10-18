@@ -9,7 +9,7 @@ from flask_socketio import SocketIO
 jwt = JWTManager()
 limiter = Limiter(
     key_func=get_remote_address,
-    default_limits=["20000 per day", "600 per hour"]
+    default_limits=["200000 per day", "6000 per hour"]
 )
 
 def get_db():

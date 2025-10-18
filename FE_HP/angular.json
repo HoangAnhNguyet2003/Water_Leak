@@ -30,9 +30,12 @@
               "projects/water-leak/src/assets"
             ],
             "styles": [
+              "node_modules/leaflet/dist/leaflet.css",
               "projects/water-leak/src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [
+              "node_modules/leaflet/dist/leaflet.js"
+            ]
           },
           "configurations": {
             "production": {

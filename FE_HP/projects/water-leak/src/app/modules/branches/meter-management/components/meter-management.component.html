@@ -15,8 +15,8 @@
     <div class="filter-dropdown">
       <select
         class="status-filter"
-        [(ngModel)]="filter().statusFilter"
-        (change)="onFilterChange()"
+        [value]="statusFilterValue"
+        (change)="onStatusFilterChange($event)"
       >
         <option value="">Lọc theo trạng thái</option>
         <option value="NNthap">Nghi ngờ thấp</option>
@@ -28,8 +28,8 @@
     <div class="filter-dropdown">
       <select
         class="sort-filter"
-        [(ngModel)]="filter().sortOrder"
-        (change)="onFilterChange()"
+        [value]="filter().sortOrder"
+        (change)="onSortOrderChange($event)"
       >
         <option value="asc">Tăng dần</option>
         <option value="desc" selected>Giảm dần</option>
@@ -37,7 +37,7 @@
     </div>
     <!-- Chỉ giữ filter nhập số và chọn dấu so sánh -->
     <div class="filter-dropdown threshold-filter-group">
-      <select [(ngModel)]="filter().thresholdOperator" (change)="onFilterChange()">
+      <select [value]="filter().thresholdOperator" (change)="onThresholdOperatorChange($event)">
         <option value=">">&gt;</option>
         <option value="<">&lt;</option>
         <option value="=">=</option>
@@ -45,14 +45,13 @@
       <input
         type="number"
         class="threshold-input"
-        [(ngModel)]="filter().thresholdValue"
-        (input)="onFilterChange()"
+        [value]="filter().thresholdValue"
+        (input)="onThresholdValueChange($event)"
         placeholder="% vượt"
         min="0"
       />
     </div>
   </div>
-
 
   <div class="table-container">
     <div class="table-header-fixed">
@@ -89,7 +88,9 @@
                 </span>
               </td>
               <td>
-                <span class="prediction-badge" [ngClass]="getMeterConclusionToday(meter).color">
+                <span class="prediction-badge"
+                      [style.background-color]="getMeterConclusionToday(meter).color"
+                      [style.color]="getTextColor(getMeterConclusionToday(meter).color)">
                   {{ getMeterConclusionToday(meter).text }}
                 </span>
               </td>
@@ -143,9 +144,11 @@
                       <div class="detail-item">
                         <span class="detail-label">Dự đoán:</span>
                         <span class="detail-value">
-                          <span class="prediction-badge" [style.background-color]="getMeterConclusionToday(meter)">
-                          {{ getMeterConclusionToday(meter).text }}
-                        </span>
+                          <span class="prediction-badge"
+                                [style.background-color]="getMeterConclusionToday(meter).color"
+                                [style.color]="getTextColor(getMeterConclusionToday(meter).color)">
+                            {{ getMeterConclusionToday(meter).text }}
+                          </span>
                         </span>
                       </div>
                       <div class="detail-item">

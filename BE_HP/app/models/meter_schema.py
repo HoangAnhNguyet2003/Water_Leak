@@ -22,4 +22,6 @@ class MeterOut(BaseModel):
     id: str
     branch_id: Optional[str] = None
     meter_name: str
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     installation_time: Optional[datetime] = None

@@ -45,12 +45,12 @@
 
   <div class="search-section">
     <div class="search-container">
-      <input 
-        type="text" 
-        class="search-input" 
-        placeholder="Tìm kiếm"
-        [(ngModel)]="searchTerm"
-        (input)="onSearchChange()"
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Tìm kiếm theo tên đồng hồ"
+        [value]="searchTerm()"
+        (input)="onSearchChange($event)"
       >
       <i class="fas fa-search search-icon"></i>
     </div>
@@ -63,8 +63,8 @@
           <tr>
             <th>STT</th>
             <th>Tên đồng hồ</th>
-            <th>Vị trí</th>
             <th class="text-right">Số ngày rò rỉ liên tiếp</th>
+            <th>Vị trí</th>
           </tr>
         </thead>
       </table>
@@ -73,18 +73,33 @@
     <div class="table-body-scrollable">
       <table class="dashboard-table body-table">
         <tbody>
-          <tr *ngFor="let item of dashboardData(); let i = index; trackBy: trackByFn">
+          <tr *ngFor="let item of filteredData(); let i = index; trackBy: trackByFn">
             <td>{{ i + 1 }}</td>
             <td>{{ item.meter_name }}</td>
-            <td>{{ item.location || 'nan' }}</td>
             <td class="text-right">
               <span class="leak-days-badge" [ngClass]="getLeakDaysClass(item.leakDays || 0)">
-                {{ item.leakDays || 0 }}
+                {{ item.leakDays || 0 }} ngày
               </span>
+            </td>
+            <td>
+            <button class="btn-location-header" (click)="showMapForItem(item)">
+              Toạ độ bản đồ
+            </button>
+          </td>
+          </tr>
+          <tr *ngIf="filteredData().length === 0">
+            <td colspan="4" class="text-center text-gray-500 py-4">
+              Không tìm thấy dữ liệu phù hợp
             </td>
           </tr>
         </tbody>
       </table>
+    </div>
+  </div>
+  <div *ngIf="showMap" class="map-overlay">
+    <div class="map-content">
+      <div id="map" class="map-element"></div>
+      <button class="close-map-btn" (click)="closeMap()">✖</button>
     </div>
   </div>
 </div>
