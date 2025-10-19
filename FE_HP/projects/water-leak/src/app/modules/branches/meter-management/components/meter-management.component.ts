@@ -6,6 +6,7 @@ import { trigger, transition, style, animate } from '@angular/animations';
 import { WaterMeter, WaterMeterFilter } from '../models/water-meter.interface';
 import { WaterMeterService } from '../services/water-meter.service';
 import { ConclusionService } from '../../../../core/services/branches/conclusion.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-water-meter-info',
@@ -56,32 +57,36 @@ export class MeterManagementComponent implements OnInit {
     private route: ActivatedRoute
   ) {}
 
-  ngOnInit(): void {
+    ngOnInit(): void {
     const meterId = this.route.snapshot.paramMap.get('meterId');
     const statusFilter = this.route.snapshot.queryParamMap.get('statusFilter');
 
     this.waterMeterService.getMyMeters(true).subscribe((waterMeters: WaterMeter[]) => {
-
       this.waterMeters.set(waterMeters);
       this.filteredMeters.set(waterMeters);
 
       const meterIds = waterMeters.map(meter => meter._id).filter(id => id);
-      this.loadConclusionsForMeters(meterIds, waterMeters);
+      // gọi và truyền callback thực thi sau khi load xong
+      this.loadConclusionsForMeters(meterIds, waterMeters, () => {
+        if (statusFilter) {
+          this.filter.update(curr => ({ ...curr, statusFilter }));
+          this.onSearch();
+        }
 
-      if (statusFilter) {
-        this.filter.update(curr => ({ ...curr, statusFilter }));
-        this.onSearch();
-      }
-
-      if (meterId) {
-        this.filter.update(curr => ({ ...curr, meterId }));
-        this.onSearch();
-      }
+        if (meterId) {
+          this.filter.update(curr => ({ ...curr, meterId }));
+          this.onSearch();
+        }
+      });
     });
   }
 
-  private loadConclusionsForMeters(meterIds: string[], waterMeters: WaterMeter[]): void {
-    this.conclusionService.getTodaysConclusionsForMeters(meterIds).subscribe({
+    private loadConclusionsForMeters(
+    meterIds: string[],
+    waterMeters: WaterMeter[],
+    onComplete?: () => void
+  ): Subscription {
+    const sub = this.conclusionService.getTodaysConclusionsForMeters(meterIds).subscribe({
       next: (conclusionsMap) => {
         const updatedMeters = waterMeters.map(meter => ({
           ...meter,
@@ -98,8 +103,14 @@ export class MeterManagementComponent implements OnInit {
         }));
         this.waterMeters.set(updatedMeters);
         this.filteredMeters.set(updatedMeters);
+        if (onComplete) onComplete();
+      },
+      complete: () => {
+        if (onComplete) onComplete();
       }
     });
+
+    return sub;
   }
 
   private isValidWaterMeter(meter: any): meter is WaterMeter {
@@ -130,6 +141,7 @@ export class MeterManagementComponent implements OnInit {
     const expectedText = statusMap[currentFilter.statusFilter];
     return expectedText ? conclusionText.includes(expectedText) : false;
   })();
+
 
   let matchesThreshold = true;
   if (
