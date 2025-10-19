@@ -5,12 +5,14 @@
         <div class="filter">
             <div class="filter-group">
             <h4>Đồng hồ: </h4>
-            <select [(ngModel)]="selectedMeterId" (change)="onMeterChange($event)">
-                <option *ngFor="let meter of meters" [value]="meter._id">
-                    {{ meter.meter_name }}
-                </option>
-                </select>
-
+           <select
+            [(ngModel)]="selectedMeterId"
+            [ngModelOptions]="{standalone: true}"
+            (change)="onMeterChange($event)">
+            <option *ngFor="let meter of meters" [value]="meter._id">
+                {{ meter.meter_name }}
+            </option>
+            </select>
             </div>
         <div class="filter-group">
             <h4>Chọn ngày:</h4>

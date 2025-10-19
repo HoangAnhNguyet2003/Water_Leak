@@ -2,22 +2,24 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, catchError, map, Observable, of } from 'rxjs';
 import { Dashboard, PredictionDetail } from '../models/dasboard.interface';
-import { environment } from 'my-lib';
+import { SharedMeterDataService } from '../../../../core/services/branches/shared-meter-data.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class DashboardService {
   private dashboards$ = new BehaviorSubject<Dashboard[] | null>(null);
-  private readonly API_BASE = environment.apiUrl;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private sharedMeterDataService: SharedMeterDataService
+  ) {}
 
   getDashboardData(force = false): Observable<Dashboard[]> {
     if (force || !this.dashboards$.value) {
-      this.http.get<{ items: any[] }>(`${this.API_BASE}/meters/get_my_meters`)
+      this.sharedMeterDataService.getMeterData(force)
         .pipe(
-          map(res => (res.items || []).map(item => this.mapFromApi(item))),
+          map(rawData => rawData.map(item => this.mapFromApi(item))),
           catchError(err => {
             console.error('Failed to load dashboard data:', err);
             this.dashboards$.next([]);
@@ -30,7 +32,6 @@ export class DashboardService {
     return this.dashboards$.asObservable().pipe(map(dashboards => dashboards ?? []));
   }
 
-  /** ✅ Chuẩn hóa dữ liệu từ API */
   private mapFromApi(apiData: any): Dashboard {
     const parseDate = (val: any): string | Date => {
       if (val == null) return '';
@@ -57,7 +58,6 @@ export class DashboardService {
       return String(val);
     };
 
-    // ✅ prediction (bản ghi chính)
     const predictionRaw = apiData.prediction ?? null;
     const prediction = predictionRaw
       ? {
@@ -72,7 +72,6 @@ export class DashboardService {
         }
       : null;
 
-    // ✅ predictions (danh sách dự đoán chi tiết)
     const predictionsRaw = apiData.predictions ?? [];
     const predictions: PredictionDetail[] = predictionsRaw.map((pred: any) => ({
       _id: String(pred._id ?? ''),

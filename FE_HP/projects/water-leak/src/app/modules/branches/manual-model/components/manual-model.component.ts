@@ -1,5 +1,4 @@
-
-import { Component, OnInit, AfterViewInit, inject } from '@angular/core';
+import { Component, OnInit, AfterViewInit, inject, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import Chart from 'chart.js/auto';
 import { ManualMeterService } from '../services/manual-meter.service';
@@ -36,37 +35,53 @@ export class ManualModelComponent implements OnInit, AfterViewInit {
 
   private route = inject(ActivatedRoute);
   private manualMeterService = inject(ManualMeterService);
+  private cdr = inject(ChangeDetectorRef);
 
   get selectedMeter(): ManualModel | undefined {
     return this.meters.find(m => m._id === this.selectedMeterId);
   }
+
   get thresholdValue(): number {
     const meter = this.selectedMeter;
     return meter && meter.threshold ? meter.threshold.threshold_value : 0;
   }
-
   ngOnInit(): void {
-    const today = new Date();
-    this.selectedDate = today.toISOString().slice(0, 10); // yyyy-mm-dd
-    this.route.paramMap.subscribe(params => {
-      const meterId = params.get('meterId');
-      this.manualMeterService.getManualMeters(true).subscribe(meters => {
-        this.meters = meters;
-        if (meters.length > 0) {
-          if (meterId && meters.some(m => m._id === meterId)) {
-            this.selectedMeterId = meterId;
-          } else {
-            this.selectedMeterId = meters[0]._id;
-          }
-          setTimeout(() => this.drawChart(this.selectedMeterId), 0);
+  const today = new Date();
+  this.selectedDate = today.toISOString().slice(0, 10);
+  this.route.paramMap.subscribe(params => {
+    const meterIdFromRoute = params.get('meterId');
+
+    this.manualMeterService.getManualMeters(true).subscribe(meters => {
+      this.meters = Array.isArray(meters) ? meters : [];
+
+      if (meterIdFromRoute && this.meters.some(m => m._id === meterIdFromRoute)) {
+        this.selectedMeterId = meterIdFromRoute;
+      } 
+      else if (!this.selectedMeterId || !this.meters.some(m => m._id === this.selectedMeterId)) {
+        this.selectedMeterId = this.meters[0]?._id ?? '';
+      }
+
+      this.cdr.detectChanges();
+
+      setTimeout(() => {
+        const select = document.querySelector('select') as HTMLSelectElement;
+        if (select && this.selectedMeterId) {
+          select.value = this.selectedMeterId;
         }
-      });
+
+        if (this.selectedMeterId) {
+          this.drawChart(this.selectedMeterId);
+        }
+      }, 150);
     });
-  }
+  });
+}
+
+
 
   ngAfterViewInit(): void {
     if (this.selectedMeterId) {
-      this.drawChart(this.selectedMeterId);
+      setTimeout(() => this.drawChart(this.selectedMeterId), 300);
     }
   }
 
@@ -79,12 +94,10 @@ export class ManualModelComponent implements OnInit, AfterViewInit {
   onDateChange(event: Event) {
     const input = event.target as HTMLInputElement;
     this.selectedDate = input.value;
-    // Đảm bảo vẽ lại đúng ngày mới chọn
     setTimeout(() => this.drawChart(this.selectedMeterId), 0);
   }
 
   async drawChart(meterId: string) {
-    // Tạo mảng 7 ngày tiếp theo từ ngày được chọn, định dạng dd/MM/yyyy
     const startDate = this.selectedDate ? new Date(this.selectedDate) : new Date();
     const labels: string[] = [];
     for (let i = 0; i < 7; i++) {
@@ -95,13 +108,13 @@ export class ManualModelComponent implements OnInit, AfterViewInit {
       const year = d.getFullYear();
       labels.push(`${day}/${month}/${year}`);
     }
-    // Lấy dữ liệu đo cho từng ngày
+
     const meter = this.meters.find(m => m._id === meterId);
     let flowData: number[] = [];
+
     if (meter && meter.measurement) {
-      let measurements = Array.isArray(meter.measurement) ? meter.measurement : [meter.measurement];
+      const measurements = Array.isArray(meter.measurement) ? meter.measurement : [meter.measurement];
       flowData = labels.map(label => {
-        // Tìm measurement đúng ngày
         const found = measurements.find(measurement => {
           const time = measurement?.measurement_time ? new Date(measurement.measurement_time) : null;
           if (!time) return false;
@@ -115,11 +128,10 @@ export class ManualModelComponent implements OnInit, AfterViewInit {
     } else {
       flowData = Array(7).fill(0);
     }
-    // Nếu chưa có dữ liệu thì vẽ đường màu xám bằng 0
-    const zeroData = Array(7).fill(0);
+
     const thresholdData = Array(7).fill(this.thresholdValue);
     const thresholdPointColors = flowData.map(v => v === 0 ? '#cccccc' : '#b23838ff');
-    const thresholdLabelColors = flowData.map(v => v === 0 ? '#cccccc' : '#b23838ff');
+
     const datasets = [
       {
         label: 'Ngưỡng',
@@ -153,11 +165,17 @@ export class ManualModelComponent implements OnInit, AfterViewInit {
         tension: 0.2
       },
     ];
-    const ctx = (document.getElementById('meterChart') as HTMLCanvasElement)?.getContext('2d');
+
+    const canvas = document.getElementById('meterChart') as HTMLCanvasElement;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
     if (this.chart) {
       this.chart.destroy();
     }
+
     this.chart = new Chart(ctx, {
       type: 'line',
       data: {
@@ -170,16 +188,14 @@ export class ManualModelComponent implements OnInit, AfterViewInit {
           legend: { display: false },
           title: {
             display: true,
-            text: 'Biểu đồ lưu lượng so với ngưỡng ',
+            text: 'Biểu đồ lưu lượng so với ngưỡng',
             font: { size: 18 }
           },
-          datalabels: {
-            display: true
-          }
+          datalabels: { display: true }
         },
         scales: {
-          x: { title: { display: true, text: 'Ngày hiển thị', font: { size: 15 } }, grid: { color: '#e2e8f0' } },
-          y: { title: { display: true, text: 'Lưu lượng', font: { size: 15 } }, grid: { color: '#e2e8f0' } }
+          x: { title: { display: true, text: 'Ngày hiển thị', font: { size: 15 } } },
+          y: { title: { display: true, text: 'Lưu lượng', font: { size: 15 } } }
         }
       },
     });
@@ -188,10 +204,7 @@ export class ManualModelComponent implements OnInit, AfterViewInit {
   getTodayText(): string {
     const today = new Date();
     return today.toLocaleDateString('vi-VN', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
   }
 
@@ -220,19 +233,12 @@ export class ManualModelComponent implements OnInit, AfterViewInit {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     return yesterday.toLocaleDateString('vi-VN', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
     });
   }
 
   getConfirmButtonText(): string {
-    if (this.thresholdMethod === 'manual') {
-      return 'Đặt ngưỡng';
-    } else {
-      return 'Sử dụng ngưỡng hôm qua';
-    }
+    return this.thresholdMethod === 'manual' ? 'Đặt ngưỡng' : 'Sử dụng ngưỡng hôm qua';
   }
 
   loadYesterdayThreshold(): void {
@@ -244,11 +250,9 @@ export class ManualModelComponent implements OnInit, AfterViewInit {
 
     this.manualMeterService.getThresholdByDate(this.selectedMeterId, yesterdayString)
       .subscribe({
-        next: (threshold) => {
-          this.yesterdayThreshold = threshold;
-        },
-        error: (error) => {
-          console.error('Error loading yesterday threshold:', error);
+        next: (threshold) => this.yesterdayThreshold = threshold,
+        error: (err) => {
+          console.error('Error loading yesterday threshold:', err);
           this.yesterdayThreshold = null;
         }
       });
@@ -256,20 +260,15 @@ export class ManualModelComponent implements OnInit, AfterViewInit {
 
   isValidThreshold(): boolean {
     if (!this.selectedMeterId) return false;
-
     if (this.thresholdMethod === 'manual') {
-      return this.manualThresholdValue !== null &&
-             this.manualThresholdValue >= 0 &&
-             !isNaN(this.manualThresholdValue);
+      return this.manualThresholdValue !== null && this.manualThresholdValue >= 0 && !isNaN(this.manualThresholdValue);
     } else {
       return this.yesterdayThreshold !== null;
     }
   }
 
   setThreshold(): void {
-    if (!this.selectedMeterId || !this.isValidThreshold()) {
-      return;
-    }
+    if (!this.selectedMeterId || !this.isValidThreshold()) return;
 
     let thresholdValue: number;
     let successMessage: string;
@@ -284,16 +283,29 @@ export class ManualModelComponent implements OnInit, AfterViewInit {
 
     this.manualMeterService.setThreshold(this.selectedMeterId, thresholdValue)
       .subscribe({
-        next: (response) => {
-          console.log('Threshold set successfully:', response);
+        next: () => {
           this.showSuccessPopup(successMessage);
           this.closeThresholdModal();
+
+          // Reload meters nhưng giữ selectedMeterId nếu còn tồn tại
+          const currentId = this.selectedMeterId;
           this.manualMeterService.getManualMeters(true).subscribe(meters => {
-            this.meters = meters;
+            this.meters = Array.isArray(meters) ? meters : [];
+            if (currentId && this.meters.some(m => m._id === currentId)) {
+              this.selectedMeterId = currentId;
+            } else {
+              this.selectedMeterId = this.meters[0]?._id ?? '';
+            }
+
+            // cập nhật view và vẽ lại chart
+            try { this.cdr.detectChanges(); } catch (e) {}
+            setTimeout(() => {
+              if (this.selectedMeterId) this.drawChart(this.selectedMeterId);
+            }, 120);
           });
         },
-        error: (error) => {
-          console.error('Error setting threshold:', error);
+        error: (err) => {
+          console.error('Error setting threshold:', err);
           this.showErrorPopup('Có lỗi xảy ra khi đặt ngưỡng. Vui lòng thử lại!');
         }
       });

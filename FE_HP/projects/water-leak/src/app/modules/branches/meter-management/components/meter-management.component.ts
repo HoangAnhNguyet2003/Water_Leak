@@ -5,7 +5,8 @@ import { Router,ActivatedRoute  } from '@angular/router';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { WaterMeter, WaterMeterFilter } from '../models/water-meter.interface';
 import { WaterMeterService } from '../services/water-meter.service';
-import { PredictiveModel } from '../../predictive-model/models';
+import { ConclusionService } from '../../../../core/services/branches/conclusion.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-water-meter-info',
@@ -35,9 +36,6 @@ export class MeterManagementComponent implements OnInit {
     return info;
   }
 
-    getPredictionClass(meter: WaterMeter): string {
-      return 'prediction-green';
-    }
   waterMeters = signal<WaterMeter[]>([]);
   filteredMeters = signal<WaterMeter[]>([]);
   filter = signal<WaterMeterFilter & {
@@ -52,21 +50,67 @@ export class MeterManagementComponent implements OnInit {
     sortOrder: 'desc'
   });
 
-  constructor(private router: Router, private waterMeterService: WaterMeterService,private route: ActivatedRoute) {}
+  constructor(
+    private waterMeterService: WaterMeterService,
+    private conclusionService: ConclusionService,
+    private router: Router,
+    private route: ActivatedRoute
+  ) {}
 
-  ngOnInit(): void {
+    ngOnInit(): void {
     const meterId = this.route.snapshot.paramMap.get('meterId');
     const statusFilter = this.route.snapshot.queryParamMap.get('statusFilter');
 
-    this.waterMeterService.getMyMeters(true).subscribe(meters => {
-      this.waterMeters.set(meters);
-      this.filteredMeters.set(meters);
+    this.waterMeterService.getMyMeters(true).subscribe((waterMeters: WaterMeter[]) => {
+      this.waterMeters.set(waterMeters);
+      this.filteredMeters.set(waterMeters);
 
-      if (statusFilter) {
-        this.filter.update(curr => ({ ...curr, statusFilter }));
-        this.onSearch();
+      const meterIds = waterMeters.map(meter => meter._id).filter(id => id);
+      // gọi và truyền callback thực thi sau khi load xong
+      this.loadConclusionsForMeters(meterIds, waterMeters, () => {
+        if (statusFilter) {
+          this.filter.update(curr => ({ ...curr, statusFilter }));
+          this.onSearch();
+        }
+
+        if (meterId) {
+          this.filter.update(curr => ({ ...curr, meterId }));
+          this.onSearch();
+        }
+      });
+    });
+  }
+
+    private loadConclusionsForMeters(
+    meterIds: string[],
+    waterMeters: WaterMeter[],
+    onComplete?: () => void
+  ): Subscription {
+    const sub = this.conclusionService.getTodaysConclusionsForMeters(meterIds).subscribe({
+      next: (conclusionsMap) => {
+        const updatedMeters = waterMeters.map(meter => ({
+          ...meter,
+          aiConclusion: conclusionsMap[meter._id] || { text: 'Chưa có dữ liệu', color: '#9e9e9e' }
+        }));
+        this.waterMeters.set(updatedMeters);
+        this.filteredMeters.set(updatedMeters);
+      },
+      error: (error) => {
+        console.error('Error loading conclusions:', error);
+        const updatedMeters = waterMeters.map(meter => ({
+          ...meter,
+          aiConclusion: { text: 'Chưa có dữ liệu', color: '#9e9e9e' }
+        }));
+        this.waterMeters.set(updatedMeters);
+        this.filteredMeters.set(updatedMeters);
+        if (onComplete) onComplete();
+      },
+      complete: () => {
+        if (onComplete) onComplete();
       }
     });
+
+    return sub;
   }
 
   private isValidWaterMeter(meter: any): meter is WaterMeter {
@@ -84,14 +128,21 @@ export class MeterManagementComponent implements OnInit {
     !currentFilter.searchTerm ||
     meter.meter_name.toLowerCase().includes(currentFilter.searchTerm.toLowerCase());
 
-  const matchesStatus =
-    !currentFilter.statusFilter ||
-    meter.predictions?.some(pred =>
-      pred.predicted_label === currentFilter.statusFilter ||
-      pred.confidence === currentFilter.statusFilter
-    );
+  const matchesStatus = !currentFilter.statusFilter || (() => {
+    const conclusion = this.getMeterConclusionToday(meter);
+    const conclusionText = conclusion.text;
 
-  // Lọc vượt ngưỡng
+    const statusMap: Record<string, string> = {
+      'NNthap': 'Rò rỉ nghi ngờ thấp',
+      'NNTB': 'Rò rỉ nghi ngờ trung bình',
+      'NNcao': 'Rò rỉ nghi ngờ cao'
+    };
+
+    const expectedText = statusMap[currentFilter.statusFilter];
+    return expectedText ? conclusionText.includes(expectedText) : false;
+  })();
+
+
   let matchesThreshold = true;
   if (
     currentFilter.thresholdOperator &&
@@ -132,6 +183,38 @@ export class MeterManagementComponent implements OnInit {
 
   onFilterChange(): void {
     this.onSearch();
+  }
+
+  onStatusFilterChange(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    const value = target?.value ?? '';
+    this.filter.update(curr => ({ ...curr, statusFilter: value }));
+    this.onSearch();
+  }
+
+  onSortOrderChange(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    const value = target?.value as 'asc' | 'desc';
+    this.filter.update(curr => ({ ...curr, sortOrder: value }));
+    this.onSearch();
+  }
+
+  onThresholdOperatorChange(event: Event): void {
+    const target = event.target as HTMLSelectElement;
+    const value = target?.value as '>' | '<' | '=';
+    this.filter.update(curr => ({ ...curr, thresholdOperator: value }));
+    this.onSearch();
+  }
+
+  onThresholdValueChange(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    const value = target?.value ? parseFloat(target.value) : undefined;
+    this.filter.update(curr => ({ ...curr, thresholdValue: value }));
+    this.onSearch();
+  }
+
+  get statusFilterValue(): string {
+    return this.filter().statusFilter;
   }
 
   private searchTimeout: any;
@@ -214,80 +297,25 @@ export class MeterManagementComponent implements OnInit {
       className: percent > 30 ? 'threshold-red' : 'threshold-green'
     };
   }
-  // c tính kết luận từ đây
   public getMeterConclusionToday(meter: WaterMeter): { text: string; color: string } {
-  if (!meter) return { text: 'Chưa có dữ liệu', color: '' };
-
-  const today = new Date();
-  const todayStr = `${today.getDate().toString().padStart(2,'0')}/${(today.getMonth()+1).toString().padStart(2,'0')}/${today.getFullYear()}`;
-
-  const lstmPredictions = meter.predictions?.filter(p =>
-    p.model_name?.toUpperCase().includes('LSTM') && !p.model_name?.toUpperCase().includes('AUTO')
-  ) ?? [];
-
-  const lstmAutoencoder = meter.predictions?.filter(p =>
-    p.model_name?.toUpperCase().includes('AUTO')
-  ) ?? [];
-  const formatDate = (pred: any): string => {
-    const dateRaw = pred?.prediction_time?.$date ?? pred?.prediction_time;
-    const d = new Date(dateRaw);
-    if (isNaN(d.getTime())) return '';
-    return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
-  };
-
-  const lstmToday = lstmPredictions.find(p => formatDate(p) === todayStr) ?? null;
-  const autoencoderToday = lstmAutoencoder.filter(p => formatDate(p) === todayStr);
-
-  const selectBestPredictionForDay = (preds: any[]): any | null => {
-    if (!preds || preds.length === 0) return null;
-    if (preds.length === 1) return preds[0];
-    const leaks = preds.filter(p => ['LEAK','NNTHAP','NNTB','NNCAO'].includes((p.predicted_label ?? '').toString().trim().toUpperCase()));
-    const candidates = leaks.length > 0 ? leaks : preds.slice();
-    const rank: Record<string, number> = { NNCAO: 3, NNTB: 2, NNTHAP: 1 };
-    candidates.sort((a,b) => {
-      const aLabel = (a.predicted_label ?? '').toString().trim().toUpperCase();
-      const bLabel = (b.predicted_label ?? '').toString().trim().toUpperCase();
-      const aConf = (a.confidence ?? '').toString().trim().toUpperCase();
-      const bConf = (b.confidence ?? '').toString().trim().toUpperCase();
-      const scoreA = rank[aLabel] ?? rank[aConf] ?? 0;
-      const scoreB = rank[bLabel] ?? rank[bConf] ?? 0;
-      return scoreB - scoreA;
-    });
-    return candidates[0];
-  };
-
-  const autoencoderBest = selectBestPredictionForDay(autoencoderToday);
-
-  if (!lstmToday && !autoencoderBest) return { text: 'Chưa có dữ liệu', color: '' };
-
-  const getScore = (pred: any): number => {
-    if (!pred) return 0;
-    const label = (pred.predicted_label ?? '').toString().trim().toUpperCase();
-    const conf = (pred.confidence ?? '').toString().trim().toUpperCase();
-    if (label === 'NORMAL') return 0;
-    if (['NNTHAP','NNTB','NNCAO'].includes(label)) return label === 'NNCAO' ? 3 : label === 'NNTB' ? 2 : 1;
-    if (label === 'LEAK') {
-      if (['NNTHAP','NNTB','NNCAO'].includes(conf)) return conf === 'NNCAO' ? 3 : conf === 'NNTB' ? 2 : 1;
-      const num = Number(conf);
-      if (!isNaN(num)) return num >= 75 ? 3 : num >= 40 ? 2 : 1;
-      return 1;
+    if (!meter || !meter._id) {
+      return { text: 'Chưa có dữ liệu', color: '#9e9e9e' };
     }
-    return 0;
-  };
 
-  const predictions = [lstmToday, autoencoderBest].filter(Boolean);
-  const avgScore = predictions.map(getScore).reduce((s,v) => s+v,0)/predictions.length;
-  const finalScore = Math.floor(avgScore);
-
-  let text = 'Bình thường';
-  let color = 'prediction-green';
-  switch(finalScore){
-    case 1: text='Rò rỉ nghi ngờ thấp'; color='prediction-green'; break;
-    case 2: text='Rò rỉ nghi ngờ trung bình'; color='prediction-yellow'; break;
-    case 3: text='Rò rỉ nghi ngờ cao'; color='prediction-red'; break;
+    // Sử dụng kết quả từ ConclusionService đã được load
+    return (meter as any).aiConclusion || { text: 'Đang tải...', color: '#9e9e9e' };
   }
 
-  return { text, color };
-}
+  public getTextColor(backgroundColor: string): string {
 
+    const colorMap: { [key: string]: string } = {
+      '#c62828': '#ffffff',
+      '#f57c00': '#ffffff',
+      '#fbc02d': '#000000',
+      '#2e7d32': '#ffffff',
+      '#9e9e9e': '#ffffff'
+    };
+
+    return colorMap[backgroundColor] || '#000000';
+  }
 }

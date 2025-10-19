@@ -2,24 +2,24 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, catchError, map, Observable, of } from 'rxjs';
 import { WaterMeter, PredictionDetail } from '../models/water-meter.interface';
-import { environment } from 'my-lib';
+import { SharedMeterDataService } from '../../../../core/services/branches/shared-meter-data.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class WaterMeterService {
   private meters$ = new BehaviorSubject<WaterMeter[] | null>(null);
-  private readonly API_BASE = environment.apiUrl;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private sharedMeterDataService: SharedMeterDataService
+  ) {}
 
-  /** ✅ Lấy danh sách đồng hồ của người dùng */
   getMyMeters(force = false): Observable<WaterMeter[]> {
     if (force || !this.meters$.value) {
-      this.http
-        .get<{ items: any[] }>(`${this.API_BASE}/meters/get_my_meters`)
+      this.sharedMeterDataService.getMeterData(force)
         .pipe(
-          map(res => res.items.map(item => this.mapFromApi(item))),
+          map(rawData => rawData.map(item => this.mapFromApi(item))),
           catchError(err => {
             console.error('Failed to load meters:', err);
             return of([] as WaterMeter[]);
@@ -31,7 +31,6 @@ export class WaterMeterService {
     return this.meters$.asObservable().pipe(map(meters => meters ?? []));
   }
 
-  /** ✅ Chuyển đổi dữ liệu API sang kiểu WaterMeter */
   private mapFromApi(apiMeter: any): WaterMeter {
     const parseDate = (val: any): Date | string => {
       if (!val) return '';
@@ -40,7 +39,6 @@ export class WaterMeterService {
       return '';
     };
 
-    // ✅ Mapping phần dự đoán chi tiết (predictions)
     const mapPredictions = (preds: any[]): PredictionDetail[] => {
       if (!Array.isArray(preds)) return [];
       return preds.map(pred => ({

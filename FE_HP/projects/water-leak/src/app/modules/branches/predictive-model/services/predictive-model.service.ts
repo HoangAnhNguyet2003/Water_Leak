@@ -2,37 +2,34 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, catchError, map, Observable, of } from 'rxjs';
 import { PredictiveModel } from '../models';
+import { SharedMeterDataService } from '../../../../core/services/branches/shared-meter-data.service';
 import { environment } from 'my-lib';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PredictiveModelService {
-  // Nếu cần dùng sau, vẫn giữ stub; nếu không thì xóa hoặc implement đầy đủ
-  getMeterMeasurements(meterId: string, fromStr: string, toStr: string) {
-    throw new Error('Method not implemented.');
-  }
-
   private manualMeters$ = new BehaviorSubject<PredictiveModel[] | null>(null);
   private readonly API_BASE = environment.apiUrl;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private sharedMeterDataService: SharedMeterDataService
+  ) {}
 
   getManualMeters(force = false): Observable<PredictiveModel[]> {
     if (force || !this.manualMeters$.value) {
-      this.http.get<{ items: any[] }>(`${this.API_BASE}/meters/get_my_meters`)
+      this.sharedMeterDataService.getMeterData(force)
         .pipe(
-          map(res => (res.items || []).map(item => this.mapFromApi(item))),
+          map(rawData => rawData.map(item => this.mapFromApi(item))),
           catchError(err => {
             console.error('Failed to load manual meters:', err);
-            // đảm bảo subject không để null nếu lỗi xảy ra
             this.manualMeters$.next([]);
             return of([] as PredictiveModel[]);
           })
         )
         .subscribe(data => this.manualMeters$.next(data));
     }
-    // trả về Observable luôn có mảng (không null)
     return this.manualMeters$.asObservable().pipe(map(meters => meters ?? []));
   }
 

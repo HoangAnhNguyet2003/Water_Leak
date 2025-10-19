@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { DashboardService } from '../services/dashboard.service';
+import { ConclusionService } from '../../../../core/services/branches/conclusion.service';
 import { Dashboard } from '../models/dasboard.interface';
 import * as L from 'leaflet';
 
@@ -16,6 +17,7 @@ import * as L from 'leaflet';
 export class DashboardComponent implements OnInit {
   private router = inject(Router);
   private dashboardService = inject(DashboardService);
+  private conclusionService = inject(ConclusionService);
 
   dashboardData = signal<Dashboard[]>([]);
   searchTerm = signal<string>('');
@@ -46,14 +48,37 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.dashboardService.getDashboardData(true).subscribe(data => {
-      this.dashboardData.set(
-        data.map(item => ({
+      const processedData = data.map(item => ({
+        ...item,
+        leakDays: this.calculateLeakDays(item),
+        latitude: item.latitude ?? undefined,
+        longitude: item.longitude ?? undefined
+      }));
+
+      this.dashboardData.set(processedData);
+
+      const meterIds = processedData.map(item => item._id).filter(id => id);
+      this.loadConclusionsForMeters(meterIds, processedData);
+    });
+  }
+
+  private loadConclusionsForMeters(meterIds: string[], processedData: Dashboard[]): void {
+    this.conclusionService.getTodaysConclusionsForMeters(meterIds).subscribe({
+      next: (conclusionsMap) => {
+        const updatedData = processedData.map(item => ({
           ...item,
-          leakDays: this.calculateLeakDays(item),
-          latitude: item.latitude ?? undefined,
-          longitude: item.longitude ?? undefined
-        }))
-      );
+          aiConclusion: conclusionsMap[item._id] || { text: 'Chưa có dữ liệu', color: '#9e9e9e' }
+        }));
+        this.dashboardData.set(updatedData);
+      },
+      error: (error) => {
+        console.error('Error loading conclusions:', error);
+        const updatedData = processedData.map(item => ({
+          ...item,
+          aiConclusion: { text: 'Chưa có dữ liệu', color: '#9e9e9e' }
+        }));
+        this.dashboardData.set(updatedData);
+      }
     });
   }
 
@@ -72,104 +97,33 @@ export class DashboardComponent implements OnInit {
     const year = vnTime.getFullYear();
     return `${day}/${month}/${year}`;
   }
-// kết luận từ đây
-  private getConclusion(item: Dashboard): string {
-    const pred = item.prediction;
-    if (!pred) return 'Chưa có dữ liệu';
-
-    const label = (pred.predicted_label ?? '').trim();
-    const conf = (pred.confidence ?? '').toString();
-    const directLabels = ['NNthap', 'NNTB', 'NNcao'];
-
-    if (directLabels.includes(label)) {
-      if (label === 'NNcao') return 'Rò rỉ nghi ngờ cao';
-      if (label === 'NNTB') return 'Rò rỉ nghi ngờ trung bình';
-      return 'Rò rỉ nghi ngờ thấp';
-    }
-
-    if (label === 'normal') return 'Bình thường';
-    if (label === 'leak') {
-      if (directLabels.includes(conf)) {
-        if (conf === 'NNcao') return 'Rò rỉ nghi ngờ cao';
-        if (conf === 'NNTB') return 'Rò rỉ nghi ngờ trung bình';
-        return 'Rò rỉ nghi ngờ thấp';
-      }
-      const num = Number(conf);
-      if (!isNaN(num)) {
-        if (num >= 75) return 'Rò rỉ nghi ngờ cao';
-        if (num >= 40) return 'Rò rỉ nghi ngờ trung bình';
-        return 'Rò rỉ nghi ngờ thấp';
-      }
-      return 'Rò rỉ nghi ngờ thấp';
-    }
-
-    return 'Không xác định';
-  }
-
-
   private getTodayConclusionCount(type: string): number {
-    const todayVN = this.formatVNDate(new Date()); 
-
-    const result = this.dashboardData()
-      .flatMap(item =>
-        (item.predictions ?? []).map(pred => ({
-          meter_name: item.meter_name,
-          prediction_time: pred.prediction_time,
-          predicted_label: pred.predicted_label,
-          confidence: pred.confidence
-        }))
-      )
-      .filter(pred => {
-        if (!pred.prediction_time) return false;
-
-        const vnDate = this.formatVNDate(new Date(pred.prediction_time));
-
-        const conclusion = this.getConclusion({
-          prediction: {
-            meter_name: pred.meter_name,
-            prediction_time: pred.prediction_time,
-            model_name: '',
-            predicted_label: pred.predicted_label,
-            confidence: pred.confidence
-          }
-        } as Dashboard);
-
-        return vnDate === todayVN && conclusion === type;
-      });
-
-    return result.length;
-  }
-
-  
-  getTodayConclusionsSummary(): { low: number; medium: number; high: number } {
     const todayVN = this.formatVNDate(new Date());
-    let low = 0, medium = 0, high = 0;
 
-    this.dashboardData().forEach(item => {
-      const predictions = item.predictions ?? [];
-      predictions.forEach(pred => {
-        const vnDate = this.formatVNDate(new Date(pred.prediction_time));
-        if (vnDate !== todayVN) return;
-
-        const conclusion = this.getConclusion({
-          prediction: {
-            meter_name: item.meter_name,
-            prediction_time: pred.prediction_time,
-            model_name: '',
-            predicted_label: pred.predicted_label,
-            confidence: pred.confidence
-          }
-        } as Dashboard);
-
-        if (conclusion === 'Rò rỉ nghi ngờ thấp') low++;
-        else if (conclusion === 'Rò rỉ nghi ngờ trung bình') medium++;
-        else if (conclusion === 'Rò rỉ nghi ngờ cao') high++;
-      });
-    });
-
-    return { low, medium, high };
+    return this.dashboardData().filter(item => {
+      const conclusion = this.getMeterConclusionToday(item);
+      return conclusion === type;
+    }).length;
   }
- // Tính số ngày rò rỉ 
+
+  private getMeterConclusionToday(item: Dashboard): string {
+    if (!item || !item._id) return 'Chưa có dữ liệu';
+
+    return (item as any).aiConclusion?.text || 'Đang tải...';
+  }  private selectBestPredictionForDay(predictions: any[]): any {
+    if (predictions.length === 1) return predictions[0];
+
+    const leakPredictions = predictions.filter(p => p.predicted_label === 'leak');
+    const candidatePredictions = leakPredictions.length > 0 ? leakPredictions : predictions.filter(p => p.predicted_label === 'normal');
+    const confidenceRank: { [key: string]: number } = { 'NNcao': 3, 'NNTB': 2, 'NNthap': 1 };
+
+    candidatePredictions.sort((a, b) => (confidenceRank[b.confidence] || 0) - (confidenceRank[a.confidence] || 0));
+    return candidatePredictions[0];
+  }
+
+
+
+ // Tính số ngày rò rỉ
  getLeakDaysClass(leakDays: number): string {
     if (leakDays >= 4) return 'leak-days-high';
     if (leakDays >= 2) return 'leak-days-medium';
@@ -181,34 +135,109 @@ export class DashboardComponent implements OnInit {
   }
 
   private calculateLeakDays(item: Dashboard): number {
-  if (!item.predictions || item.predictions.length === 0) return 0;
-  const sortedPreds = item.predictions
-    .filter(p => p.prediction_time)
-    .sort((a, b) => new Date(b.prediction_time).getTime() - new Date(a.prediction_time).getTime());
+    if (!item.predictions || item.predictions.length === 0) return 0;
 
-  let leakDays = 0;
+    // Group predictions by date
+    const predictionsByDate = new Map<string, any[]>();
 
-  for (const pred of sortedPreds) {
-    const conclusion = this.getConclusion({
-      prediction: {
-        meter_name: item.meter_name,
-        prediction_time: pred.prediction_time,
-        model_name: '',
-        predicted_label: pred.predicted_label,
-        confidence: pred.confidence
+    item.predictions.forEach(pred => {
+      const dateRaw = (pred?.prediction_time as any)?.$date ?? pred?.prediction_time;
+      const d = new Date(dateRaw);
+      if (isNaN(d.getTime())) return;
+
+      const dateStr = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
+
+      if (!predictionsByDate.has(dateStr)) {
+        predictionsByDate.set(dateStr, []);
       }
-    } as Dashboard);
+      predictionsByDate.get(dateStr)!.push(pred);
+    });
 
-    if (conclusion === 'Bình thường') {
-      break;
-    } else {
-      leakDays++;
+    // Sort dates in descending order (most recent first)
+    const sortedDates = Array.from(predictionsByDate.keys()).sort((a, b) => {
+      const [dayA, monthA, yearA] = a.split('/').map(Number);
+      const [dayB, monthB, yearB] = b.split('/').map(Number);
+      const dateA = new Date(yearA, monthA - 1, dayA);
+      const dateB = new Date(yearB, monthB - 1, dayB);
+      return dateB.getTime() - dateA.getTime();
+    });
+
+    let leakDays = 0;
+
+    for (const dateStr of sortedDates) {
+      const dayPreds = predictionsByDate.get(dateStr) || [];
+
+      // Create a temporary dashboard item for this date to use getMeterConclusionToday logic
+      const dayItem = {
+        ...item,
+        predictions: dayPreds
+      } as Dashboard;
+
+      const conclusion = this.getMeterConclusionForDate(dayItem, dateStr);
+
+      if (conclusion === 'Bình thường') {
+        break;
+      } else {
+        leakDays++;
+      }
+    }
+
+    return leakDays;
+  }
+
+  private getMeterConclusionForDate(item: Dashboard, targetDate: string): string {
+    if (!item || !item.predictions) return 'Chưa có dữ liệu';
+
+    const lstmPredictions = item.predictions.filter(p =>
+      p.model_name?.toUpperCase().includes('LSTM') && !p.model_name?.toUpperCase().includes('AUTO')
+    );
+
+    const lstmAutoencoder = item.predictions.filter(p =>
+      p.model_name?.toUpperCase().includes('AUTO')
+    );
+
+    const formatDate = (pred: any): string => {
+      const dateRaw = (pred?.prediction_time as any)?.$date ?? pred?.prediction_time;
+      const d = new Date(dateRaw);
+      if (isNaN(d.getTime())) return '';
+      return `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')}/${d.getFullYear()}`;
+    };
+
+    const lstmPred = lstmPredictions.find(p => formatDate(p) === targetDate) ?? null;
+    const autoencoderPredictions = lstmAutoencoder.filter(p => formatDate(p) === targetDate);
+    const autoencoderPred = autoencoderPredictions.length > 0 ? this.selectBestPredictionForDay(autoencoderPredictions) : null;
+
+    if (!lstmPred && !autoencoderPred) return 'Chưa có dữ liệu';
+
+    const getScore = (pred: any): number => {
+      if (!pred) return 0;
+      if (pred.predicted_label === 'normal') return 0;
+      if (pred.predicted_label === 'leak') {
+        if (pred.confidence === 'NNthap') return 1;
+        if (pred.confidence === 'NNTB') return 2;
+        if (pred.confidence === 'NNcao') return 3;
+        return 1;
+      }
+      return 0;
+    };
+
+    const predictions = [lstmPred, autoencoderPred].filter(p => p !== null);
+    if (predictions.length === 0) return 'Chưa có dữ liệu';
+
+    const scores = predictions.map(pred => getScore(pred));
+    const averageScore = scores.reduce((sum, score) => sum + score, 0) / scores.length;
+    const finalScore = Math.floor(averageScore);
+
+    switch (finalScore) {
+      case 0: return 'Bình thường';
+      case 1: return 'Rò rỉ nghi ngờ thấp';
+      case 2: return 'Rò rỉ nghi ngờ trung bình';
+      case 3: return 'Rò rỉ nghi ngờ cao';
+      default: return 'Bình thường';
     }
   }
-  return leakDays;
-}
 
-  //Hiển thị bản đồ 
+  //Hiển thị bản đồ
   showMapForItem(item: Dashboard): void {
     this.selectedItem = item;
     this.showMap = true;

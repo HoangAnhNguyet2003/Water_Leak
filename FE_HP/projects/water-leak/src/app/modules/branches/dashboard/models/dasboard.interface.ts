@@ -1,4 +1,3 @@
-// src/app/models/dashboard.interface.ts
 export interface Dashboard {
   _id: string;
   branch_id: string;
